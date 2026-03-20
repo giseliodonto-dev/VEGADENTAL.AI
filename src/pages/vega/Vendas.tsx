@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
-import { MessageSquareText, Send, Bot, User, Lightbulb, Target, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageSquareText, Send, Bot, User, Lightbulb, Target, TrendingUp, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
