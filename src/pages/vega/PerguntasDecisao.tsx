@@ -52,6 +52,27 @@ function generateQuestion(objection: string, profile: string): { question: strin
       question: `"Sr. José, as minhas peças são esculturas individuais que imitam cada detalhe, sulco e matiz de um dente natural. Como o projeto é feito à mão para o seu rosto, ele devolve a sua identidade, não apenas a função. O senhor prefere uma solução padrão de laboratório ou uma reabilitação artesanal que ninguém perceba que não é sua?"`,
     };
 
+  // Ortodontia — Arquitetura de Sorriso e Engenharia Facial
+  if (ob.includes("aparelho") || ob.includes("ortodon") || ob.includes("torto") || ob.includes("alinhador") || ob.includes("invisalign") || ob.includes("dente torto") || ob.includes("mordida") || ob.includes("braquete"))
+    return {
+      focus: "Método VEGA: Arquitetura de Sorriso e Engenharia Facial",
+      question: `"O meu trabalho de ortodontia não é apenas alinhar dentes — é projetar a arquitetura do seu sorriso em harmonia com o seu rosto. Cada movimento é calculado para criar proporção, simetria e equilíbrio facial. Você prefere um alinhamento genérico de fábrica ou um projeto de engenharia facial desenhado exclusivamente para a sua face?"`,
+    };
+
+  // Endodontia — Preservação de Raiz e Resgate Biológico
+  if (ob.includes("canal") || ob.includes("endodon") || ob.includes("nervo") || ob.includes("raiz") || ob.includes("infecç") || ob.includes("inflamaç") || ob.includes("abscesso") || ob.includes("dente morto"))
+    return {
+      focus: "Método VEGA: Preservação de Raiz e Resgate Biológico",
+      question: `"Eu entendo o receio. Mas o tratamento de canal que faço aqui é um resgate biológico — é preservar a raiz original que a natureza te deu, com tecnologia de ponta e precisão milimétrica. A alternativa é perder esse dente para sempre. O senhor prefere resgatar o que é seu com segurança ou abrir mão de uma estrutura que nenhum implante do mundo replica com a mesma perfeição?"`,
+    };
+
+  // Periodontia — Fundação e Longevidade Estrutural
+  if (ob.includes("gengiva") || ob.includes("periodon") || ob.includes("sangra") || ob.includes("retraç") || ob.includes("mobilidade") || ob.includes("dente mole") || ob.includes("osso") || ob.includes("raspagem"))
+    return {
+      focus: "Método VEGA: Fundação e Longevidade Estrutural",
+      question: `"A gengiva é a fundação do seu sorriso — sem uma base saudável, nenhum tratamento estético sobrevive. O meu protocolo periodontal é como restaurar os alicerces de uma obra de arte: invisível, mas essencial. Você prefere tratar a fundação agora e garantir a longevidade de tudo que construímos, ou arriscar perder dentes que poderiam durar décadas?"`,
+    };
+
   // === PERFIL: INSEGURO / MEDO ===
   if (profile === "inseguro") {
     // Medo de dor — Implantes / Cirurgia
