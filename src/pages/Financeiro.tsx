@@ -28,6 +28,7 @@ const cashFlowData = [
 ];
 
 const recentTransactions = [
+  { description: "Consulta - João Augusto", type: "income", value: 1000, date: "20/03/2026" },
   { description: "Consulta - Maria Oliveira", type: "income", value: 350, date: "20/03/2026" },
   { description: "Material Odontológico", type: "expense", value: 1200, date: "19/03/2026" },
   { description: "Restauração - Carlos Santos", type: "income", value: 480, date: "19/03/2026" },
