@@ -17,6 +17,7 @@ import VegaAtendimento from "./pages/vega/Atendimento.tsx";
 import VegaProcessos from "./pages/vega/Processos.tsx";
 import VegaPessoas from "./pages/vega/Pessoas.tsx";
 import VegaAutoridade from "./pages/vega/Autoridade.tsx";
+import VegaPerguntasDecisao from "./pages/vega/PerguntasDecisao.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
