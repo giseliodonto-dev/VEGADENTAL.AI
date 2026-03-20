@@ -27,41 +27,48 @@ type ResponseEntry = {
 function generateQuestion(objection: string, profile: string): string {
   const ob = objection.toLowerCase();
 
+  // === PERFIL: INSEGURO / MEDO → Foco em Segurança e Resultado Estético Final ===
   if (profile === "inseguro") {
-    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor"))
-      return `"Eu entendo que investir na sua saúde gera reflexão. Mas me diz uma coisa: quanto custa para você viver mais um ano com esse desconforto — nas suas noites de sono, na sua autoestima, na sua segurança ao sorrir?"`;
+    if (ob.includes("dói") || ob.includes("dor") || ob.includes("medo") || ob.includes("agulha") || ob.includes("anestesia"))
+      return `"Eu entendo perfeitamente o seu receio — e ele é mais comum do que imagina. Mas me permite uma reflexão: o desconforto do procedimento dura minutos, com toda a segurança da tecnologia que usamos aqui. Já o desconforto de conviver com esse problema… esse dura anos. O resultado final vai devolver para você algo que não tem preço: a segurança de sorrir sem pensar duas vezes."`;
+    if (ob.includes("pensar") || ob.includes("depois") || ob.includes("calma") || ob.includes("ainda não"))
+      return `"Claro, pensar é sábio. Mas me diz uma coisa com sinceridade: o que exatamente você ainda precisa avaliar? Porque o diagnóstico já está feito, a solução já existe, e cada semana que passa é uma semana a mais convivendo com algo que tem conserto. Eu estou aqui justamente para te dar toda a segurança que você precisa para decidir com tranquilidade."`;
+    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor") || ob.includes("custo"))
+      return `"Eu entendo que o investimento gera reflexão. Mas quero te fazer uma pergunta sincera: quanto está custando para você, hoje, viver com esse incômodo? O custo de não tratar não aparece na conta do banco — mas aparece na sua autoestima, no seu sono, na forma como você se apresenta ao mundo. O procedimento que fazemos aqui é seguro, previsível e o resultado estético é natural."`;
     if (ob.includes("marido") || ob.includes("esposa") || ob.includes("família") || ob.includes("consultar"))
-      return `"É natural querer alinhar com quem a gente ama. Mas me permite uma pergunta sincera: se o seu marido estivesse sentindo essa mesma dor, esse mesmo incômodo, você pediria que ele esperasse — ou cuidasse logo de si mesmo?"`;
-    if (ob.includes("pensar") || ob.includes("depois") || ob.includes("calma"))
-      return `"Claro, pensar é sábio. Mas o que exatamente você precisa avaliar? Porque a sua saúde já te deu o diagnóstico — e cada dia que passa sem tratamento é um dia a mais convivendo com algo que tem solução."`;
-    if (ob.includes("medo") || ob.includes("dói") || ob.includes("dor"))
-      return `"Eu respeito muito o que você sente. Mas posso te fazer uma pergunta? O que dói mais: o procedimento que dura alguns minutos — ou continuar anos com esse problema afetando sua qualidade de vida?"`;
-    return `"Entendo sua preocupação. Me responda com sinceridade: daqui a seis meses, o que vai pesar mais — ter investido na solução, ou continuar convivendo com o problema?"`;
+      return `"É bonito querer compartilhar decisões com quem a gente ama. Mas essa decisão é sobre a sua saúde — sobre como você se sente, como você dorme, como você sorri. Me permite te mostrar exatamente como vai ficar o resultado final? Quando você visualizar a transformação, vai ter a segurança de saber que essa é a decisão certa — para você e para quem te ama."`;
+    return `"Eu sei que dar esse passo exige coragem. Mas quero que você saiba: aqui, cada etapa é feita com máxima segurança e previsibilidade. O resultado final vai te devolver algo que você merece — a liberdade de sorrir com confiança. Me permite te mostrar como vai ficar?"`;
   }
 
+  // === PERFIL: FOCADO EM PREÇO → Foco no Custo da Inércia ===
   if (profile === "preco") {
-    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor"))
-      return `"Quando você compara valores, está comparando exatamente o quê? Porque aqui o investimento inclui tecnologia de ponta, materiais premium e um acompanhamento que não existe no mercado. A pergunta real é: você quer o mais barato — ou o que vai durar e te dar segurança por anos?"`;
-    if (ob.includes("outro") || ob.includes("compara") || ob.includes("concorrente") || ob.includes("dentista"))
-      return `"Fico feliz que esteja pesquisando — isso mostra que você leva a sério. A diferença é que aqui a gente não entrega apenas um procedimento, a gente entrega um resultado com garantia de acompanhamento. O preço mais baixo normalmente cobra depois — em retrabalho."`;
-    if (ob.includes("parcela") || ob.includes("desconto") || ob.includes("condição"))
-      return `"Vamos encontrar a melhor condição para você. Mas antes, me responde: se o investimento coubesse no seu orçamento de forma confortável, você decidiria hoje? Porque o mais importante é que a solução não pode esperar — a sua saúde já decidiu por você."`;
-    return `"Investir em saúde nunca é gasto — é a decisão mais inteligente que você pode tomar. Me permite te mostrar exatamente o que está incluso e por que cada centavo faz diferença no seu resultado?"`;
-  }
-
-  if (profile === "estetico") {
-    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor"))
-      return `"Você já imaginou como vai se sentir quando olhar no espelho e ver o sorriso que sempre quis? Esse é o tipo de investimento que muda a forma como você se apresenta ao mundo. A pergunta é: quanto vale para você se sentir confiante todos os dias?"`;
+    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor") || ob.includes("custo") || ob.includes("dinheiro"))
+      return `"Eu entendo a preocupação com o investimento. Mas me permite uma reflexão importante: o custo de não tratar nunca aparece no orçamento — mas ele existe. É o dente vizinho que começa a migrar, é a mastigação que piora, é o tratamento que daqui a um ano vai custar o dobro. O senhor prefere investir agora na solução definitiva, ou arcar amanhã com um problema maior e mais caro?"`;
+    if (ob.includes("outro") || ob.includes("compara") || ob.includes("concorrente") || ob.includes("dentista") || ob.includes("mais barato"))
+      return `"Fico feliz que esteja pesquisando — isso mostra responsabilidade. A diferença é que aqui o investimento inclui materiais premium, tecnologia de ponta e acompanhamento completo. O preço mais baixo normalmente cobra depois — em retrabalho, em dor, em frustração. A pergunta real é: você quer economizar hoje e pagar duas vezes, ou investir uma vez e ter resultado para a vida?"`;
+    if (ob.includes("parcela") || ob.includes("desconto") || ob.includes("condição") || ob.includes("pagamento"))
+      return `"Vamos encontrar a melhor condição para você — isso eu resolvo. Mas antes, me responda: se o investimento coubesse confortavelmente no seu orçamento, você decidiria hoje? Porque o que não pode esperar é a sua saúde. Cada mês sem tratar é um mês onde o problema avança — e o custo da inércia sempre é maior do que o custo da ação."`;
     if (ob.includes("pensar") || ob.includes("depois") || ob.includes("calma"))
-      return `"Eu entendo querer refletir. Mas me conta: há quanto tempo você pensa em transformar o seu sorriso? Cada mês que passa é mais um mês que você deixa de viver com a confiança que merece."`;
-    if (ob.includes("natural") || ob.includes("resultado") || ob.includes("fica bom"))
-      return `"O nosso compromisso é com a naturalidade. Ninguém vai olhar para você e ver um 'procedimento' — vão ver a melhor versão do seu sorriso. Posso te mostrar casos reais de pacientes com o mesmo perfil que o seu?"`;
-    if (ob.includes("marido") || ob.includes("esposa") || ob.includes("família"))
-      return `"É bonito pensar na família. Mas essa decisão é sobre você — sobre como você se sente quando sorri, quando fala, quando se olha no espelho. Me diz: se dependesse só de você, você já teria decidido?"`;
-    return `"O sorriso é a primeira coisa que as pessoas notam. Quando você se imagina daqui a 3 meses com o sorriso que sempre sonhou — isso vale mais do que qualquer hesitação de hoje?"`;
+      return `"Pensar é prudente. Mas quero te dar um dado importante: problemas bucais não estacionam — eles progridem. O tratamento que hoje custa X, daqui a seis meses pode custar 2X porque o quadro evoluiu. O senhor prefere resolver agora com conforto, ou esperar e lidar com um problema maior?"`;
+    return `"O investimento em saúde nunca é gasto — é a decisão mais inteligente que você pode tomar. Porque o custo de não tratar é silencioso: ele aparece na sua qualidade de vida, na sua confiança, e na conta de um tratamento futuro muito mais complexo. Me permite te mostrar exatamente o que está incluso e por que cada centavo faz diferença?"`;
   }
 
-  return `"Me responda com sinceridade: o que precisa acontecer para você tomar essa decisão hoje? Porque eu estou aqui para resolver cada uma das suas dúvidas — e a sua saúde não pode esperar."`;
+  // === PERFIL: DESEJO ESTÉTICO → Foco na Autoestima e Prioridade Pessoal ===
+  if (profile === "estetico") {
+    if (ob.includes("marido") || ob.includes("esposa") || ob.includes("família") || ob.includes("consultar") || ob.includes("opinião"))
+      return `"É lindo pensar na família. Mas me permite uma pergunta com carinho: essa decisão é sobre o seu sorriso, a sua autoestima, a forma como você se sente quando se olha no espelho. Se dependesse só de você — do que você sente, do que você deseja — você já teria decidido? Porque você merece se colocar como prioridade."`;
+    if (ob.includes("caro") || ob.includes("preço") || ob.includes("valor"))
+      return `"Já imaginou como vai se sentir quando olhar no espelho e ver o sorriso que sempre quis? Esse investimento muda a forma como você se apresenta ao mundo, como você sorri numa foto, como você se sente numa reunião. A pergunta é: quanto vale para você viver todos os dias com a confiança que merece? Você é a sua maior prioridade."`;
+    if (ob.includes("pensar") || ob.includes("depois") || ob.includes("calma"))
+      return `"Eu entendo querer refletir. Mas me conta com sinceridade: há quanto tempo você pensa em transformar o seu sorriso? Cada mês que passa é mais um mês que você adia a melhor versão de si mesma. Você merece se olhar no espelho e sentir orgulho — e isso pode começar hoje."`;
+    if (ob.includes("natural") || ob.includes("resultado") || ob.includes("fica bom") || ob.includes("aparência"))
+      return `"O nosso compromisso é com a naturalidade absoluta. Ninguém vai olhar para você e ver um 'procedimento' — vão ver a melhor versão do seu sorriso. Posso te mostrar casos reais de pacientes com o mesmo perfil? Quando você se vir neles, vai entender que essa transformação é para você."`;
+    if (ob.includes("medo") || ob.includes("dói") || ob.includes("dor"))
+      return `"Eu respeito muito o que você sente. Mas pense comigo: o que dói mais — um procedimento seguro que dura minutos, ou continuar evitando sorrir abertamente, escondendo os dentes nas fotos, deixando a autoestima em segundo plano? Você merece se sentir bonita. E eu estou aqui para garantir que o caminho seja confortável."`;
+    return `"O sorriso é a primeira coisa que as pessoas notam em você. Quando você se imagina daqui a 3 meses com o sorriso que sempre sonhou — confiante, radiante, sem esconder nada — isso vale mais do que qualquer hesitação de hoje. Você é a sua prioridade. Me permite te mostrar o caminho?"`;
+  }
+
+  return `"Me responda com sinceridade: o que precisa acontecer para você tomar essa decisão hoje? Porque eu estou aqui para resolver cada uma das suas dúvidas — e a sua saúde e a sua autoestima não podem esperar."`;
 }
 
 const PerguntasDecisao = () => {
