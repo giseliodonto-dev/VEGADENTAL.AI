@@ -108,14 +108,14 @@ function generateQuestion(objection: string, profile: string): { question: strin
     // Medo de ficar artificial
     if (ob.includes("artificial") || ob.includes("falso") || ob.includes("exagerad") || ob.includes("estranho") || ob.includes("parecer"))
       return {
-        focus: "Naturalidade e Personalização Premium",
-        question: `"Você prefere um sorriso 'padrão' que qualquer um tem, ou um projeto desenhado para o seu rosto que devolva a sua identidade de forma natural e elegante? O nosso compromisso é com a naturalidade absoluta — ninguém vai ver um 'procedimento', vão ver a melhor versão de você."`,
+        focus: "Luxo Artesanal — Personalidade e Exclusividade",
+        question: `"No meu método, o seu sorriso é uma escultura artesanal única — cada faceta é trabalhada à mão para respeitar a sua anatomia e a personalidade do seu rosto. Nenhum sorriso VEGA é igual ao outro. Não é um produto de fábrica, é a sua melhor versão. Você prefere um sorriso padronizado ou um projeto irrepetível feito exclusivamente para você?"`,
       };
     // Desgaste / Facetas / Lentes
     if (ob.includes("desgast") || ob.includes("faceta") || ob.includes("lente") || ob.includes("lixar"))
       return {
-        focus: "Preservação e Longevidade",
-        question: `"O que é mais agressivo para o seu sorriso: um preparo milimétrico controlado por mim hoje ou o desgaste natural e escurecimento que seus dentes sofrerão se continuarem desprotegidos? Aqui, cada milímetro é planejado para preservar e transformar."`,
+        focus: "Luxo Artesanal — Processo Manual e Preservação",
+        question: `"O preparo que faço é uma escultura milimétrica feita à mão — cada movimento respeita a anatomia única dos seus dentes. Não existe molde genérico, não existe padrão de fábrica. O resultado é irrepetível e preserva o que há de melhor na sua estrutura natural. A senhora prefere deixar seus dentes desprotegidos ao desgaste do tempo, ou confiar em um processo artesanal exclusivo que transforma preservando?"`,
       };
     if (ob.includes("marido") || ob.includes("esposa") || ob.includes("família") || ob.includes("consultar") || ob.includes("opinião"))
       return {
