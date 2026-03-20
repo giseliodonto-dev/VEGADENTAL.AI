@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
-import { Search, Plus, Phone, Mail, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Phone, Mail, MoreHorizontal, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
