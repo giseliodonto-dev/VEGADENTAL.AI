@@ -9,10 +9,14 @@ import Agenda from "./pages/Agenda.tsx";
 import Financeiro from "./pages/Financeiro.tsx";
 import Equipe from "./pages/Equipe.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
-import CalculadoraSobrevivencia from "./pages/CalculadoraSobrevivencia.tsx";
-import IAVendasNEPQ from "./pages/IAVendasNEPQ.tsx";
-import BancoRoteiros from "./pages/BancoRoteiros.tsx";
-import RadarLucro from "./pages/RadarLucro.tsx";
+import VegaVendas from "./pages/vega/Vendas.tsx";
+import VegaMarketing from "./pages/vega/Marketing.tsx";
+import VegaGestao from "./pages/vega/Gestao.tsx";
+import VegaFinancas from "./pages/vega/Financas.tsx";
+import VegaAtendimento from "./pages/vega/Atendimento.tsx";
+import VegaProcessos from "./pages/vega/Processos.tsx";
+import VegaPessoas from "./pages/vega/Pessoas.tsx";
+import VegaAutoridade from "./pages/vega/Autoridade.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,10 +34,14 @@ const App = () => (
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/equipe" element={<Equipe />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="/vega/calculadora" element={<CalculadoraSobrevivencia />} />
-          <Route path="/vega/ia-vendas" element={<IAVendasNEPQ />} />
-          <Route path="/vega/roteiros" element={<BancoRoteiros />} />
-          <Route path="/vega/radar" element={<RadarLucro />} />
+          <Route path="/vega/vendas" element={<VegaVendas />} />
+          <Route path="/vega/marketing" element={<VegaMarketing />} />
+          <Route path="/vega/gestao" element={<VegaGestao />} />
+          <Route path="/vega/financas" element={<VegaFinancas />} />
+          <Route path="/vega/atendimento" element={<VegaAtendimento />} />
+          <Route path="/vega/processos" element={<VegaProcessos />} />
+          <Route path="/vega/pessoas" element={<VegaPessoas />} />
+          <Route path="/vega/autoridade" element={<VegaAutoridade />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -6,11 +6,15 @@ import {
   UserCog,
   Settings,
   Stethoscope,
-  Calculator,
-  MessageSquareText,
-  Video,
-  Target,
   Compass,
+  ShoppingCart,
+  Megaphone,
+  BarChart3,
+  Wallet,
+  HeartHandshake,
+  ClipboardList,
+  UsersRound,
+  Crown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -37,10 +41,14 @@ const mainItems = [
 ];
 
 const vegaItems = [
-  { title: "Calculadora", url: "/vega/calculadora", icon: Calculator },
-  { title: "IA Vendas NEPQ", url: "/vega/ia-vendas", icon: MessageSquareText },
-  { title: "Roteiros Reels", url: "/vega/roteiros", icon: Video },
-  { title: "Radar de Lucro", url: "/vega/radar", icon: Target },
+  { title: "Vendas", url: "/vega/vendas", icon: ShoppingCart },
+  { title: "Marketing", url: "/vega/marketing", icon: Megaphone },
+  { title: "Gestão", url: "/vega/gestao", icon: BarChart3 },
+  { title: "Finanças", url: "/vega/financas", icon: Wallet },
+  { title: "Atendimento", url: "/vega/atendimento", icon: HeartHandshake },
+  { title: "Processos", url: "/vega/processos", icon: ClipboardList },
+  { title: "Pessoas", url: "/vega/pessoas", icon: UsersRound },
+  { title: "Autoridade", url: "/vega/autoridade", icon: Crown },
 ];
 
 const settingsItems = [
