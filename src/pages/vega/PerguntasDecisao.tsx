@@ -29,6 +29,30 @@ function generateQuestion(objection: string, profile: string): { question: strin
   const ob = objection.toLowerCase();
 
   // === PERFIL: INSEGURO / MEDO → Foco em Conforto, Tecnologia, Preservação ===
+  // === ESPECIALIDADES ARTESANAIS (prioridade máxima, independente de perfil) ===
+
+  // Clareamento — Translucidez e Vitalidade
+  if (ob.includes("clarear") || ob.includes("clareamento") || ob.includes("branco artificial") || ob.includes("giz") || ob.includes("branco opaco") || ob.includes("branquear"))
+    return {
+      focus: "Método VEGA: Translucidez e Vitalidade",
+      question: `"Dona Maria, o meu protocolo não é sobre 'pintar' seus dentes de branco, mas sim devolver a vitalidade e a translucidez natural que o tempo escondeu. Você prefere um branco opaco de prateleira ou um sorriso iluminado que respeite a naturalidade do seu esmalte?"`,
+    };
+
+  // Harmonização Facial — Gerenciamento de Envelhecimento e Lapidação
+  if (ob.includes("harmoniza") || ob.includes("deformad") || ob.includes("inflad") || ob.includes("preenchimento") || ob.includes("botox") || ob.includes("bichectomia") || ob.includes("rosto inchad"))
+    return {
+      focus: "Método VEGA: Gerenciamento de Envelhecimento e Lapidação",
+      question: `"João, meu trabalho é de lapidação, não de preenchimento em massa. O objetivo é que as pessoas notem que você está mais descansado e rejuvenescido, sem conseguir apontar onde foi feito. Você prefere um rosto transformado por padrões genéricos ou uma face lapidada para revelar sua melhor versão de forma invisível?"`,
+    };
+
+  // Próteses — Escultura Individualizada e Reabilitação de Identidade
+  if (ob.includes("prótese") || ob.includes("dentadura") || ob.includes("perceber") && (ob.includes("dente") || ob.includes("prótese")) || ob.includes("dente postiço") || ob.includes("protocolo"))
+    return {
+      focus: "Método VEGA: Escultura Individualizada e Reabilitação de Identidade",
+      question: `"Sr. José, as minhas peças são esculturas individuais que imitam cada detalhe, sulco e matiz de um dente natural. Como o projeto é feito à mão para o seu rosto, ele devolve a sua identidade, não apenas a função. O senhor prefere uma solução padrão de laboratório ou uma reabilitação artesanal que ninguém perceba que não é sua?"`,
+    };
+
+  // === PERFIL: INSEGURO / MEDO ===
   if (profile === "inseguro") {
     // Medo de dor — Implantes / Cirurgia
     if (ob.includes("dor") || ob.includes("dói") || ob.includes("medo") && (ob.includes("implante") || ob.includes("cirurgia") || ob.includes("extração") || ob.includes("agulha") || ob.includes("anestesia")))
@@ -246,7 +270,7 @@ const PerguntasDecisao = () => {
             <div className="bg-accent px-6 py-2.5 flex items-center justify-center gap-2">
               <ShieldCheck className="h-4 w-4 text-accent-foreground" />
               <span className="text-xs font-bold tracking-widest uppercase text-accent-foreground">
-                Selo de Autoridade VEGA
+                Método VEGA: Excelência Artesanal
               </span>
             </div>
 
