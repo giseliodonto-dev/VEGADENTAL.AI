@@ -54,6 +54,21 @@ const Vendas = () => {
   return (
     <AppLayout title="Vendas — IA NEPQ">
       <div className="max-w-4xl space-y-6">
+        {/* Link Perguntas de Decisão */}
+        <Card
+          className="animate-fade-up cursor-pointer p-4 flex items-center gap-3 transition-all hover:shadow-md active:scale-[0.98] border-accent/30 bg-accent/5"
+          style={{ opacity: 0, animationFillMode: "forwards" }}
+          onClick={() => navigate("/vega/vendas/perguntas-decisao")}
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
+            <Crown className="h-4 w-4 text-accent" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Perguntas de Decisão</p>
+            <p className="text-xs text-muted-foreground">Oráculo VEGA — transforme objeções em decisões</p>
+          </div>
+        </Card>
+
         {/* Scripts rápidos */}
         <div
           className="animate-fade-up grid gap-3 sm:grid-cols-3"
