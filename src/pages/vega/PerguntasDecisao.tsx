@@ -270,7 +270,7 @@ const PerguntasDecisao = () => {
             <div className="bg-accent px-6 py-2.5 flex items-center justify-center gap-2">
               <ShieldCheck className="h-4 w-4 text-accent-foreground" />
               <span className="text-xs font-bold tracking-widest uppercase text-accent-foreground">
-                Selo de Autoridade VEGA
+                Método VEGA: Excelência Artesanal
               </span>
             </div>
 
