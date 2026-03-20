@@ -17,6 +17,7 @@ import VegaAtendimento from "./pages/vega/Atendimento.tsx";
 import VegaProcessos from "./pages/vega/Processos.tsx";
 import VegaPessoas from "./pages/vega/Pessoas.tsx";
 import VegaAutoridade from "./pages/vega/Autoridade.tsx";
+import VegaPerguntasDecisao from "./pages/vega/PerguntasDecisao.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/equipe" element={<Equipe />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/vega/vendas" element={<VegaVendas />} />
+          <Route path="/vega/vendas/perguntas-decisao" element={<VegaPerguntasDecisao />} />
           <Route path="/vega/marketing" element={<VegaMarketing />} />
           <Route path="/vega/gestao" element={<VegaGestao />} />
           <Route path="/vega/financas" element={<VegaFinancas />} />

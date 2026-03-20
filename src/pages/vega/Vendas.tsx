@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
-import { MessageSquareText, Send, Bot, User, Lightbulb, Target, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageSquareText, Send, Bot, User, Lightbulb, Target, TrendingUp, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,7 @@ const scripts = [
 ];
 
 const Vendas = () => {
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
 
@@ -52,6 +54,21 @@ const Vendas = () => {
   return (
     <AppLayout title="Vendas — IA NEPQ">
       <div className="max-w-4xl space-y-6">
+        {/* Link Perguntas de Decisão */}
+        <Card
+          className="animate-fade-up cursor-pointer p-4 flex items-center gap-3 transition-all hover:shadow-md active:scale-[0.98] border-accent/30 bg-accent/5"
+          style={{ opacity: 0, animationFillMode: "forwards" }}
+          onClick={() => navigate("/vega/vendas/perguntas-decisao")}
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
+            <Crown className="h-4 w-4 text-accent" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Perguntas de Decisão</p>
+            <p className="text-xs text-muted-foreground">Oráculo VEGA — transforme objeções em decisões</p>
+          </div>
+        </Card>
+
         {/* Scripts rápidos */}
         <div
           className="animate-fade-up grid gap-3 sm:grid-cols-3"
