@@ -39,14 +39,14 @@ function generateQuestion(objection: string, profile: string): { question: strin
     // Medo de desgastar os dentes — Facetas / Lentes
     if (ob.includes("desgast") || ob.includes("faceta") || ob.includes("lente") || ob.includes("preparar") || ob.includes("lixar"))
       return {
-        focus: "Preservação e Longevidade",
-        question: `"Dona Maria, o que é mais agressivo para o seu sorriso: um preparo milimétrico controlado por mim hoje ou o desgaste natural e escurecimento que seus dentes sofrerão se continuarem desprotegidos?"`,
+        focus: "Luxo Artesanal — Irrepetibilidade e Processo Manual",
+        question: `"Dona Maria, no meu método, cada faceta é uma escultura artesanal feita à mão. O preparo é milimétrico e respeita a anatomia única do seu rosto — não existe molde de fábrica, não existe padrão genérico. O resultado é irrepetível: nenhum sorriso VEGA é igual ao outro. A senhora prefere um sorriso padronizado que qualquer um pode ter, ou uma obra exclusiva desenhada para devolver a sua melhor versão?"`,
       };
     // Medo de ficar artificial
     if (ob.includes("artificial") || ob.includes("falso") || ob.includes("parecer") || ob.includes("estranho") || ob.includes("exagerad"))
       return {
-        focus: "Naturalidade e Personalização Premium",
-        question: `"Você prefere um sorriso 'padrão' que qualquer um tem, ou um projeto desenhado para o seu rosto que devolva a sua identidade de forma natural e elegante?"`,
+        focus: "Luxo Artesanal — Personalidade e Exclusividade",
+        question: `"Dona Maria, no meu método, o seu sorriso é uma escultura artesanal única. Como cada faceta é trabalhada à mão para respeitar a sua anatomia e a história do seu rosto, o resultado não é um padrão de fábrica — é a sua melhor versão. Nenhum sorriso VEGA é igual ao outro. Você prefere um sorriso que qualquer um possa ter ou um projeto feito exclusivamente para o seu rosto?"`,
       };
     // Medo genérico de dor
     if (ob.includes("dói") || ob.includes("dor") || ob.includes("medo") || ob.includes("agulha") || ob.includes("anestesia"))
