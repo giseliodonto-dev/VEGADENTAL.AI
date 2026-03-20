@@ -22,6 +22,7 @@ const scripts = [
 ];
 
 const Vendas = () => {
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
 
