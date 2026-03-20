@@ -5,8 +5,12 @@ import {
   DollarSign,
   UserCog,
   Settings,
-  LogOut,
   Stethoscope,
+  Calculator,
+  MessageSquareText,
+  Video,
+  Target,
+  Compass,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,6 +34,13 @@ const mainItems = [
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Equipe", url: "/equipe", icon: UserCog },
+];
+
+const vegaItems = [
+  { title: "Calculadora", url: "/vega/calculadora", icon: Calculator },
+  { title: "IA Vendas NEPQ", url: "/vega/ia-vendas", icon: MessageSquareText },
+  { title: "Roteiros Reels", url: "/vega/roteiros", icon: Video },
+  { title: "Radar de Lucro", url: "/vega/radar", icon: Target },
 ];
 
 const settingsItems = [
@@ -74,6 +85,33 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
+                      className="transition-colors duration-150"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-xs uppercase tracking-wider">
+            <div className="flex items-center gap-1.5">
+              <Compass className="h-3 w-3" />
+              VEGA GPS
+            </div>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {vegaItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
                       className="transition-colors duration-150"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
                     >
