@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const patients = [
-  { id: 1, name: "Maria Oliveira", phone: "(11) 98765-4321", email: "maria@email.com", lastVisit: "12/03/2026", nextVisit: "26/03/2026", status: "Ativo" },
-  { id: 2, name: "Carlos Santos", phone: "(11) 91234-5678", email: "carlos@email.com", lastVisit: "05/03/2026", nextVisit: "20/03/2026", status: "Ativo" },
-  { id: 3, name: "Ana Costa", phone: "(21) 99876-5432", email: "ana@email.com", lastVisit: "28/02/2026", nextVisit: "28/03/2026", status: "Ativo" },
-  { id: 4, name: "Pedro Almeida", phone: "(11) 97654-3210", email: "pedro@email.com", lastVisit: "10/01/2026", nextVisit: "-", status: "Inativo" },
-  { id: 5, name: "Julia Ferreira", phone: "(31) 98765-1234", email: "julia@email.com", lastVisit: "15/03/2026", nextVisit: "22/03/2026", status: "Ativo" },
-  { id: 6, name: "Lucas Martins", phone: "(11) 99999-8888", email: "lucas@email.com", lastVisit: "18/03/2026", nextVisit: "25/03/2026", status: "Ativo" },
-  { id: 7, name: "Beatriz Souza", phone: "(21) 91111-2222", email: "beatriz@email.com", lastVisit: "01/03/2026", nextVisit: "-", status: "Inativo" },
-  { id: 8, name: "Gabriel Lima", phone: "(11) 93333-4444", email: "gabriel@email.com", lastVisit: "19/03/2026", nextVisit: "02/04/2026", status: "Ativo" },
+  { id: 1, name: "João Augusto", phone: "(11) 94567-8901", email: "joao.augusto@email.com", lastVisit: "20/03/2026", nextVisit: "03/04/2026", status: "Ativo" },
+  { id: 2, name: "Maria Oliveira", phone: "(11) 98765-4321", email: "maria@email.com", lastVisit: "12/03/2026", nextVisit: "26/03/2026", status: "Ativo" },
+  { id: 3, name: "Carlos Santos", phone: "(11) 91234-5678", email: "carlos@email.com", lastVisit: "05/03/2026", nextVisit: "20/03/2026", status: "Ativo" },
+  { id: 4, name: "Ana Costa", phone: "(21) 99876-5432", email: "ana@email.com", lastVisit: "28/02/2026", nextVisit: "28/03/2026", status: "Ativo" },
+  { id: 5, name: "Pedro Almeida", phone: "(11) 97654-3210", email: "pedro@email.com", lastVisit: "10/01/2026", nextVisit: "-", status: "Inativo" },
+  { id: 6, name: "Julia Ferreira", phone: "(31) 98765-1234", email: "julia@email.com", lastVisit: "15/03/2026", nextVisit: "22/03/2026", status: "Ativo" },
+  { id: 7, name: "Lucas Martins", phone: "(11) 99999-8888", email: "lucas@email.com", lastVisit: "18/03/2026", nextVisit: "25/03/2026", status: "Ativo" },
+  { id: 8, name: "Beatriz Souza", phone: "(21) 91111-2222", email: "beatriz@email.com", lastVisit: "01/03/2026", nextVisit: "-", status: "Inativo" },
+  { id: 9, name: "Gabriel Lima", phone: "(11) 93333-4444", email: "gabriel@email.com", lastVisit: "19/03/2026", nextVisit: "02/04/2026", status: "Ativo" },
 ];
 
 const Pacientes = () => {
