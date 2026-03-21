@@ -19,6 +19,7 @@ import {
   CalendarPlus,
   ArrowRight,
   Megaphone,
+  Brain,
   BarChart3,
   Crown,
   Loader2,
