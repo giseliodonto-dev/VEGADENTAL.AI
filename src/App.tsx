@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
+import CadastroPaciente from "./pages/CadastroPaciente";
 import Home from "./pages/Home";
 import Vendas from "./pages/Vendas";
 import Marketing from "./pages/Marketing";
