@@ -239,7 +239,9 @@ export type Database = {
           entry_date: string
           id: string
           name: string
+          notes: string | null
           origin: string | null
+          responsible_user_id: string | null
           status: string
           updated_at: string
         }
@@ -250,7 +252,9 @@ export type Database = {
           entry_date?: string
           id?: string
           name: string
+          notes?: string | null
           origin?: string | null
+          responsible_user_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -261,7 +265,9 @@ export type Database = {
           entry_date?: string
           id?: string
           name?: string
+          notes?: string | null
           origin?: string | null
+          responsible_user_id?: string | null
           status?: string
           updated_at?: string
         }
