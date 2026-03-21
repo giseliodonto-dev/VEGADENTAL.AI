@@ -13,6 +13,7 @@ import VegaVendas from "./pages/vega/Vendas.tsx";
 import VegaMarketing from "./pages/vega/Marketing.tsx";
 import VegaGestao from "./pages/vega/Gestao.tsx";
 import VegaFinancas from "./pages/vega/Financas.tsx";
+import VegaHoraClinica from "./pages/vega/HoraClinica.tsx";
 import VegaAtendimento from "./pages/vega/Atendimento.tsx";
 import VegaProcessos from "./pages/vega/Processos.tsx";
 import VegaPessoas from "./pages/vega/Pessoas.tsx";
