@@ -254,9 +254,16 @@ const VegaGPS = () => {
       bgColor: "bg-vendas/10",
     },
     {
+      title: "Lucro",
+      value: `R$ ${profit.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+      icon: TrendingUp,
+      color: profit >= 0 ? "text-vendas" : "text-destructive",
+      bgColor: profit >= 0 ? "bg-vendas/10" : "bg-destructive/10",
+    },
+    {
       title: "Conversão",
       value: `${conversionRate}%`,
-      icon: TrendingUp,
+      icon: Target,
       color: "text-marketing",
       bgColor: "bg-marketing/10",
     },
@@ -270,9 +277,16 @@ const VegaGPS = () => {
     {
       title: "Ticket Médio",
       value: `R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
-      icon: Target,
+      icon: BarChart3,
       color: "text-autoridade",
       bgColor: "bg-autoridade/10",
+    },
+    {
+      title: "Pendente",
+      value: `R$ ${pending.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+      icon: Clock,
+      color: pending > 0 ? "text-yellow-500" : "text-muted-foreground",
+      bgColor: pending > 0 ? "bg-yellow-500/10" : "bg-muted/10",
     },
   ];
 
