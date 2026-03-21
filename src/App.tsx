@@ -13,6 +13,7 @@ import VegaVendas from "./pages/vega/Vendas.tsx";
 import VegaMarketing from "./pages/vega/Marketing.tsx";
 import VegaGestao from "./pages/vega/Gestao.tsx";
 import VegaFinancas from "./pages/vega/Financas.tsx";
+import VegaHoraClinica from "./pages/vega/HoraClinica.tsx";
 import VegaAtendimento from "./pages/vega/Atendimento.tsx";
 import VegaProcessos from "./pages/vega/Processos.tsx";
 import VegaPessoas from "./pages/vega/Pessoas.tsx";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/vega/marketing" element={<VegaMarketing />} />
           <Route path="/vega/gestao" element={<VegaGestao />} />
           <Route path="/vega/financas" element={<VegaFinancas />} />
+          <Route path="/vega/financas/hora-clinica" element={<VegaHoraClinica />} />
           <Route path="/vega/atendimento" element={<VegaAtendimento />} />
           <Route path="/vega/processos" element={<VegaProcessos />} />
           <Route path="/vega/pessoas" element={<VegaPessoas />} />

@@ -1,7 +1,8 @@
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
-import { Calculator, Target, Info, Plus, Trash2 } from "lucide-react";
+import { Calculator, Target, Info, Plus, Trash2, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,8 @@ const metaDiaria = 4545;
 const custoFixoDiario = 2727;
 
 const Financas = () => {
+  const navigate = useNavigate();
+
   const [procedimentos, setProcedimentos] = useState<Procedimento[]>([
     { nome: "Limpeza", custo: "45" },
     { nome: "Restauração Resina", custo: "60" },
@@ -73,14 +76,18 @@ const Financas = () => {
             className="animate-fade-up"
             style={{ opacity: 0, animationFillMode: "forwards" }}
           >
-            <TabsTrigger value="calculadora" className="gap-1.5">
-              <Calculator className="h-3.5 w-3.5" />
-              Calculadora
-            </TabsTrigger>
-            <TabsTrigger value="radar" className="gap-1.5">
-              <Target className="h-3.5 w-3.5" />
-              Radar de Lucro
-            </TabsTrigger>
+             <TabsTrigger value="calculadora" className="gap-1.5">
+               <Calculator className="h-3.5 w-3.5" />
+               Calculadora
+             </TabsTrigger>
+             <TabsTrigger value="radar" className="gap-1.5">
+               <Target className="h-3.5 w-3.5" />
+               Radar de Lucro
+             </TabsTrigger>
+             <TabsTrigger value="hora-clinica" className="gap-1.5" onClick={() => navigate("/vega/financas/hora-clinica")}>
+               <Clock className="h-3.5 w-3.5" />
+               Hora Clínica
+             </TabsTrigger>
           </TabsList>
 
           {/* CALCULADORA */}
