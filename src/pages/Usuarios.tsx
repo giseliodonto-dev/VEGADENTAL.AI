@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Users, UserPlus, Crown, Stethoscope, PhoneCall, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Briefcase, Radio } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -26,18 +27,24 @@ const roleLabels: Record<AppRole, string> = {
   dono: "Dono",
   recepcao: "Recepção",
   dentista: "Dentista",
+  crm: "CRM",
+  sdr: "SDR",
 };
 
 const roleIcons: Record<AppRole, React.ReactNode> = {
   dono: <Crown className="h-3.5 w-3.5" />,
   recepcao: <PhoneCall className="h-3.5 w-3.5" />,
   dentista: <Stethoscope className="h-3.5 w-3.5" />,
+  crm: <Briefcase className="h-3.5 w-3.5" />,
+  sdr: <Radio className="h-3.5 w-3.5" />,
 };
 
 const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
   dono: "default",
   recepcao: "secondary",
   dentista: "outline",
+  crm: "secondary",
+  sdr: "outline",
 };
 
 const Usuarios = () => {
@@ -242,6 +249,12 @@ const Usuarios = () => {
                       </SelectItem>
                       <SelectItem value="dentista">
                         <span className="flex items-center gap-2"><Stethoscope className="h-3.5 w-3.5" /> Dentista</span>
+                      </SelectItem>
+                      <SelectItem value="crm">
+                        <span className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5" /> CRM</span>
+                      </SelectItem>
+                      <SelectItem value="sdr">
+                        <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> SDR</span>
                       </SelectItem>
                     </SelectContent>
                   </Select>
