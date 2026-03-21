@@ -21,6 +21,7 @@ import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
+import InteligenciaVega from "./pages/InteligenciaVega";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
