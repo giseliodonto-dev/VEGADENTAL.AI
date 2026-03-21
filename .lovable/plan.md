@@ -1,26 +1,66 @@
 
 
-## Plano: Limpar páginas OdontoGest
+## Plano: Estrutura Interna dos 4 Pilares — VEGA Dental AI
 
-Resetar 6 páginas para estrutura vazia (placeholder), mantendo VEGA GPS intacto.
+### Visão Geral
 
-### Páginas a limpar
+Reorganizar cada pilar com módulos e funcionalidades claras, substituindo os cards genéricos atuais por ferramentas estratégicas específicas.
 
-| Página | Arquivo | Ação |
-|--------|---------|------|
-| Dashboard | `src/pages/Index.tsx` | Remover cards, métricas, gráficos. Deixar título e placeholder "Conteúdo em breve" |
-| Pacientes | `src/pages/Pacientes.tsx` | Remover tabela e dados mock. Placeholder vazio |
-| Agenda | `src/pages/Agenda.tsx` | Remover calendário/eventos. Placeholder vazio |
-| Financeiro | `src/pages/Financeiro.tsx` | Remover transações e gráficos. Placeholder vazio |
-| Equipe | `src/pages/Equipe.tsx` | Remover lista de membros. Placeholder vazio |
-| Configurações | `src/pages/Configuracoes.tsx` | Remover formulários. Placeholder vazio |
+```text
+VEGA Dental AI
+├── Vendas (/vendas)
+│   ├── Perguntas de Decisão ✅ (já existe)
+│   ├── Funil de Vendas (novo)
+│   ├── Controle de Leads (novo)
+│   ├── Taxa de Conversão (novo)
+│   └── Follow-up Inteligente (novo)
+│
+├── Marketing (/marketing)
+│   ├── Planejamento de Conteúdo (novo)
+│   ├── Leads por Origem (novo)
+│   ├── Campanhas (novo)
+│   └── Sugestões Estratégicas (novo)
+│
+├── Gestão (/gestao)
+│   ├── Hora Clínica Real ✅ (já existe)
+│   ├── Agenda (novo)
+│   ├── Financeiro (novo)
+│   ├── Pacientes (novo)
+│   ├── Equipe (novo)
+│   └── Indicadores de Desempenho (novo)
+│
+└── Autoridade (/autoridade)
+    ├── Marca Pessoal (novo)
+    ├── Roteiros de Conteúdo (novo)
+    ├── Posicionamento Digital (novo)
+    └── Presença Online (novo)
+```
 
-### Resultado
+### Implementação
 
-Cada página ficará com o `AppLayout`, título correto e um card central com ícone + texto "Em construção — novas ideias em breve", pronto para receber conteúdo novo. Sidebar e rotas permanecem inalteradas.
+**1. Atualizar `src/pages/Vendas.tsx`**
+- Substituir os 4 cards atuais pelos 5 módulos: Perguntas de Decisão (ativo, link existente), Funil de Vendas, Controle de Leads, Taxa de Conversão, Follow-up Inteligente (marcados "Em breve").
 
-### Não será alterado
-- Todas as páginas VEGA GPS (Vendas, Marketing, Gestão, Finanças, Atendimento, Processos, Pessoas, Autoridade, Perguntas de Decisão, Hora Clínica)
-- AppLayout, AppSidebar, NavLink
-- Rotas em App.tsx
+**2. Atualizar `src/pages/Marketing.tsx`**
+- Substituir os 4 cards atuais (todos "Em breve") pelos 4 novos módulos: Planejamento de Conteúdo, Leads por Origem, Campanhas, Sugestões Estratégicas.
+
+**3. Atualizar `src/pages/Gestao.tsx`**
+- Substituir os 4 cards atuais pelos 6 módulos: Hora Clínica Real (ativo, link existente), Agenda, Financeiro, Pacientes, Equipe, Indicadores de Desempenho.
+
+**4. Atualizar `src/pages/Autoridade.tsx`**
+- Substituir os 4 cards atuais pelos 4 novos módulos: Marca Pessoal, Roteiros de Conteúdo, Posicionamento Digital, Presença Online.
+
+### Detalhes Técnicos
+
+- Todos os novos módulos ficam como cards com badge "Em breve" (sem rota ainda), prontos para serem desenvolvidos individualmente quando solicitado.
+- Os módulos já existentes (Perguntas de Decisão, Hora Clínica Real) mantêm seus links ativos.
+- Ícones e descrições refletem a função estratégica de cada módulo (visão CEO, não gestão tradicional).
+- Grid responsivo: 2 colunas em desktop, 1 em mobile. Gestão usa 3 colunas (6 cards).
+- Nenhuma rota nova em `App.tsx` neste momento — apenas a estrutura visual.
+
+### Arquivos alterados
+- `src/pages/Vendas.tsx`
+- `src/pages/Marketing.tsx`
+- `src/pages/Gestao.tsx`
+- `src/pages/Autoridade.tsx`
 
