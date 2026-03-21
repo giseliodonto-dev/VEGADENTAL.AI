@@ -4,7 +4,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, CalendarCheck, DollarSign, AlertTriangle, Clock, Plus, User } from "lucide-react";
 
-const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 08-18
-const DAYS_COUNT = 6; // Seg-Sáb
+const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
+const DAYS_COUNT = 6;
 const SLOTS_PER_DAY = 8;
 
 type Appointment = {
@@ -33,8 +33,9 @@ type Appointment = {
   patient_id: string | null;
   dentist_user_id: string | null;
   patient?: { name: string } | null;
-  dentist?: { full_name: string | null } | null;
 };
+
+type Dentist = { id: string; name: string; role: string };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   agendado: { label: "Agendado", color: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -45,6 +46,28 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border line-through" },
 };
 
+const DENTIST_COLORS = [
+  "border-l-blue-500",
+  "border-l-emerald-500",
+  "border-l-violet-500",
+  "border-l-amber-500",
+  "border-l-rose-500",
+  "border-l-cyan-500",
+];
+
+function getDentistColor(dentistId: string | null, dentists: Dentist[]) {
+  if (!dentistId) return "border-l-muted-foreground";
+  const idx = dentists.findIndex((d) => d.id === dentistId);
+  return DENTIST_COLORS[idx % DENTIST_COLORS.length];
+}
+
+function getDentistInitials(dentistId: string | null, dentists: Dentist[]) {
+  if (!dentistId) return "?";
+  const d = dentists.find((x) => x.id === dentistId);
+  if (!d) return "?";
+  return d.name.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase();
+}
+
 const AgendaVega = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
@@ -54,11 +77,11 @@ const AgendaVega = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
+  const [mobileDay, setMobileDay] = useState(0);
 
   const weekDays = useMemo(() => Array.from({ length: DAYS_COUNT }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = weekDays[weekDays.length - 1];
 
-  // Fetch appointments for the week
   const { data: appointments = [] } = useQuery({
     queryKey: ["agenda", clinicId, format(weekStart, "yyyy-MM-dd"), filterDentist],
     queryFn: async () => {
@@ -77,7 +100,6 @@ const AgendaVega = () => {
     enabled: !!clinicId,
   });
 
-  // Fetch dentists
   const { data: dentists = [] } = useQuery({
     queryKey: ["dentists", clinicId],
     queryFn: async () => {
@@ -92,7 +114,6 @@ const AgendaVega = () => {
     enabled: !!clinicId,
   });
 
-  // Fetch patients for select
   const { data: patients = [] } = useQuery({
     queryKey: ["patients-select", clinicId],
     queryFn: async () => {
@@ -103,7 +124,6 @@ const AgendaVega = () => {
     enabled: !!clinicId,
   });
 
-  // Create appointment
   const createMutation = useMutation({
     mutationFn: async (slot: { date: string; time: string }) => {
       if (!clinicId) throw new Error("Sem clínica");
@@ -129,7 +149,6 @@ const AgendaVega = () => {
     onError: () => toast.error("Erro ao criar agendamento"),
   });
 
-  // Update status
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase.from("appointments").update({ status }).eq("id", id);
@@ -142,37 +161,57 @@ const AgendaVega = () => {
     },
   });
 
-  // Build appointment map: "YYYY-MM-DD_HH" -> appointment
+  // Multi-dentist appointment map: key → array
   const appointmentMap = useMemo(() => {
-    const map: Record<string, Appointment> = {};
+    const map: Record<string, Appointment[]> = {};
     appointments.forEach((a) => {
       const hourKey = a.time.substring(0, 2);
-      map[`${a.date}_${hourKey}`] = a;
+      const key = `${a.date}_${hourKey}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(a);
     });
     return map;
   }, [appointments]);
 
-  // KPIs
-  const totalSlots = DAYS_COUNT * SLOTS_PER_DAY;
-  const occupied = appointments.filter((a) => a.status !== "cancelado").length;
+  // KPIs scaled by number of dentists
+  const numDentists = Math.max(dentists.length, 1);
+  const totalSlots = filterDentist === "all"
+    ? DAYS_COUNT * SLOTS_PER_DAY * numDentists
+    : DAYS_COUNT * SLOTS_PER_DAY;
+  const activeAppts = appointments.filter((a) => a.status !== "cancelado");
+  const occupied = activeAppts.length;
   const occupancyRate = totalSlots > 0 ? Math.round((occupied / totalSlots) * 100) : 0;
-  const estimatedProduction = appointments.filter((a) => !["cancelado", "perdido"].includes(a.status)).reduce((s, a) => s + (a.estimated_value || 0), 0);
+  const estimatedProduction = activeAppts.reduce((s, a) => s + (a.estimated_value || 0), 0);
   const noShows = appointments.filter((a) => a.status === "faltou").length;
   const noShowRate = occupied > 0 ? Math.round((noShows / occupied) * 100) : 0;
   const freeSlots = totalSlots - occupied;
 
-  // Alerts
-  const alerts: { text: string; action: string; link?: string }[] = [];
-  if (freeSlots > totalSlots * 0.4) alerts.push({ text: `${freeSlots} horários livres esta semana`, action: "Preencher com follow-up", link: "/vendas/follow-up" });
-  if (noShows > 0) alerts.push({ text: `${noShows} paciente(s) faltaram esta semana`, action: "Remarcar" });
-  const lowDays = weekDays.filter((d) => {
-    const dayApps = appointments.filter((a) => a.date === format(d, "yyyy-MM-dd") && a.status !== "cancelado");
-    return dayApps.length < SLOTS_PER_DAY * 0.4;
-  });
-  if (lowDays.length > 0) alerts.push({ text: `${lowDays.length} dia(s) com ocupação abaixo de 40%`, action: "Reativar leads", link: "/leads" });
+  // Per-dentist occupancy for alerts
+  const dentistAlerts = useMemo(() => {
+    if (filterDentist !== "all") return [];
+    const perDentist = DAYS_COUNT * SLOTS_PER_DAY;
+    const alerts: { text: string; action: string; link?: string }[] = [];
+    dentists.forEach((d) => {
+      const count = activeAppts.filter((a) => a.dentist_user_id === d.id).length;
+      const rate = Math.round((count / perDentist) * 100);
+      if (rate < 40) {
+        alerts.push({ text: `${d.name} está com agenda ociosa (${rate}%)`, action: "Agendar follow-ups", link: "/vendas/follow-up" });
+      } else if (rate > 85) {
+        alerts.push({ text: `${d.name} com alta demanda (${rate}%)`, action: "Redistribuir pacientes" });
+      }
+    });
+    return alerts;
+  }, [dentists, activeAppts, filterDentist]);
 
-  // Mobile: single day view
-  const [mobileDay, setMobileDay] = useState(0);
+  // General alerts
+  const generalAlerts = useMemo(() => {
+    const alerts: { text: string; action: string; link?: string }[] = [];
+    if (freeSlots > totalSlots * 0.4) alerts.push({ text: `${freeSlots} horários livres esta semana`, action: "Preencher com follow-up", link: "/vendas/follow-up" });
+    if (noShows > 0) alerts.push({ text: `${noShows} paciente(s) faltaram esta semana`, action: "Remarcar" });
+    return alerts;
+  }, [freeSlots, totalSlots, noShows]);
+
+  const allAlerts = [...dentistAlerts, ...generalAlerts];
 
   return (
     <AppLayout title="Agenda VEGA" subtitle="Gestão inteligente de horários">
@@ -194,7 +233,7 @@ const AgendaVega = () => {
                 <SelectValue placeholder="Profissional" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos ({numDentists})</SelectItem>
                 {dentists.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -243,23 +282,43 @@ const AgendaVega = () => {
                     {weekDays.map((d) => {
                       const dateStr = format(d, "yyyy-MM-dd");
                       const hourStr = String(h).padStart(2, "0");
-                      const apt = appointmentMap[`${dateStr}_${hourStr}`];
+                      const apts = appointmentMap[`${dateStr}_${hourStr}`] || [];
                       return (
                         <td
                           key={dateStr + h}
-                          className={`p-1 text-center border-l ${isToday(d) ? "bg-primary/5" : ""} ${!apt ? "hover:bg-accent cursor-pointer" : ""}`}
+                          className={`p-1 border-l align-top ${isToday(d) ? "bg-primary/5" : ""} ${apts.length === 0 ? "hover:bg-accent cursor-pointer" : ""}`}
                           onClick={() => {
-                            if (apt) setSelectedAppointment(apt);
-                            else setSelectedSlot({ date: dateStr, time: `${hourStr}:00` });
+                            if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` });
                           }}
                         >
-                          {apt ? (
-                            <div className={`rounded-md p-1.5 text-left ${STATUS_CONFIG[apt.status]?.color || "bg-muted"}`}>
-                              <p className="font-medium truncate">{apt.patient?.name || "—"}</p>
-                              <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
+                          {apts.length > 0 ? (
+                            <div className="space-y-1">
+                              {apts.map((apt) => (
+                                <div
+                                  key={apt.id}
+                                  className={`rounded-md p-1.5 text-left border-l-[3px] cursor-pointer ${STATUS_CONFIG[apt.status]?.color || "bg-muted"} ${getDentistColor(apt.dentist_user_id, dentists)}`}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedAppointment(apt); }}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    {filterDentist === "all" && (
+                                      <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-background text-[8px] font-bold flex-shrink-0">
+                                        {getDentistInitials(apt.dentist_user_id, dentists)}
+                                      </span>
+                                    )}
+                                    <p className="font-medium truncate text-[11px]">{apt.patient?.name || "—"}</p>
+                                  </div>
+                                  <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
+                                </div>
+                              ))}
+                              <div
+                                className="text-center cursor-pointer hover:bg-accent rounded p-0.5"
+                                onClick={(e) => { e.stopPropagation(); setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                              >
+                                <Plus className="h-3 w-3 mx-auto text-muted-foreground/40" />
+                              </div>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground/30"><Plus className="h-3 w-3 mx-auto" /></span>
+                            <span className="text-muted-foreground/30 flex justify-center items-center h-8"><Plus className="h-3 w-3" /></span>
                           )}
                         </td>
                       );
@@ -275,13 +334,7 @@ const AgendaVega = () => {
         <div className="lg:hidden space-y-3">
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             {weekDays.map((d, i) => (
-              <Button
-                key={i}
-                variant={mobileDay === i ? "default" : "outline"}
-                size="sm"
-                className="flex-shrink-0"
-                onClick={() => setMobileDay(i)}
-              >
+              <Button key={i} variant={mobileDay === i ? "default" : "outline"} size="sm" className="flex-shrink-0" onClick={() => setMobileDay(i)}>
                 <span className="uppercase text-[10px]">{format(d, "EEE", { locale: ptBR })}</span>
                 <span className="ml-1 font-bold">{format(d, "dd")}</span>
               </Button>
@@ -292,29 +345,40 @@ const AgendaVega = () => {
               const d = weekDays[mobileDay];
               const dateStr = format(d, "yyyy-MM-dd");
               const hourStr = String(h).padStart(2, "0");
-              const apt = appointmentMap[`${dateStr}_${hourStr}`];
+              const apts = appointmentMap[`${dateStr}_${hourStr}`] || [];
               return (
-                <div
-                  key={h}
-                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${apt ? "" : "hover:bg-accent"}`}
-                  onClick={() => {
-                    if (apt) setSelectedAppointment(apt);
-                    else setSelectedSlot({ date: dateStr, time: `${hourStr}:00` });
-                  }}
-                >
-                  <span className="text-xs font-mono text-muted-foreground w-12">{hourStr}:00</span>
-                  {apt ? (
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{apt.patient?.name || "—"}</p>
-                      <p className="text-xs text-muted-foreground truncate">{apt.procedure_type || ""}</p>
+                <div key={h} className="rounded-lg border">
+                  <div
+                    className={`flex items-center gap-3 p-3 ${apts.length === 0 ? "cursor-pointer hover:bg-accent" : ""}`}
+                    onClick={() => { if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                  >
+                    <span className="text-xs font-mono text-muted-foreground w-12">{hourStr}:00</span>
+                    {apts.length === 0 && <span className="text-xs text-muted-foreground/50">Horário livre</span>}
+                    {apts.length > 0 && <span className="text-xs text-muted-foreground">{apts.length} atendimento(s)</span>}
+                  </div>
+                  {apts.length > 0 && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {apts.map((apt) => (
+                        <div
+                          key={apt.id}
+                          className={`flex items-center gap-3 rounded-md p-2 cursor-pointer border-l-[3px] ${STATUS_CONFIG[apt.status]?.color || "bg-muted"} ${getDentistColor(apt.dentist_user_id, dentists)}`}
+                          onClick={() => setSelectedAppointment(apt)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{apt.patient?.name || "—"}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getDentistInitials(apt.dentist_user_id, dentists)} · {apt.procedure_type || ""}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] ${STATUS_CONFIG[apt.status]?.color || ""}`}>
+                            {STATUS_CONFIG[apt.status]?.label || apt.status}
+                          </Badge>
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setSelectedSlot({ date: dateStr, time: `${hourStr}:00` })}>
+                        <Plus className="h-3 w-3 mr-1" /> Adicionar
+                      </Button>
                     </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/50">Horário livre</span>
-                  )}
-                  {apt && (
-                    <Badge variant="outline" className={`text-[10px] ${STATUS_CONFIG[apt.status]?.color || ""}`}>
-                      {STATUS_CONFIG[apt.status]?.label || apt.status}
-                    </Badge>
                   )}
                 </div>
               );
@@ -323,17 +387,15 @@ const AgendaVega = () => {
         </div>
 
         {/* Alerts */}
-        {alerts.length > 0 && (
+        {allAlerts.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-semibold font-display">Alertas da Semana</h3>
-            {alerts.map((a, i) => (
+            {allAlerts.map((a, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm">
                 <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
                 <span className="flex-1 text-yellow-800">{a.text}</span>
                 {a.link ? (
-                  <Button variant="outline" size="sm" className="text-xs" asChild>
-                    <a href={a.link}>{a.action}</a>
-                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs" asChild><a href={a.link}>{a.action}</a></Button>
                 ) : (
                   <span className="text-xs text-yellow-600 font-medium">{a.action}</span>
                 )}
@@ -345,9 +407,7 @@ const AgendaVega = () => {
         {/* Dialog: New Appointment */}
         <Dialog open={!!selectedSlot} onOpenChange={() => setSelectedSlot(null)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo Agendamento</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Novo Agendamento</DialogTitle></DialogHeader>
             {selectedSlot && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
@@ -358,9 +418,7 @@ const AgendaVega = () => {
                     <Label className="text-xs">Paciente</Label>
                     <Select value={newForm.patient_id} onValueChange={(v) => setNewForm((f) => ({ ...f, patient_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {patients.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{patients.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
@@ -381,9 +439,7 @@ const AgendaVega = () => {
                     <Label className="text-xs">Profissional</Label>
                     <Select value={newForm.dentist_user_id} onValueChange={(v) => setNewForm((f) => ({ ...f, dentist_user_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {dentists.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{dentists.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
@@ -405,9 +461,7 @@ const AgendaVega = () => {
         {/* Dialog: Appointment Details */}
         <Dialog open={!!selectedAppointment} onOpenChange={() => setSelectedAppointment(null)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Detalhes do Agendamento</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Detalhes do Agendamento</DialogTitle></DialogHeader>
             {selectedAppointment && (
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -420,6 +474,9 @@ const AgendaVega = () => {
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(selectedAppointment.date + "T12:00:00"), "EEEE, dd/MM", { locale: ptBR })} às {selectedAppointment.time.substring(0, 5)}
                   </p>
+                  {selectedAppointment.dentist_user_id && (
+                    <p className="text-sm">Profissional: {dentists.find((d) => d.id === selectedAppointment.dentist_user_id)?.name || "—"}</p>
+                  )}
                   {selectedAppointment.procedure_type && <p className="text-sm">Procedimento: {selectedAppointment.procedure_type}</p>}
                   {(selectedAppointment.estimated_value ?? 0) > 0 && <p className="text-sm">Valor: R$ {selectedAppointment.estimated_value?.toLocaleString("pt-BR")}</p>}
                   {selectedAppointment.notes && <p className="text-xs text-muted-foreground">{selectedAppointment.notes}</p>}
@@ -428,14 +485,8 @@ const AgendaVega = () => {
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
                     {(["confirmado", "atendido", "faltou", "remarcado", "cancelado"] as const).map((s) => (
-                      <Button
-                        key={s}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        disabled={selectedAppointment.status === s}
-                        onClick={() => updateStatusMutation.mutate({ id: selectedAppointment.id, status: s })}
-                      >
+                      <Button key={s} variant="outline" size="sm" className="text-xs" disabled={selectedAppointment.status === s}
+                        onClick={() => updateStatusMutation.mutate({ id: selectedAppointment.id, status: s })}>
                         {STATUS_CONFIG[s].label}
                       </Button>
                     ))}
