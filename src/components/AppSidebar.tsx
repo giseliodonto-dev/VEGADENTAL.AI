@@ -105,7 +105,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -117,6 +117,15 @@ export function AppSidebar() {
                 <Settings className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>Configurações</span>}
               </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={async () => { await signOut(); navigate("/auth"); }}
+              className="text-sidebar-foreground/60 hover:text-destructive transition-colors duration-150 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Sair</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
