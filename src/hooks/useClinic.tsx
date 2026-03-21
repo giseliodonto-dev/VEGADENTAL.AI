@@ -5,6 +5,7 @@ import { useAuth } from "./useAuth";
 export function useClinic() {
   const { user } = useAuth();
   const [clinicId, setClinicId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,12 +17,13 @@ export function useClinic() {
 
     supabase
       .from("clinic_members")
-      .select("clinic_id")
+      .select("clinic_id, role")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         setClinicId(data?.clinic_id ?? null);
+        setRole(data?.role ?? null);
         setLoading(false);
       });
   }, [user]);
@@ -58,5 +60,5 @@ export function useClinic() {
     return clinic.id;
   };
 
-  return { clinicId, loading, createClinic };
+  return { clinicId, role, loading, createClinic };
 }
