@@ -8,6 +8,7 @@ import {
   Settings,
   Zap,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";

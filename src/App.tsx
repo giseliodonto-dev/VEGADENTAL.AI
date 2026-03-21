@@ -12,6 +12,7 @@ import Marketing from "./pages/Marketing";
 import Gestao from "./pages/Gestao";
 import Autoridade from "./pages/Autoridade";
 import Configuracoes from "./pages/Configuracoes";
+import Clinicas from "./pages/Clinicas";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/cadastro-paciente" element={<ProtectedRoute><CadastroPaciente /></ProtectedRoute>} />
+          <Route path="/clinicas" element={<ProtectedRoute><Clinicas /></ProtectedRoute>} />
           <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
           <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
           <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
