@@ -107,6 +107,18 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink
+                    to="/pacientes"
+                    className="transition-colors duration-150"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                  >
+                    <Contact className="h-4 w-4 shrink-0 text-vendas" />
+                    {!collapsed && <span>Pacientes</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
                     to="/clinicas"
                     className="transition-colors duration-150"
                     activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"

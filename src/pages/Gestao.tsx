@@ -27,8 +27,7 @@ const tools = [
     title: "Pacientes",
     description: "Base de pacientes com histórico, valor gerado e potencial de reativação.",
     icon: Users,
-    url: "#",
-    soon: true,
+    url: "/pacientes",
   },
   {
     title: "Equipe",
