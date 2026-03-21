@@ -21,9 +21,11 @@ export type Database = {
           date: string
           dentist_user_id: string | null
           duration_minutes: number | null
+          estimated_value: number | null
           id: string
           notes: string | null
           patient_id: string | null
+          procedure_type: string | null
           status: string
           time: string
           updated_at: string
@@ -34,9 +36,11 @@ export type Database = {
           date: string
           dentist_user_id?: string | null
           duration_minutes?: number | null
+          estimated_value?: number | null
           id?: string
           notes?: string | null
           patient_id?: string | null
+          procedure_type?: string | null
           status?: string
           time: string
           updated_at?: string
@@ -47,9 +51,11 @@ export type Database = {
           date?: string
           dentist_user_id?: string | null
           duration_minutes?: number | null
+          estimated_value?: number | null
           id?: string
           notes?: string | null
           patient_id?: string | null
+          procedure_type?: string | null
           status?: string
           time?: string
           updated_at?: string

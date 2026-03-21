@@ -19,8 +19,7 @@ const tools = [
     title: "Agenda",
     description: "Controle de horários, ocupação e produtividade da cadeira clínica.",
     icon: CalendarCheck,
-    url: "#",
-    soon: true,
+    url: "/gestao/agenda",
   },
   {
     title: "Financeiro",
