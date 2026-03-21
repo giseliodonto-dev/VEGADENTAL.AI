@@ -32,8 +32,7 @@ const tools = [
     title: "Follow-up Inteligente",
     description: "Sugestões automáticas de recontato para não perder nenhum paciente indeciso.",
     icon: Bell,
-    url: "#",
-    soon: true,
+    url: "/vendas/follow-up",
   },
 ];
 

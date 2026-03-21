@@ -19,6 +19,7 @@ import Leads from "./pages/Leads";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
+import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
           <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
           <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
+          <Route path="/vendas/follow-up" element={<ProtectedRoute><FollowUpInteligente /></ProtectedRoute>} />
           <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
           <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
           <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
