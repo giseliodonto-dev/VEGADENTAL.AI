@@ -37,7 +37,7 @@ const VegaGPS = () => {
   const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
   const today = format(now, "yyyy-MM-dd");
 
-  // Faturamento do mês
+  // Faturamento do mês (apenas pagos)
   const { data: revenue = 0, isLoading: loadingRev } = useQuery({
     queryKey: ["gps-revenue", clinicId, monthStart],
     enabled: !!clinicId,
@@ -47,6 +47,41 @@ const VegaGPS = () => {
         .select("value")
         .eq("clinic_id", clinicId!)
         .eq("type", "entrada")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  // Despesas do mês (apenas pagas)
+  const { data: expenses = 0, isLoading: loadingExp } = useQuery({
+    queryKey: ["gps-expenses", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "saida")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  // Pendentes do mês
+  const { data: pending = 0, isLoading: loadingPend } = useQuery({
+    queryKey: ["gps-pending", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "entrada")
+        .eq("status", "pendente")
         .gte("date", monthStart)
         .lte("date", monthEnd);
       return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
