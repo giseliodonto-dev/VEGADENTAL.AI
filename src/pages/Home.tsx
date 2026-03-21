@@ -70,6 +70,22 @@ const Home = () => {
           </p>
         </div>
 
+        {/* VEGA GPS card */}
+        <Link
+          to="/gps"
+          className="animate-fade-up group flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-vendas/30"
+          style={{ animationDelay: "100ms", opacity: 0, animationFillMode: "forwards" }}
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-vendas/10">
+            <Compass className="h-6 w-6 text-vendas" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold font-display">VEGA GPS</h3>
+            <p className="text-xs text-muted-foreground">Painel de direção — veja alertas, metas e oportunidades da clínica</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground transition-all duration-200 translate-x-0 group-hover:translate-x-1" />
+        </Link>
+
         {/* Pillar cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {pillars.map((pillar, i) => (
