@@ -13,8 +13,7 @@ const tools = [
     title: "Funil de Vendas",
     description: "Visualize cada etapa da jornada do paciente: do primeiro contato ao fechamento.",
     icon: Filter,
-    url: "#",
-    soon: true,
+    url: "/vendas/funil",
   },
   {
     title: "Controle de Leads",
