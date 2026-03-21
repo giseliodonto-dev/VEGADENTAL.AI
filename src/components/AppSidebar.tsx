@@ -89,6 +89,18 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/clinicas"
+                    className="transition-colors duration-150"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                  >
+                    <Building2 className="h-4 w-4 shrink-0 text-gestao" />
+                    {!collapsed && <span>Clínicas</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
