@@ -64,17 +64,13 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Início + Cadastro Rápido (itens soltos) */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/"
-                    end
-                    className="transition-colors duration-150"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                  >
+                  <NavLink to="/" end className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <Home className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Início</span>}
                   </NavLink>
@@ -82,49 +78,9 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/usuarios"
-                    className="transition-colors duration-150"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                  >
-                    <Users className="h-4 w-4 shrink-0 text-primary" />
-                    {!collapsed && <span>Usuários</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/cadastro-paciente"
-                    className="transition-colors duration-150"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                  >
+                  <NavLink to="/cadastro-paciente" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <UserPlus className="h-4 w-4 shrink-0 text-vendas" />
                     {!collapsed && <span>Cadastro Rápido</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/pacientes"
-                    className="transition-colors duration-150"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                  >
-                    <Contact className="h-4 w-4 shrink-0 text-vendas" />
-                    {!collapsed && <span>Pacientes</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/clinicas"
-                    className="transition-colors duration-150"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                  >
-                    <Building2 className="h-4 w-4 shrink-0 text-gestao" />
-                    {!collapsed && <span>Clínicas</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -132,6 +88,42 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Minha Clínica */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-medium">
+            Minha Clínica
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/clinicas" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <Building2 className="h-4 w-4 shrink-0 text-gestao" />
+                    {!collapsed && <span>Clínicas</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/usuarios" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <Users className="h-4 w-4 shrink-0 text-primary" />
+                    {!collapsed && <span>Usuários</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/pacientes" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <Contact className="h-4 w-4 shrink-0 text-vendas" />
+                    {!collapsed && <span>Pacientes</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Pilares Estratégicos */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-medium">
             Pilares Estratégicos
@@ -141,11 +133,7 @@ export function AppSidebar() {
               {pillarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                    >
+                    <NavLink to={item.url} className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                       <item.icon className={`h-4 w-4 shrink-0 ${item.color}`} />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
