@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
+import CadastroPaciente from "./pages/CadastroPaciente";
 import Home from "./pages/Home";
 import Vendas from "./pages/Vendas";
 import Marketing from "./pages/Marketing";
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/cadastro-paciente" element={<ProtectedRoute><CadastroPaciente /></ProtectedRoute>} />
           <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
           <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
           <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />

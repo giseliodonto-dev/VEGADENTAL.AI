@@ -1,5 +1,6 @@
 import {
   Home,
+  UserPlus,
   TrendingUp,
   Megaphone,
   BarChart3,
@@ -73,6 +74,18 @@ export function AppSidebar() {
                   >
                     <Home className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Início</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/cadastro-paciente"
+                    className="transition-colors duration-150"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                  >
+                    <UserPlus className="h-4 w-4 shrink-0 text-vendas" />
+                    {!collapsed && <span>Cadastro Rápido</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
