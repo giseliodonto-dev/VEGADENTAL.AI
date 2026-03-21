@@ -1,66 +1,52 @@
 
 
-## Plano: Estrutura Interna dos 4 Pilares — VEGA Dental AI
+## Plano: Módulo de Pacientes (CRM Principal)
 
-### Visão Geral
+### Situação Atual
 
-Reorganizar cada pilar com módulos e funcionalidades claras, substituindo os cards genéricos atuais por ferramentas estratégicas específicas.
+A tabela `patients` já existe no banco com todos os campos necessários (name, phone, origin, status, clinic_id, responsible_user_id, treatment_value). O cadastro rápido (`CadastroPaciente.tsx`) já insere pacientes e cria entrada no funil. Falta apenas a **página de listagem e gestão** dos pacientes.
+
+### O que será criado
+
+Uma página `/pacientes` com listagem completa, busca, edição rápida e ações integradas com Vendas e Agenda.
+
+### Estrutura
 
 ```text
-VEGA Dental AI
-├── Vendas (/vendas)
-│   ├── Perguntas de Decisão ✅ (já existe)
-│   ├── Funil de Vendas (novo)
-│   ├── Controle de Leads (novo)
-│   ├── Taxa de Conversão (novo)
-│   └── Follow-up Inteligente (novo)
-│
-├── Marketing (/marketing)
-│   ├── Planejamento de Conteúdo (novo)
-│   ├── Leads por Origem (novo)
-│   ├── Campanhas (novo)
-│   └── Sugestões Estratégicas (novo)
-│
-├── Gestão (/gestao)
-│   ├── Hora Clínica Real ✅ (já existe)
-│   ├── Agenda (novo)
-│   ├── Financeiro (novo)
-│   ├── Pacientes (novo)
-│   ├── Equipe (novo)
-│   └── Indicadores de Desempenho (novo)
-│
-└── Autoridade (/autoridade)
-    ├── Marca Pessoal (novo)
-    ├── Roteiros de Conteúdo (novo)
-    ├── Posicionamento Digital (novo)
-    └── Presença Online (novo)
+/pacientes
+├── Barra de busca (nome ou telefone)
+├── Filtros rápidos por status (lead, avaliação, tratamento, finalizado, perdido)
+├── Tabela de pacientes
+│   ├── Nome, Telefone, Origem, Status, Responsável, Valor
+│   └── Ações: WhatsApp, Agendar, Ver no Funil, Editar
+├── Dialog de edição rápida (atualizar status, valor, observações)
+└── Botão "Novo Paciente" → link para /cadastro-paciente
 ```
 
-### Implementação
+### Arquivos
 
-**1. Atualizar `src/pages/Vendas.tsx`**
-- Substituir os 4 cards atuais pelos 5 módulos: Perguntas de Decisão (ativo, link existente), Funil de Vendas, Controle de Leads, Taxa de Conversão, Follow-up Inteligente (marcados "Em breve").
+1. **Criar `src/pages/Pacientes.tsx`**
+   - Listagem com busca por nome/telefone via `.ilike()`
+   - Filtro por status com badges clicáveis
+   - Tabela responsiva com colunas: Nome, Telefone, Origem, Status, Responsável, Valor
+   - Dialog de edição inline para atualizar status e valor do tratamento
+   - Ações rápidas: WhatsApp, agendar (toast "em breve"), ver funil
 
-**2. Atualizar `src/pages/Marketing.tsx`**
-- Substituir os 4 cards atuais (todos "Em breve") pelos 4 novos módulos: Planejamento de Conteúdo, Leads por Origem, Campanhas, Sugestões Estratégicas.
+2. **Editar `src/App.tsx`**
+   - Adicionar rota `/pacientes` protegida
 
-**3. Atualizar `src/pages/Gestao.tsx`**
-- Substituir os 4 cards atuais pelos 6 módulos: Hora Clínica Real (ativo, link existente), Agenda, Financeiro, Pacientes, Equipe, Indicadores de Desempenho.
+3. **Editar `src/components/AppSidebar.tsx`**
+   - Adicionar link "Pacientes" na sidebar (abaixo de Cadastro Rápido, com ícone Users)
 
-**4. Atualizar `src/pages/Autoridade.tsx`**
-- Substituir os 4 cards atuais pelos 4 novos módulos: Marca Pessoal, Roteiros de Conteúdo, Posicionamento Digital, Presença Online.
+4. **Editar `src/pages/Gestao.tsx`**
+   - Atualizar card "Pacientes" para linkar para `/pacientes` (remover "Em breve")
 
 ### Detalhes Técnicos
 
-- Todos os novos módulos ficam como cards com badge "Em breve" (sem rota ainda), prontos para serem desenvolvidos individualmente quando solicitado.
-- Os módulos já existentes (Perguntas de Decisão, Hora Clínica Real) mantêm seus links ativos.
-- Ícones e descrições refletem a função estratégica de cada módulo (visão CEO, não gestão tradicional).
-- Grid responsivo: 2 colunas em desktop, 1 em mobile. Gestão usa 3 colunas (6 cards).
-- Nenhuma rota nova em `App.tsx` neste momento — apenas a estrutura visual.
-
-### Arquivos alterados
-- `src/pages/Vendas.tsx`
-- `src/pages/Marketing.tsx`
-- `src/pages/Gestao.tsx`
-- `src/pages/Autoridade.tsx`
+- Query filtra por `clinic_id` do hook `useClinic`
+- Busca usa `.or()` com `name.ilike.%term%,phone.ilike.%term%`
+- Join com `profiles` para exibir nome do responsável
+- Atualização de status também reflete no `sales_funnel` (atualiza stage correspondente)
+- Status mapeados: lead, em_avaliacao, em_tratamento, finalizado, perdido
+- Nenhuma alteração de schema necessária — tabela `patients` já está completa
 
