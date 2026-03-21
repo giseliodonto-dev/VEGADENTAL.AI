@@ -14,7 +14,6 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
 import {
   Sidebar,
   SidebarContent,
@@ -42,8 +41,6 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { role } = useClinic();
-  const isDono = role === "dono";
 
   return (
     <Sidebar collapsible="icon">
@@ -82,7 +79,7 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {isDono && <SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink
                     to="/usuarios"
@@ -93,7 +90,7 @@ export function AppSidebar() {
                     {!collapsed && <span>Usuários</span>}
                   </NavLink>
                 </SidebarMenuButton>
-              </SidebarMenuItem>}
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink

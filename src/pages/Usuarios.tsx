@@ -50,7 +50,6 @@ const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
 const Usuarios = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
-  const { role: myRole } = useClinic();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -144,19 +143,6 @@ const Usuarios = () => {
       toast.success("Membro removido.");
       await fetchMembers();
     }
-  }
-
-  // Only dono can access this page
-  if (!loading && myRole !== "dono") {
-    return (
-      <AppLayout title="Usuários">
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-          <Users className="h-10 w-10 mb-3 opacity-40" />
-          <p className="text-sm font-medium">Acesso restrito</p>
-          <p className="text-xs">Apenas o Dono da clínica pode gerenciar usuários.</p>
-        </div>
-      </AppLayout>
-    );
   }
 
   if (loading) {
