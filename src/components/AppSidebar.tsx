@@ -127,6 +127,7 @@ export function AppSidebar() {
                     {!collapsed && <span>Leads</span>}
                   </NavLink>
                 </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
