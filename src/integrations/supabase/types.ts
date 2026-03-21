@@ -405,13 +405,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sales_funnel_patient_id_fkey_patients"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "sales_funnel_responsible_user_id_fkey"
             columns: ["responsible_user_id"]
             isOneToOne: false
