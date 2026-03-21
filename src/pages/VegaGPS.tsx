@@ -358,6 +358,22 @@ const VegaGPS = () => {
           </div>
         )}
 
+        {/* Inteligência VEGA card */}
+        <Link to="/inteligencia">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-autoridade/20">
+            <CardContent className="py-4 px-4 flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-autoridade/10">
+                <Brain className="h-4 w-4 text-autoridade" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Inteligência VEGA</p>
+                <p className="text-[11px] text-muted-foreground">Análise estratégica com IA — recomendações personalizadas</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Pillar summary */}
         <div className="space-y-2">
           <h2 className="text-sm font-semibold">Resumo por Pilar</h2>

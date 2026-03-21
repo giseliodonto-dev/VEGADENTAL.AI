@@ -89,6 +89,14 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
+                  <NavLink to="/inteligencia" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <Brain className="h-4 w-4 shrink-0 text-autoridade" />
+                    {!collapsed && <span>Inteligência VEGA</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
                   <NavLink to="/cadastro-paciente" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <UserPlus className="h-4 w-4 shrink-0 text-vendas" />
                     {!collapsed && <span>Cadastro Rápido</span>}
