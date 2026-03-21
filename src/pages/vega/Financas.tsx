@@ -76,14 +76,18 @@ const Financas = () => {
             className="animate-fade-up"
             style={{ opacity: 0, animationFillMode: "forwards" }}
           >
-            <TabsTrigger value="calculadora" className="gap-1.5">
-              <Calculator className="h-3.5 w-3.5" />
-              Calculadora
-            </TabsTrigger>
-            <TabsTrigger value="radar" className="gap-1.5">
-              <Target className="h-3.5 w-3.5" />
-              Radar de Lucro
-            </TabsTrigger>
+             <TabsTrigger value="calculadora" className="gap-1.5">
+               <Calculator className="h-3.5 w-3.5" />
+               Calculadora
+             </TabsTrigger>
+             <TabsTrigger value="radar" className="gap-1.5">
+               <Target className="h-3.5 w-3.5" />
+               Radar de Lucro
+             </TabsTrigger>
+             <TabsTrigger value="hora-clinica" className="gap-1.5" onClick={() => navigate("/vega/financas/hora-clinica")}>
+               <Clock className="h-3.5 w-3.5" />
+               Hora Clínica
+             </TabsTrigger>
           </TabsList>
 
           {/* CALCULADORA */}
