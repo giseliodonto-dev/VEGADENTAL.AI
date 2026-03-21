@@ -63,7 +63,7 @@ export default function FunilVendas() {
     setLoading(true);
     const { data, error } = await supabase
       .from("sales_funnel")
-      .select("id, stage, value, date, updated_at, responsible_user_id, patient:patients(id, name, phone), responsible:profiles!sales_funnel_responsible_user_id_fkey(full_name)")
+      .select("id, stage, value, date, updated_at, responsible_user_id, patient:patients!sales_funnel_patient_id_fkey(id, name, phone), responsible:profiles!sales_funnel_responsible_user_id_fkey(full_name)")
       .eq("clinic_id", clinicId!)
       .order("date", { ascending: false });
 
