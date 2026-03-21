@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -71,6 +72,22 @@ export default {
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
+        },
+        vendas: {
+          DEFAULT: "hsl(var(--pillar-vendas))",
+          foreground: "hsl(var(--pillar-vendas-foreground))",
+        },
+        marketing: {
+          DEFAULT: "hsl(var(--pillar-marketing))",
+          foreground: "hsl(var(--pillar-marketing-foreground))",
+        },
+        gestao: {
+          DEFAULT: "hsl(var(--pillar-gestao))",
+          foreground: "hsl(var(--pillar-gestao-foreground))",
+        },
+        autoridade: {
+          DEFAULT: "hsl(var(--pillar-autoridade))",
+          foreground: "hsl(var(--pillar-autoridade-foreground))",
         },
       },
       borderRadius: {

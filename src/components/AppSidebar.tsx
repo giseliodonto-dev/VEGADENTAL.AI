@@ -1,20 +1,11 @@
 import {
-  LayoutDashboard,
-  Users,
-  CalendarDays,
-  DollarSign,
-  UserCog,
-  Settings,
-  Stethoscope,
-  Compass,
-  ShoppingCart,
+  Home,
+  TrendingUp,
   Megaphone,
   BarChart3,
-  Wallet,
-  HeartHandshake,
-  ClipboardList,
-  UsersRound,
   Crown,
+  Settings,
+  Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -32,27 +23,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Pacientes", url: "/pacientes", icon: Users },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Equipe", url: "/equipe", icon: UserCog },
-];
-
-const vegaItems = [
-  { title: "Vendas", url: "/vega/vendas", icon: ShoppingCart },
-  { title: "Marketing", url: "/vega/marketing", icon: Megaphone },
-  { title: "Gestão", url: "/vega/gestao", icon: BarChart3 },
-  { title: "Finanças", url: "/vega/financas", icon: Wallet },
-  { title: "Atendimento", url: "/vega/atendimento", icon: HeartHandshake },
-  { title: "Processos", url: "/vega/processos", icon: ClipboardList },
-  { title: "Pessoas", url: "/vega/pessoas", icon: UsersRound },
-  { title: "Autoridade", url: "/vega/autoridade", icon: Crown },
-];
-
-const settingsItems = [
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+const pillarItems = [
+  { title: "Vendas", url: "/vendas", icon: TrendingUp, color: "text-vendas" },
+  { title: "Marketing", url: "/marketing", icon: Megaphone, color: "text-marketing" },
+  { title: "Gestão", url: "/gestao", icon: BarChart3, color: "text-gestao" },
+  { title: "Autoridade", url: "/autoridade", icon: Crown, color: "text-autoridade" },
 ];
 
 export function AppSidebar() {
@@ -64,16 +39,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Stethoscope className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-vendas">
+            <Zap className="h-5 w-5 text-vendas-foreground" />
           </div>
           {!collapsed && (
             <div className="animate-slide-in">
-              <p className="text-sm font-bold text-sidebar-primary-foreground">
-                OdontoGest
+              <p className="text-sm font-bold text-sidebar-primary font-display">
+                VEGA Dental AI
               </p>
-              <p className="text-xs text-sidebar-foreground/60">
-                Gestão Odontológica
+              <p className="text-[10px] text-sidebar-foreground/50 tracking-wide">
+                Inteligência Estratégica
               </p>
             </div>
           )}
@@ -82,72 +57,40 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 text-xs uppercase tracking-wider">
-            Principal
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/"
+                    end
+                    className="transition-colors duration-150"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                  >
+                    <Home className="h-4 w-4 shrink-0" />
+                    {!collapsed && <span>Início</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 text-xs uppercase tracking-wider">
-            <div className="flex items-center gap-1.5">
-              <Compass className="h-3 w-3" />
-              VEGA GPS
-            </div>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-medium">
+            Pilares Estratégicos
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {vegaItems.map((item) => (
+              {pillarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       className="transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 text-xs uppercase tracking-wider">
-            Sistema
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="transition-colors duration-150"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className={`h-4 w-4 shrink-0 ${item.color}`} />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -158,22 +101,21 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        {!collapsed && (
-          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-              DR
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-sidebar-accent-foreground truncate">
-                Dr. Rafael Lima
-              </p>
-              <p className="text-[10px] text-sidebar-foreground/50">
-                Administrador
-              </p>
-            </div>
-          </div>
-        )}
+      <SidebarFooter className="p-3">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink
+                to="/configuracoes"
+                className="transition-colors duration-150"
+                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Configurações</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
