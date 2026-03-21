@@ -1,29 +1,26 @@
 
-## Plano: Calculadora de Hora Clínica Real
 
-### O que será criado
+## Plano: Limpar páginas OdontoGest
 
-Uma nova subpágina dentro do módulo Finanças (`/vega/financas/hora-clinica`) com formulário elegante dividido em 3 blocos, título "Sua Rota de Lucro VEGA" e estética Quiet Luxury (dourado + fundo limpo).
+Resetar 6 páginas para estrutura vazia (placeholder), mantendo VEGA GPS intacto.
 
-### Implementação
+### Páginas a limpar
 
-**1. Novo arquivo `src/pages/vega/HoraClinica.tsx`**
+| Página | Arquivo | Ação |
+|--------|---------|------|
+| Dashboard | `src/pages/Index.tsx` | Remover cards, métricas, gráficos. Deixar título e placeholder "Conteúdo em breve" |
+| Pacientes | `src/pages/Pacientes.tsx` | Remover tabela e dados mock. Placeholder vazio |
+| Agenda | `src/pages/Agenda.tsx` | Remover calendário/eventos. Placeholder vazio |
+| Financeiro | `src/pages/Financeiro.tsx` | Remover transações e gráficos. Placeholder vazio |
+| Equipe | `src/pages/Equipe.tsx` | Remover lista de membros. Placeholder vazio |
+| Configurações | `src/pages/Configuracoes.tsx` | Remover formulários. Placeholder vazio |
 
-Formulário com 3 blocos em Cards:
+### Resultado
 
-- **Bloco 1 — Custos Fixos e Variáveis**: Campos para Aluguel, Energia, Água, Internet, Materiais de consumo, Esterilização, Funcionários (salários), Contador, Marketing, Manutenção de equipamentos, Descartáveis, e botão "Adicionar outro custo" para itens personalizados.
+Cada página ficará com o `AppLayout`, título correto e um card central com ícone + texto "Em construção — novas ideias em breve", pronto para receber conteúdo novo. Sidebar e rotas permanecem inalteradas.
 
-- **Bloco 2 — Meta de Pró-labore**: Campo para lucro líquido desejado (R$), campo para impostos estimados (%).
+### Não será alterado
+- Todas as páginas VEGA GPS (Vendas, Marketing, Gestão, Finanças, Atendimento, Processos, Pessoas, Autoridade, Perguntas de Decisão, Hora Clínica)
+- AppLayout, AppSidebar, NavLink
+- Rotas em App.tsx
 
-- **Bloco 3 — Capacidade Operacional**: Dias trabalhados/mês, Horas/dia na cadeira.
-
-- **Resultado**: Card dourado calculando automaticamente o valor da Hora Clínica Real = (Custos Totais + Pró-labore + Impostos) / (Dias × Horas). Exibição com selo "Rota de Lucro VEGA".
-
-**2. Rota em `src/App.tsx`**
-- Adicionar rota `/vega/financas/hora-clinica` apontando para o novo componente.
-
-**3. Link na página Finanças (`src/pages/vega/Financas.tsx`)**
-- Adicionar uma terceira aba ou card de navegação para "Hora Clínica Real" linkando à subpágina.
-
-### Estética
-- Fundo limpo, fontes finas (font-light), botões dourados (bg-accent/text-accent), cards com bordas sutis, ícones em dourado, selo "Rota de Lucro VEGA" no resultado.
