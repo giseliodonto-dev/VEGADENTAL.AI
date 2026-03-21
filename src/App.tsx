@@ -3,15 +3,17 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Home from "./pages/Home.tsx";
-import Vendas from "./pages/Vendas.tsx";
-import Marketing from "./pages/Marketing.tsx";
-import Gestao from "./pages/Gestao.tsx";
-import Autoridade from "./pages/Autoridade.tsx";
-import Configuracoes from "./pages/Configuracoes.tsx";
-import PerguntasDecisao from "./pages/vega/PerguntasDecisao.tsx";
-import HoraClinica from "./pages/vega/HoraClinica.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Auth from "./pages/Auth";
+import Home from "./pages/Home";
+import Vendas from "./pages/Vendas";
+import Marketing from "./pages/Marketing";
+import Gestao from "./pages/Gestao";
+import Autoridade from "./pages/Autoridade";
+import Configuracoes from "./pages/Configuracoes";
+import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
+import HoraClinica from "./pages/vega/HoraClinica";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -22,14 +24,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/vendas" element={<Vendas />} />
-          <Route path="/vendas/perguntas-decisao" element={<PerguntasDecisao />} />
-          <Route path="/marketing" element={<Marketing />} />
-          <Route path="/gestao" element={<Gestao />} />
-          <Route path="/gestao/hora-clinica" element={<HoraClinica />} />
-          <Route path="/autoridade" element={<Autoridade />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
+          <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
+          <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+          <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
+          <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
+          <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
+          <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
