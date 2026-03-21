@@ -14,6 +14,7 @@ import Autoridade from "./pages/Autoridade";
 import Configuracoes from "./pages/Configuracoes";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
+import FunilVendas from "./pages/vendas/FunilVendas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
