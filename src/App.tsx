@@ -19,6 +19,7 @@ import Leads from "./pages/Leads";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
+import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
