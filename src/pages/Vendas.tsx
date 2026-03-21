@@ -17,10 +17,9 @@ const tools = [
   },
   {
     title: "Controle de Leads",
-    description: "Gerencie contatos interessados e acompanhe o status de cada oportunidade.",
+    description: "Gerencie contatos interessados, converta em pacientes e acompanhe oportunidades.",
     icon: Users,
-    url: "#",
-    soon: true,
+    url: "/leads",
   },
   {
     title: "Taxa de Conversão",
