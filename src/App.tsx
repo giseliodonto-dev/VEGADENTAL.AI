@@ -19,6 +19,7 @@ import Leads from "./pages/Leads";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
+import MetasMensais from "./pages/gestao/MetasMensais";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
 import InteligenciaVega from "./pages/InteligenciaVega";
