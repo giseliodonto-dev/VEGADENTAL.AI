@@ -12,6 +12,7 @@ import {
   Users,
   Contact,
   UserSearch,
+  Compass,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -74,6 +75,14 @@ export function AppSidebar() {
                   <NavLink to="/" end className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <Home className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Início</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/gps" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <Compass className="h-4 w-4 shrink-0 text-vendas" />
+                    {!collapsed && <span>VEGA GPS</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
