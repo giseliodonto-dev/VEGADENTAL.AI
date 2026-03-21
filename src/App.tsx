@@ -41,6 +41,7 @@ const App = () => (
           <Route path="/vega/marketing" element={<VegaMarketing />} />
           <Route path="/vega/gestao" element={<VegaGestao />} />
           <Route path="/vega/financas" element={<VegaFinancas />} />
+          <Route path="/vega/financas/hora-clinica" element={<VegaHoraClinica />} />
           <Route path="/vega/atendimento" element={<VegaAtendimento />} />
           <Route path="/vega/processos" element={<VegaProcessos />} />
           <Route path="/vega/pessoas" element={<VegaPessoas />} />

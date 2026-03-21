@@ -1,7 +1,8 @@
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
-import { Calculator, Target, Info, Plus, Trash2 } from "lucide-react";
+import { Calculator, Target, Info, Plus, Trash2, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
