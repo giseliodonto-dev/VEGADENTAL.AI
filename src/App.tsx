@@ -21,6 +21,7 @@ import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
+import InteligenciaVega from "./pages/InteligenciaVega";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/gps" element={<ProtectedRoute><VegaGPS /></ProtectedRoute>} />
+          <Route path="/inteligencia" element={<ProtectedRoute><InteligenciaVega /></ProtectedRoute>} />
           <Route path="/cadastro-paciente" element={<ProtectedRoute><CadastroPaciente /></ProtectedRoute>} />
           <Route path="/clinicas" element={<ProtectedRoute><Clinicas /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
