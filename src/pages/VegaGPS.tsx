@@ -37,7 +37,7 @@ const VegaGPS = () => {
   const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
   const today = format(now, "yyyy-MM-dd");
 
-  // Faturamento do mês
+  // Faturamento do mês (apenas pagos)
   const { data: revenue = 0, isLoading: loadingRev } = useQuery({
     queryKey: ["gps-revenue", clinicId, monthStart],
     enabled: !!clinicId,
@@ -47,6 +47,41 @@ const VegaGPS = () => {
         .select("value")
         .eq("clinic_id", clinicId!)
         .eq("type", "entrada")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  // Despesas do mês (apenas pagas)
+  const { data: expenses = 0, isLoading: loadingExp } = useQuery({
+    queryKey: ["gps-expenses", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "saida")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  // Pendentes do mês
+  const { data: pending = 0, isLoading: loadingPend } = useQuery({
+    queryKey: ["gps-pending", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "entrada")
+        .eq("status", "pendente")
         .gte("date", monthStart)
         .lte("date", monthEnd);
       return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
@@ -109,7 +144,9 @@ const VegaGPS = () => {
     },
   });
 
-  const isLoading = loadingRev || loadingGoal || loadingFunnel || loadingLeads || loadingAppts;
+  const isLoading = loadingRev || loadingExp || loadingPend || loadingGoal || loadingFunnel || loadingLeads || loadingAppts;
+
+  const profit = revenue - expenses;
 
   // KPI calculations
   const revenueGoal = Number(goal?.revenue_goal ?? 0);
@@ -217,9 +254,16 @@ const VegaGPS = () => {
       bgColor: "bg-vendas/10",
     },
     {
+      title: "Lucro",
+      value: `R$ ${profit.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+      icon: TrendingUp,
+      color: profit >= 0 ? "text-vendas" : "text-destructive",
+      bgColor: profit >= 0 ? "bg-vendas/10" : "bg-destructive/10",
+    },
+    {
       title: "Conversão",
       value: `${conversionRate}%`,
-      icon: TrendingUp,
+      icon: Target,
       color: "text-marketing",
       bgColor: "bg-marketing/10",
     },
@@ -233,9 +277,16 @@ const VegaGPS = () => {
     {
       title: "Ticket Médio",
       value: `R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
-      icon: Target,
+      icon: BarChart3,
       color: "text-autoridade",
       bgColor: "bg-autoridade/10",
+    },
+    {
+      title: "Pendente",
+      value: `R$ ${pending.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+      icon: Clock,
+      color: pending > 0 ? "text-yellow-500" : "text-muted-foreground",
+      bgColor: pending > 0 ? "bg-yellow-500/10" : "bg-muted/10",
     },
   ];
 
@@ -287,7 +338,7 @@ const VegaGPS = () => {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {kpis.map((kpi) => (
             <Card key={kpi.title}>
               <CardContent className="pt-4 pb-4 px-4">
