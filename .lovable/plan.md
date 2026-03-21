@@ -1,68 +1,57 @@
 
 
-## Plano: Módulo VEGA GPS — Painel Central de Direção
+## Plano: Módulo "Inteligência VEGA"
+
+### Análise
+
+O VEGA GPS já implementa alertas básicos (faturamento abaixo da meta, funil estagnado, leads sem contato, agenda vazia). A Inteligência VEGA será uma camada mais profunda que usa IA (Lovable AI via edge function) para analisar todos os dados da clínica e gerar recomendações estratégicas priorizadas, indo além dos thresholds fixos do GPS.
 
 ### O que será criado
 
-Uma nova página `/gps` que funciona como cockpit estratégico da clínica, agregando dados de Leads, Pacientes, Funil de Vendas, Agenda, Financeiro e Metas em uma interface visual com alertas e direcionamentos.
+1. **Edge function `vega-intelligence`** — Coleta dados agregados da clínica (leads, funil, agenda, financeiro, metas) e envia ao Lovable AI Gateway para gerar análise estratégica com recomendações priorizadas em JSON estruturado.
+
+2. **Página `/inteligencia`** (`src/pages/InteligenciaVega.tsx`) — Interface que exibe as recomendações da IA organizadas por prioridade (Alta/Média/Baixa) com ações diretas (links para follow-up, leads, funil, gestão).
+
+3. **Integração com VEGA GPS** — Card de destaque no GPS linkando para a Inteligência VEGA + resumo das recomendações de alta prioridade.
 
 ### Estrutura da página
 
 ```text
-/gps
-├── Barra de status (faturamento vs meta — barra de progresso)
-├── KPIs principais (4 cards)
-│   ├── Faturamento do Mês
-│   ├── Taxa de Conversão (%)
-│   ├── Pacientes em Negociação
-│   └── Ticket Médio
-├── Alertas Inteligentes (cards de alerta com ações)
-│   ├── "Abaixo da meta em X%"
-│   ├── "X pacientes parados no funil"
-│   ├── "X leads sem contato"
-│   └── "Agenda com horários vagos"
-├── Direcionamentos (ações sugeridas com botões)
-│   ├── "Ligue para X pacientes"
-│   ├── "Reative X leads"
-│   └── "Preencha agenda com follow-up"
-└── Mini-resumos por pilar (Vendas, Marketing, Gestão, Autoridade)
+/inteligencia
+├── Botão "Gerar Análise" (chama a edge function)
+├── Recomendações por prioridade
+│   ├── 🔴 Alta (impacto direto no faturamento)
+│   ├── 🟡 Média (otimização operacional)
+│   └── 🟢 Baixa (melhorias incrementais)
+├── Cada recomendação contém:
+│   ├── Título claro
+│   ├── Explicação em linguagem simples
+│   ├── Ação sugerida com botão/link
+│   └── Impacto estimado (%)
+└── Timestamp da última análise
 ```
 
-### Fonte dos dados (queries ao banco)
+### Edge Function (`supabase/functions/vega-intelligence/index.ts`)
 
-- **Faturamento**: `financials` WHERE `type = 'entrada'` no mês atual
-- **Meta**: `goals` do mês atual
-- **Conversão**: `sales_funnel` — ratio de `fechado` vs total
-- **Pacientes em negociação**: `sales_funnel` WHERE stage NOT IN ('fechado', 'perdido')
-- **Ticket médio**: média de `value` em `sales_funnel` WHERE stage = 'fechado'
-- **Parados no funil**: `sales_funnel` WHERE `updated_at` < 7 dias
-- **Leads sem contato**: `leads` WHERE status = 'novo'
-- **Agenda vazia**: `appointments` do dia vs capacidade esperada
-- **Taxa de faltas**: `appointments` WHERE status = 'faltou'
+- Recebe `clinic_id` do frontend
+- Usa service role key para consultar dados agregados (contagens, valores, datas)
+- Monta prompt com contexto real da clínica
+- Chama Lovable AI Gateway com tool calling para retornar JSON estruturado
+- Retorna array de recomendações: `{ priority, title, description, action_label, action_link, estimated_impact }`
 
 ### Arquivos
 
-1. **Criar `src/pages/VegaGPS.tsx`**
-   - Dashboard com queries usando `useClinic()` para filtrar por clinic_id
-   - KPIs calculados em tempo real
-   - Alertas gerados por lógica condicional (thresholds)
-   - Botões de ação que linkam para `/leads`, `/vendas/follow-up`, `/vendas/funil`
-   - Acesso restrito a role `dono` (verificado via `useAuth`)
-
-2. **Editar `src/App.tsx`**
-   - Adicionar rota `/gps` protegida
-
-3. **Editar `src/components/AppSidebar.tsx`**
-   - Adicionar "VEGA GPS" com ícone `Compass` logo após "Início"
-
-4. **Editar `src/pages/Home.tsx`**
-   - Adicionar card de destaque "VEGA GPS" acima dos pilares
+1. **Criar `supabase/functions/vega-intelligence/index.ts`** — Edge function com lógica de agregação + chamada AI
+2. **Criar `src/pages/InteligenciaVega.tsx`** — UI das recomendações
+3. **Editar `src/App.tsx`** — Rota `/inteligencia`
+4. **Editar `src/components/AppSidebar.tsx`** — Link "Inteligência VEGA" com ícone `Brain`
+5. **Editar `src/pages/VegaGPS.tsx`** — Card de destaque com link para `/inteligencia`
 
 ### Detalhes Técnicos
 
-- Sem alteração de schema — todas as tabelas já existem
-- Usa `useQuery` do React Query para cada agrupamento de dados
-- Alertas são calculados no frontend com base nos dados carregados
-- Thresholds configuráveis: meta < 80% = alerta, funil parado > 7 dias, leads novos > 3 dias sem ação
-- Interface usa cards com cores semânticas: verde (bom), amarelo (atenção), vermelho (crítico)
+- Modelo: `google/gemini-3-flash-preview` (rápido, bom para análise)
+- System prompt em português, tom de consultor de negócios
+- Tool calling para output estruturado (array de recomendações com campos tipados)
+- Análise sob demanda (botão) para não consumir créditos desnecessários
+- Dados enviados ao AI são apenas agregados numéricos (contagens, médias), sem dados pessoais de pacientes
 
