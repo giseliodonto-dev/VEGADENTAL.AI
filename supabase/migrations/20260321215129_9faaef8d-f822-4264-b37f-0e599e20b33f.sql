@@ -1,0 +1,1 @@
+ALTER TABLE public.sales_funnel DROP CONSTRAINT IF EXISTS sales_funnel_patient_id_fkey_patients;
