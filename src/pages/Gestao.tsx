@@ -1,8 +1,14 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
-import { Calculator, ArrowRight, CalendarCheck, DollarSign, Users, UserCog, BarChart3 } from "lucide-react";
+import { Calculator, ArrowRight, CalendarCheck, DollarSign, Users, UserCog, BarChart3, Target } from "lucide-react";
 
 const tools = [
+  {
+    title: "Metas Mensais",
+    description: "Defina metas de faturamento, lucro e conversão para acompanhar o crescimento.",
+    icon: Target,
+    url: "/gestao/metas",
+  },
   {
     title: "Hora Clínica Real",
     description: "Calcule o valor real da sua hora na cadeira com base em custos, metas e capacidade.",
