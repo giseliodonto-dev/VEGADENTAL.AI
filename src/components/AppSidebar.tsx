@@ -1,5 +1,6 @@
 import {
   Home,
+  UserPlus,
   TrendingUp,
   Megaphone,
   BarChart3,
