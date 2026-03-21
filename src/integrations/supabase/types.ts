@@ -145,6 +145,9 @@ export type Database = {
           description: string | null
           id: string
           patient_id: string | null
+          payment_method: string | null
+          responsible_user_id: string | null
+          status: string
           type: string
           value: number
         }
@@ -156,6 +159,9 @@ export type Database = {
           description?: string | null
           id?: string
           patient_id?: string | null
+          payment_method?: string | null
+          responsible_user_id?: string | null
+          status?: string
           type: string
           value: number
         }
@@ -167,6 +173,9 @@ export type Database = {
           description?: string | null
           id?: string
           patient_id?: string | null
+          payment_method?: string | null
+          responsible_user_id?: string | null
+          status?: string
           type?: string
           value?: number
         }
