@@ -1,57 +1,52 @@
 
 
-## Plano: Módulo "Inteligência VEGA"
+## Plano: Agenda VEGA — Migração + Interface Semanal
 
-### Análise
+### 1. Migração de banco de dados
 
-O VEGA GPS já implementa alertas básicos (faturamento abaixo da meta, funil estagnado, leads sem contato, agenda vazia). A Inteligência VEGA será uma camada mais profunda que usa IA (Lovable AI via edge function) para analisar todos os dados da clínica e gerar recomendações estratégicas priorizadas, indo além dos thresholds fixos do GPS.
+Adicionar à tabela `appointments`:
+- `procedure_type` (text, nullable)
+- `estimated_value` (numeric, default 0)
+- Alterar default de `status` de `'confirmado'` para `'agendado'`
 
-### O que será criado
-
-1. **Edge function `vega-intelligence`** — Coleta dados agregados da clínica (leads, funil, agenda, financeiro, metas) e envia ao Lovable AI Gateway para gerar análise estratégica com recomendações priorizadas em JSON estruturado.
-
-2. **Página `/inteligencia`** (`src/pages/InteligenciaVega.tsx`) — Interface que exibe as recomendações da IA organizadas por prioridade (Alta/Média/Baixa) com ações diretas (links para follow-up, leads, funil, gestão).
-
-3. **Integração com VEGA GPS** — Card de destaque no GPS linkando para a Inteligência VEGA + resumo das recomendações de alta prioridade.
-
-### Estrutura da página
-
-```text
-/inteligencia
-├── Botão "Gerar Análise" (chama a edge function)
-├── Recomendações por prioridade
-│   ├── 🔴 Alta (impacto direto no faturamento)
-│   ├── 🟡 Média (otimização operacional)
-│   └── 🟢 Baixa (melhorias incrementais)
-├── Cada recomendação contém:
-│   ├── Título claro
-│   ├── Explicação em linguagem simples
-│   ├── Ação sugerida com botão/link
-│   └── Impacto estimado (%)
-└── Timestamp da última análise
+```sql
+ALTER TABLE public.appointments
+  ADD COLUMN procedure_type text,
+  ADD COLUMN estimated_value numeric DEFAULT 0;
+ALTER TABLE public.appointments ALTER COLUMN status SET DEFAULT 'agendado';
 ```
 
-### Edge Function (`supabase/functions/vega-intelligence/index.ts`)
+### 2. Criar página da Agenda (`src/pages/gestao/AgendaVega.tsx`)
 
-- Recebe `clinic_id` do frontend
-- Usa service role key para consultar dados agregados (contagens, valores, datas)
-- Monta prompt com contexto real da clínica
-- Chama Lovable AI Gateway com tool calling para retornar JSON estruturado
-- Retorna array de recomendações: `{ priority, title, description, action_label, action_link, estimated_impact }`
+Interface com visão semanal contendo:
 
-### Arquivos
+- **Navegação semanal**: botões `<` `>` para navegar entre semanas, botão "Hoje"
+- **Filtro por profissional**: dropdown com dentistas da clínica (query `clinic_members` + `profiles` WHERE role = 'dentista' ou 'dono')
+- **KPIs da semana**: Ocupação (%), Produção estimada (R$), Taxa de faltas (%), Slots livres
+- **Grade semanal**: colunas = dias da semana (Seg-Sáb), linhas = horários (08h-18h, intervalos de 1h). Slots ocupados mostram nome do paciente + procedimento + badge de status. Slots livres são clicáveis `[+]`
+- **Alertas inteligentes**: cards com sugestões baseadas em ocupação baixa, faltas, slots livres
+- **Dialog de novo agendamento**: ao clicar em slot livre, abre form pré-preenchido com data/hora, campos: paciente (select), procedimento, valor estimado, profissional, duração, observações
+- **Dialog de detalhes**: ao clicar em slot ocupado, mostra detalhes com botões de ação (confirmar, atender, faltou, remarcar, cancelar)
 
-1. **Criar `supabase/functions/vega-intelligence/index.ts`** — Edge function com lógica de agregação + chamada AI
-2. **Criar `src/pages/InteligenciaVega.tsx`** — UI das recomendações
-3. **Editar `src/App.tsx`** — Rota `/inteligencia`
-4. **Editar `src/components/AppSidebar.tsx`** — Link "Inteligência VEGA" com ícone `Brain`
-5. **Editar `src/pages/VegaGPS.tsx`** — Card de destaque com link para `/inteligencia`
+Capacidade diária assumida: 8 slots/dia (configurável como constante).
 
-### Detalhes Técnicos
+### 3. Atualizar rotas (`src/App.tsx`)
 
-- Modelo: `google/gemini-3-flash-preview` (rápido, bom para análise)
-- System prompt em português, tom de consultor de negócios
-- Tool calling para output estruturado (array de recomendações com campos tipados)
-- Análise sob demanda (botão) para não consumir créditos desnecessários
-- Dados enviados ao AI são apenas agregados numéricos (contagens, médias), sem dados pessoais de pacientes
+- Importar `AgendaVega` e adicionar rota `/gestao/agenda`
+
+### 4. Atualizar sidebar (`src/components/AppSidebar.tsx`)
+
+- Não necessário — acesso via página Gestão
+
+### 5. Atualizar página Gestão (`src/pages/Gestao.tsx`)
+
+- Alterar card "Agenda": remover `soon: true`, definir `url: "/gestao/agenda"`
+
+### Detalhes técnicos
+
+- Query de appointments filtra por `clinic_id` + range de datas da semana visível
+- Join com `patients` para nome e com `profiles` (via `dentist_user_id`) para nome do profissional
+- Status com cores: `agendado` (azul), `confirmado` (verde), `atendido` (cinza/check), `faltou` (vermelho), `remarcado` (amarelo), `cancelado` (cinza)
+- Atualização de status via mutation com `useQueryClient().invalidateQueries`
+- Mobile: mostra 1 dia por vez com botões de navegação
 
