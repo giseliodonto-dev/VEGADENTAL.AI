@@ -15,6 +15,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Clinicas from "./pages/Clinicas";
 import Usuarios from "./pages/Usuarios";
 import Pacientes from "./pages/Pacientes";
+import Leads from "./pages/Leads";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
 import FunilVendas from "./pages/vendas/FunilVendas";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/clinicas" element={<ProtectedRoute><Clinicas /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
           <Route path="/pacientes" element={<ProtectedRoute><Pacientes /></ProtectedRoute>} />
+          <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
           <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
           <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
           <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />

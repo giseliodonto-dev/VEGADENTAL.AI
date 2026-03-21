@@ -11,6 +11,7 @@ import {
   Building2,
   Users,
   Contact,
+  UserSearch,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -116,6 +117,14 @@ export function AppSidebar() {
                   <NavLink to="/pacientes" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <Contact className="h-4 w-4 shrink-0 text-vendas" />
                     {!collapsed && <span>Pacientes</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/leads" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <UserSearch className="h-4 w-4 shrink-0 text-marketing" />
+                    {!collapsed && <span>Leads</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
