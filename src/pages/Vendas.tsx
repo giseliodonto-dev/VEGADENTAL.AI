@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
-import { MessageSquare, ArrowRight, Target, Users, Handshake } from "lucide-react";
+import { MessageSquare, ArrowRight, Filter, Users, Handshake, Bell } from "lucide-react";
 
 const tools = [
   {
@@ -10,15 +10,15 @@ const tools = [
     url: "/vendas/perguntas-decisao",
   },
   {
-    title: "Scripts de Venda",
-    description: "Roteiros prontos para cada etapa da jornada do paciente na cadeira.",
-    icon: Target,
+    title: "Funil de Vendas",
+    description: "Visualize cada etapa da jornada do paciente: do primeiro contato ao fechamento.",
+    icon: Filter,
     url: "#",
     soon: true,
   },
   {
-    title: "Perfil do Paciente",
-    description: "Identifique o perfil comportamental e adapte sua comunicação.",
+    title: "Controle de Leads",
+    description: "Gerencie contatos interessados e acompanhe o status de cada oportunidade.",
     icon: Users,
     url: "#",
     soon: true,
@@ -27,6 +27,13 @@ const tools = [
     title: "Taxa de Conversão",
     description: "Acompanhe quantos orçamentos se transformam em tratamentos fechados.",
     icon: Handshake,
+    url: "#",
+    soon: true,
+  },
+  {
+    title: "Follow-up Inteligente",
+    description: "Sugestões automáticas de recontato para não perder nenhum paciente indeciso.",
+    icon: Bell,
     url: "#",
     soon: true,
   },
@@ -41,7 +48,7 @@ const Vendas = () => {
           style={{ opacity: 0, animationFillMode: "forwards" }}
         >
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Ferramentas inteligentes para aumentar sua taxa de conversão. Transforme objeções em oportunidades e orçamentos em tratamentos fechados.
+            Ferramentas estratégicas para aumentar sua taxa de conversão. Transforme objeções em oportunidades e orçamentos em tratamentos fechados.
           </p>
         </div>
 

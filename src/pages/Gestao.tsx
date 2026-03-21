@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
-import { Calculator, ArrowRight, PieChart, Target, TrendingUp } from "lucide-react";
+import { Calculator, ArrowRight, CalendarCheck, DollarSign, Users, UserCog, BarChart3 } from "lucide-react";
 
 const tools = [
   {
@@ -10,23 +10,37 @@ const tools = [
     url: "/gestao/hora-clinica",
   },
   {
-    title: "Radar de Lucro",
-    description: "Visualize se sua clínica está na zona de segurança ou risco operacional.",
-    icon: PieChart,
+    title: "Agenda",
+    description: "Controle de horários, ocupação e produtividade da cadeira clínica.",
+    icon: CalendarCheck,
     url: "#",
     soon: true,
   },
   {
-    title: "Metas Mensais",
-    description: "Defina e acompanhe metas de faturamento, atendimentos e conversão.",
-    icon: Target,
+    title: "Financeiro",
+    description: "Fluxo de caixa, receitas, despesas e visão clara da saúde financeira.",
+    icon: DollarSign,
     url: "#",
     soon: true,
   },
   {
-    title: "KPIs da Clínica",
-    description: "Indicadores essenciais: ocupação de agenda, ticket médio, taxa de retorno.",
-    icon: TrendingUp,
+    title: "Pacientes",
+    description: "Base de pacientes com histórico, valor gerado e potencial de reativação.",
+    icon: Users,
+    url: "#",
+    soon: true,
+  },
+  {
+    title: "Equipe",
+    description: "Gestão de colaboradores, produtividade individual e custo por profissional.",
+    icon: UserCog,
+    url: "#",
+    soon: true,
+  },
+  {
+    title: "Indicadores de Desempenho",
+    description: "KPIs essenciais: ocupação de agenda, ticket médio, taxa de retorno e mais.",
+    icon: BarChart3,
     url: "#",
     soon: true,
   },
@@ -35,7 +49,7 @@ const tools = [
 const Gestao = () => {
   return (
     <AppLayout title="Gestão" subtitle="Domine os números do seu negócio">
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-4xl space-y-6">
         <div
           className="animate-fade-up"
           style={{ opacity: 0, animationFillMode: "forwards" }}
@@ -45,7 +59,7 @@ const Gestao = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tools.map((tool, i) => {
             const Card = (
               <div

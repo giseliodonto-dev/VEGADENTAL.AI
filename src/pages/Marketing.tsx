@@ -1,28 +1,28 @@
 import { AppLayout } from "@/components/AppLayout";
-import { Video, Instagram, FileText, Lightbulb } from "lucide-react";
+import { CalendarDays, MapPin, Megaphone, Lightbulb } from "lucide-react";
 
 const tools = [
   {
-    title: "Banco de Roteiros",
-    description: "60 roteiros prontos para Reels divididos por categorias: Estética, Implantes e Autoridade.",
-    icon: Video,
+    title: "Planejamento de Conteúdo",
+    description: "Calendário estratégico de posts, stories e reels para atrair pacientes qualificados.",
+    icon: CalendarDays,
     soon: true,
   },
   {
-    title: "Calendário de Conteúdo",
-    description: "Planejamento mensal de posts com datas e temas estratégicos.",
-    icon: Instagram,
+    title: "Leads por Origem",
+    description: "Descubra de onde vêm seus melhores pacientes: Google, Instagram, indicação ou anúncios.",
+    icon: MapPin,
     soon: true,
   },
   {
-    title: "Copys Prontas",
-    description: "Textos persuasivos para bio, legendas e anúncios pagos.",
-    icon: FileText,
+    title: "Campanhas",
+    description: "Crie e acompanhe campanhas de captação com metas, investimento e retorno.",
+    icon: Megaphone,
     soon: true,
   },
   {
-    title: "Ideias de Conteúdo",
-    description: "Gerador de ideias baseado em tendências e no perfil da sua clínica.",
+    title: "Sugestões Estratégicas",
+    description: "Recomendações inteligentes de ações de marketing baseadas no perfil da sua clínica.",
     icon: Lightbulb,
     soon: true,
   },
