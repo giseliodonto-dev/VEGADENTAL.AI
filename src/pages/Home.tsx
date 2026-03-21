@@ -7,6 +7,7 @@ import {
   Crown,
   ArrowRight,
   Zap,
+  Compass,
 } from "lucide-react";
 
 const pillars = [
