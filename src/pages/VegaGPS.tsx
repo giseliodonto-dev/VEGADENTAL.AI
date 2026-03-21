@@ -144,7 +144,9 @@ const VegaGPS = () => {
     },
   });
 
-  const isLoading = loadingRev || loadingGoal || loadingFunnel || loadingLeads || loadingAppts;
+  const isLoading = loadingRev || loadingExp || loadingPend || loadingGoal || loadingFunnel || loadingLeads || loadingAppts;
+
+  const profit = revenue - expenses;
 
   // KPI calculations
   const revenueGoal = Number(goal?.revenue_goal ?? 0);
