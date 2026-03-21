@@ -47,6 +47,8 @@ const metaDiaria = 4545;
 const custoFixoDiario = 2727;
 
 const Financas = () => {
+  const navigate = useNavigate();
+
   const [procedimentos, setProcedimentos] = useState<Procedimento[]>([
     { nome: "Limpeza", custo: "45" },
     { nome: "Restauração Resina", custo: "60" },
