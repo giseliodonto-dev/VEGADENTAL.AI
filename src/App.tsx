@@ -50,6 +50,7 @@ const App = () => (
           <Route path="/vendas/follow-up" element={<ProtectedRoute><FollowUpInteligente /></ProtectedRoute>} />
           <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
           <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
+          <Route path="/gestao/agenda" element={<ProtectedRoute><AgendaVega /></ProtectedRoute>} />
           <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
           <Route path="/gestao/metas" element={<ProtectedRoute><MetasMensais /></ProtectedRoute>} />
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
