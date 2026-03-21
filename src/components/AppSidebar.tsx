@@ -8,7 +8,8 @@ import {
   Settings,
   Zap,
   LogOut,
-  Building2
+  Building2,
+  Users,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -75,6 +76,18 @@ export function AppSidebar() {
                   >
                     <Home className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>Início</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/usuarios"
+                    className="transition-colors duration-150"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                  >
+                    <Users className="h-4 w-4 shrink-0 text-primary" />
+                    {!collapsed && <span>Usuários</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
