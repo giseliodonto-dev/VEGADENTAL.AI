@@ -1,29 +1,29 @@
 import { AppLayout } from "@/components/AppLayout";
-import { Shield, Star, Globe, Award } from "lucide-react";
+import { UserCircle, FileVideo, Globe, Activity } from "lucide-react";
 
 const tools = [
   {
-    title: "Score de Autoridade",
-    description: "Avalie sua presença digital e descubra como ser percebido como referência.",
-    icon: Star,
+    title: "Marca Pessoal",
+    description: "Construa seu posicionamento como referência: bio, narrativa e identidade profissional.",
+    icon: UserCircle,
     soon: true,
   },
   {
-    title: "Posicionamento Premium",
-    description: "Estratégias para se diferenciar e justificar preços acima da média.",
-    icon: Shield,
+    title: "Roteiros de Conteúdo",
+    description: "Scripts prontos para vídeos que constroem autoridade e atraem pacientes premium.",
+    icon: FileVideo,
     soon: true,
   },
   {
-    title: "Presença Digital",
-    description: "Checklist completo para Google, Instagram, YouTube e LinkedIn.",
+    title: "Posicionamento Digital",
+    description: "Estratégias para Google, Instagram e YouTube que elevam sua percepção de valor.",
     icon: Globe,
     soon: true,
   },
   {
-    title: "Prova Social",
-    description: "Como coletar e usar depoimentos, cases e antes/depois de forma estratégica.",
-    icon: Award,
+    title: "Presença Online",
+    description: "Análise da sua visibilidade digital e plano de ação para dominar sua região.",
+    icon: Activity,
     soon: true,
   },
 ];
