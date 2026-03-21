@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
-import { Calculator, ArrowRight, CalendarCheck, DollarSign, Users, UserCog, BarChart3 } from "lucide-react";
+import { Calculator, ArrowRight, CalendarCheck, DollarSign, Users, UserCog, BarChart3, Target } from "lucide-react";
 
 const tools = [
   {
