@@ -231,6 +231,7 @@ export default function FinancasVega() {
 
   const comparisonData = [
     { name: "Faturamento", atual: calc.revenue, anterior: calc.prevRevenue },
+    { name: "Recebido", atual: calc.received, anterior: 0 },
     { name: "Despesas", atual: calc.expenses, anterior: calc.prevExpenses },
     { name: "Lucro", atual: calc.netProfit, anterior: calc.prevNetProfit },
   ];
