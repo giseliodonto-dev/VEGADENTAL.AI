@@ -368,7 +368,7 @@ export default function PacienteDetalhe() {
             <div className="space-y-2">
               {treatments.map((t) => {
                 const sc = statusConfig[t.status] || { label: t.status, color: "bg-muted text-muted-foreground" };
-                const proc = procedureOptions.find((p) => p.value === t.procedure_type);
+                const proc = t.procedure_type;
                 return (
                   <Card key={t.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="flex items-center justify-between p-4">
