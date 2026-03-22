@@ -417,14 +417,15 @@ export default function PacienteDetalhe() {
             <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Procedimento</Label>
-                <Select value={formProcedure} onValueChange={setFormProcedure}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {procedureOptions.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProcedureSelector
+                  value={formProcedure}
+                  onSelect={(p) => {
+                    setFormProcedure(p.name);
+                    if (p.default_value > 0 && !formValue) {
+                      setFormValue(String(p.default_value));
+                    }
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Região (opcional)</Label>
