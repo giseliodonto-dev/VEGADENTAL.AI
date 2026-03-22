@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { ChevronLeft, ChevronRight, CalendarCheck, DollarSign, AlertTriangle, Clock, Plus, User } from "lucide-react";
 
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
@@ -423,7 +424,16 @@ const AgendaVega = () => {
                   </div>
                   <div>
                     <Label className="text-xs">Procedimento</Label>
-                    <Input value={newForm.procedure_type} onChange={(e) => setNewForm((f) => ({ ...f, procedure_type: e.target.value }))} placeholder="Ex: Avaliação, Limpeza..." />
+                    <ProcedureSelector
+                      value={newForm.procedure_type}
+                      onSelect={(p) => {
+                        setNewForm((f) => ({
+                          ...f,
+                          procedure_type: p.name,
+                          estimated_value: p.default_value > 0 && !f.estimated_value ? String(p.default_value) : f.estimated_value,
+                        }));
+                      }}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

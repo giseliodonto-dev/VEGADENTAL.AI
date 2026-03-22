@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClinic } from "@/hooks/useClinic";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,8 +17,13 @@ export function ClinicOnboarding() {
     if (!clinicName.trim()) return;
     setSaving(true);
     try {
-      await createClinic(clinicName.trim());
+      const newClinicId = await createClinic(clinicName.trim());
+      // Seed default procedures for the new clinic
+      if (newClinicId) {
+        await supabase.rpc("seed_default_procedures", { _clinic_id: newClinicId });
+      }
       toast.success("Clínica criada com sucesso!");
+      window.location.reload();
       window.location.reload();
     } catch (err: any) {
       toast.error("Erro ao criar clínica: " + (err.message || "Tente novamente"));
