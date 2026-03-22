@@ -186,6 +186,7 @@ export default function PacienteDetalhe() {
           .update({
             procedure_type: formProcedure,
             region: formRegion || null,
+            tooth_number: formTooth || null,
             status: formStatus,
             value: val,
             notes: formNotes || null,
