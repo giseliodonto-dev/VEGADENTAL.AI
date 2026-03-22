@@ -27,6 +27,10 @@ import EquipeVega from "./pages/gestao/EquipeVega";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
 import InteligenciaVega from "./pages/InteligenciaVega";
+import PlanejamentoConteudo from "./pages/marketing/PlanejamentoConteudo";
+import LeadsOrigem from "./pages/marketing/LeadsOrigem";
+import Campanhas from "./pages/marketing/Campanhas";
+import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +57,10 @@ const App = () => (
           <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
           <Route path="/vendas/follow-up" element={<ProtectedRoute><FollowUpInteligente /></ProtectedRoute>} />
           <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+          <Route path="/marketing/conteudo" element={<ProtectedRoute><PlanejamentoConteudo /></ProtectedRoute>} />
+          <Route path="/marketing/leads-origem" element={<ProtectedRoute><LeadsOrigem /></ProtectedRoute>} />
+          <Route path="/marketing/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
+          <Route path="/marketing/sugestoes" element={<ProtectedRoute><SugestoesEstrategicas /></ProtectedRoute>} />
           <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
           <Route path="/gestao/agenda" element={<ProtectedRoute><AgendaVega /></ProtectedRoute>} />
           <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
