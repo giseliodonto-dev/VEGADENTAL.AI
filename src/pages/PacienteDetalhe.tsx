@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -22,11 +23,12 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
+import { generateBudgetPdf } from "@/utils/budgetPdf";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
   Loader2, Phone, MessageCircle, Pencil, CreditCard, ChevronDown,
-  Banknote, AlertCircle,
+  Banknote, AlertCircle, FileText, Copy, Send, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

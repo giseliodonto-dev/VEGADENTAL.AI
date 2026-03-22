@@ -31,6 +31,7 @@ import PlanejamentoConteudo from "./pages/marketing/PlanejamentoConteudo";
 import LeadsOrigem from "./pages/marketing/LeadsOrigem";
 import Campanhas from "./pages/marketing/Campanhas";
 import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
+import OrcamentoPublico from "./pages/OrcamentoPublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
