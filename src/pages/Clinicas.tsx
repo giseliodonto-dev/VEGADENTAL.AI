@@ -46,12 +46,13 @@ const Clinicas = () => {
       return;
     }
     setSaving(true);
-    const slug = name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "clinica";
+    const slug =
+      name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "clinica";
 
     const { error } = await supabase
       .from("clinics")
@@ -96,33 +97,67 @@ const Clinicas = () => {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="clinicName" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label
+                htmlFor="clinicName"
+                className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+              >
                 Nome da Clínica
               </Label>
-              <Input id="clinicName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Odonto Excellence" className="h-11" />
+              <Input
+                id="clinicName"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Odonto Excellence"
+                className="h-11"
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Telefone / WhatsApp</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Phone className="h-3.5 w-3.5" /> Telefone / WhatsApp
+                  </span>
                 </Label>
-                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" className="h-11" />
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-0000"
+                  className="h-11"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> E-mail</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5" /> E-mail
+                  </span>
                 </Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contato@clinica.com" className="h-11" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contato@clinica.com"
+                  className="h-11"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Endereço</span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" /> Endereço
+                </span>
               </Label>
-              <Textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, bairro, cidade - UF" rows={3} />
+              <Textarea
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Rua, número, bairro, cidade - UF"
+                rows={3}
+              />
             </div>
 
             {createdAt && (
@@ -133,20 +168,39 @@ const Clinicas = () => {
             )}
 
             <Button onClick={handleSave} disabled={saving || !name.trim()} className="w-full sm:w-auto h-11 gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /><span>Salvar</span></>}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Salvar</span>
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
 
         <Card className="border-dashed">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Como funciona a relação Usuário ↔ Clínica</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Como funciona a relação Usuário ↔ Clínica
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground space-y-2">
-            <p>• Cada <strong className="text-foreground">usuário</strong> pertence a uma única <strong className="text-foreground">clínica</strong>.</p>
-            <p>• Dados de pacientes, agenda, financeiro e vendas são <strong className="text-foreground">isolados por clínica</strong>.</p>
+            <p>
+              • Cada <strong className="text-foreground">usuário</strong> pertence a uma única{" "}
+              <strong className="text-foreground">clínica</strong>.
+            </p>
+            <p>
+              • Dados de pacientes, agenda, financeiro e vendas são{" "}
+              <strong className="text-foreground">isolados por clínica</strong>.
+            </p>
             <p>• Nenhum usuário pode acessar dados de outra clínica.</p>
-            <p>• Permissões são definidas pelo papel: <strong className="text-foreground">Dono</strong>, <strong className="text-foreground">Recepção</strong> ou <strong className="text-foreground">Dentista</strong>.</p>
+            <p>
+              • Permissões são definidas pelo papel: <strong className="text-foreground">Dono</strong>,{" "}
+              <strong className="text-foreground">Recepção</strong> ou{" "}
+              <strong className="text-foreground">Dentista</strong>.
+            </p>
           </CardContent>
         </Card>
       </div>
