@@ -83,6 +83,7 @@ interface Treatment {
   notes: string | null;
   date: string;
   dentist_user_id: string | null;
+  tooth_number: string | null;
 }
 
 export default function PacienteDetalhe() {
