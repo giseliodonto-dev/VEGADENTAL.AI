@@ -28,12 +28,12 @@ import {
 type PostAction = "stay" | "agenda" | "negociacao" | "atendimento";
 
 const origins = [
-  "Instagram",
-  "Google",
-  "Indicação",
-  "Facebook",
-  "WhatsApp",
-  "Outros",
+  { value: "instagram", label: "Instagram" },
+  { value: "google", label: "Google" },
+  { value: "indicacao", label: "Indicação" },
+  { value: "facebook", label: "Facebook" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "outros", label: "Outros" },
 ];
 
 const statuses = [
