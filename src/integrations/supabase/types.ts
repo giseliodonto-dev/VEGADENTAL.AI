@@ -77,6 +77,59 @@ export type Database = {
           },
         ]
       }
+      campaigns: {
+        Row: {
+          channel: string
+          clinic_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          investment: number | null
+          leads_generated: number | null
+          name: string
+          notes: string | null
+          sales_closed: number | null
+          start_date: string
+          status: string
+        }
+        Insert: {
+          channel?: string
+          clinic_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          investment?: number | null
+          leads_generated?: number | null
+          name: string
+          notes?: string | null
+          sales_closed?: number | null
+          start_date?: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          clinic_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          investment?: number | null
+          leads_generated?: number | null
+          name?: string
+          notes?: string | null
+          sales_closed?: number | null
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_members: {
         Row: {
           clinic_id: string
@@ -150,6 +203,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      content_calendar: {
+        Row: {
+          clinic_id: string
+          content_type: string
+          created_at: string
+          id: string
+          notes: string | null
+          scheduled_date: string
+          status: string
+          theme: string | null
+          title: string
+        }
+        Insert: {
+          clinic_id: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: string
+          theme?: string | null
+          title: string
+        }
+        Update: {
+          clinic_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: string
+          theme?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financials: {
         Row: {
