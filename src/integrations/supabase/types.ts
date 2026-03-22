@@ -352,6 +352,50 @@ export type Database = {
           },
         ]
       }
+      procedures_catalog: {
+        Row: {
+          category: string
+          clinic_id: string
+          created_at: string
+          default_value: number | null
+          id: string
+          is_active: boolean | null
+          is_custom: boolean | null
+          is_favorite: boolean | null
+          name: string
+        }
+        Insert: {
+          category: string
+          clinic_id: string
+          created_at?: string
+          default_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          is_favorite?: boolean | null
+          name: string
+        }
+        Update: {
+          category?: string
+          clinic_id?: string
+          created_at?: string
+          default_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          is_favorite?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedures_catalog_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -517,6 +561,10 @@ export type Database = {
       is_clinic_member: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
+      }
+      seed_default_procedures: {
+        Args: { _clinic_id: string }
+        Returns: undefined
       }
     }
     Enums: {
