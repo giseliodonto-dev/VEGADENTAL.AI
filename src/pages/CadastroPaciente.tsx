@@ -191,8 +191,8 @@ export default function CadastroPaciente() {
                     </SelectTrigger>
                     <SelectContent>
                       {origins.map((o) => (
-                        <SelectItem key={o} value={o}>
-                          {o}
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
