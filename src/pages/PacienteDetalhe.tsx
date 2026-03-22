@@ -444,6 +444,23 @@ export default function PacienteDetalhe() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label className="text-xs font-medium">Dente (opcional)</Label>
+                <Select value={formTooth} onValueChange={setFormTooth}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar dente" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {toothOptions.map((group) => (
+                      <div key={group.group}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.group}</div>
+                        {group.teeth.map((tooth) => (
+                          <SelectItem key={tooth} value={tooth}>Dente {tooth}</SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label className="text-xs font-medium">Status</Label>
                 <Select value={formStatus} onValueChange={setFormStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
