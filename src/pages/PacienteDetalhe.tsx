@@ -11,22 +11,25 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
-  Loader2, Phone, MessageCircle, Pencil,
+  Loader2, Phone, MessageCircle, Pencil, CreditCard, ChevronDown,
+  Banknote, AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-// procedureOptions removed — now using ProcedureSelector
 
 const regionOptions = [
   { value: "", label: "Não informado" },
@@ -34,8 +37,6 @@ const regionOptions = [
   { value: "inferior", label: "Inferior" },
 ];
 
-// Permanent teeth: 11-18, 21-28, 31-38, 41-48
-// Deciduous teeth: 51-55, 61-65, 71-75, 81-85
 const toothOptions: { group: string; teeth: string[] }[] = [
   { group: "Permanentes — Superior Direito", teeth: ["11","12","13","14","15","16","17","18"] },
   { group: "Permanentes — Superior Esquerdo", teeth: ["21","22","23","24","25","26","27","28"] },
@@ -61,6 +62,19 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   finalizado: { label: "Finalizado", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
 };
 
+const paymentStatusConfig: Record<string, { label: string; color: string }> = {
+  pendente: { label: "Pendente", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+  parcial: { label: "Parcial", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+  pago: { label: "Pago", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+};
+
+const paymentMethodLabels: Record<string, string> = {
+  pix: "Pix",
+  cartao: "Cartão",
+  dinheiro: "Dinheiro",
+  boleto: "Boleto",
+};
+
 const patientStatusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   lead: { label: "Lead", variant: "default" },
   em_avaliacao: { label: "Avaliação", variant: "secondary" },
@@ -79,6 +93,19 @@ interface Treatment {
   date: string;
   dentist_user_id: string | null;
   tooth_number: string | null;
+  amount_paid: number;
+  payment_status: string;
+  payment_type: string | null;
+  installments: number | null;
+}
+
+interface Payment {
+  id: string;
+  treatment_id: string;
+  amount: number;
+  payment_method: string;
+  payment_date: string;
+  notes: string | null;
 }
 
 export default function PacienteDetalhe() {
@@ -90,8 +117,10 @@ export default function PacienteDetalhe() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentTreatment, setPaymentTreatment] = useState<Treatment | null>(null);
 
-  // Form state
+  // Treatment form
   const [formProcedure, setFormProcedure] = useState("");
   const [formRegion, setFormRegion] = useState("");
   const [formStatus, setFormStatus] = useState("planejado");
@@ -99,15 +128,17 @@ export default function PacienteDetalhe() {
   const [formNotes, setFormNotes] = useState("");
   const [formTooth, setFormTooth] = useState("");
 
+  // Payment form
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState("pix");
+  const [payDate, setPayDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [payNotes, setPayNotes] = useState("");
+
   // Fetch patient
   const { data: patient, isLoading: patientLoading } = useQuery({
     queryKey: ["patient", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("id", id!)
-        .single();
+      const { data, error } = await supabase.from("patients").select("*").eq("id", id!).single();
       if (error) throw error;
       return data;
     },
@@ -129,53 +160,40 @@ export default function PacienteDetalhe() {
     enabled: !!id,
   });
 
+  // Fetch payments for this patient
+  const { data: payments = [] } = useQuery({
+    queryKey: ["payments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments" as any)
+        .select("*")
+        .eq("patient_id", id!)
+        .order("payment_date", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as Payment[];
+    },
+    enabled: !!id,
+  });
+
   // KPIs
   const kpis = useMemo(() => {
-    const billed = treatments
-      .filter((t) => t.status === "aprovado" || t.status === "finalizado")
+    const totalValue = treatments
+      .filter((t) => t.status === "aprovado" || t.status === "finalizado" || t.status === "em_andamento")
       .reduce((sum, t) => sum + Number(t.value || 0), 0);
+    const totalPaid = treatments.reduce((sum, t) => sum + Number(t.amount_paid || 0), 0);
+    const totalPending = totalValue - totalPaid;
     const ongoing = treatments.filter((t) => t.status === "em_andamento" || t.status === "aprovado").length;
     const finished = treatments.filter((t) => t.status === "finalizado").length;
-    return { billed, ongoing, finished };
+    return { totalValue, totalPaid, totalPending: Math.max(0, totalPending), ongoing, finished };
   }, [treatments]);
 
-  // Create financial entry
-  async function createFinancialEntry(value: number, patientId: string) {
-    if (!clinicId || !user) return;
-    // Check for duplicate
-    const today = format(new Date(), "yyyy-MM-dd");
-    const { data: existing } = await supabase
-      .from("financials")
-      .select("id")
-      .eq("clinic_id", clinicId)
-      .eq("patient_id", patientId)
-      .eq("date", today)
-      .eq("value", value)
-      .limit(1);
-
-    if (existing && existing.length > 0) return;
-
-    await supabase.from("financials").insert({
-      clinic_id: clinicId,
-      type: "entrada",
-      category: "tratamentos",
-      value,
-      patient_id: patientId,
-      responsible_user_id: user.id,
-      date: today,
-      status: "pago",
-      description: "Tratamento registrado automaticamente",
-    });
-  }
-
-  // Save treatment mutation
+  // Save treatment mutation (no more auto financial entry)
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!clinicId || !id || !user) throw new Error("Dados incompletos");
       const val = parseFloat(formValue) || 0;
 
       if (editingTreatment) {
-        // Update
         const { error } = await supabase
           .from("treatments" as any)
           .update({
@@ -188,18 +206,7 @@ export default function PacienteDetalhe() {
           } as any)
           .eq("id", editingTreatment.id);
         if (error) throw error;
-
-        // Financial integration on status change
-        if (
-          (formStatus === "aprovado" || formStatus === "finalizado") &&
-          editingTreatment.status !== "aprovado" &&
-          editingTreatment.status !== "finalizado" &&
-          val > 0
-        ) {
-          await createFinancialEntry(val, id);
-        }
       } else {
-        // Insert
         const { error } = await supabase.from("treatments" as any).insert({
           clinic_id: clinicId,
           patient_id: id,
@@ -212,11 +219,6 @@ export default function PacienteDetalhe() {
           notes: formNotes || null,
         } as any);
         if (error) throw error;
-
-        // Financial integration
-        if ((formStatus === "aprovado" || formStatus === "finalizado") && val > 0) {
-          await createFinancialEntry(val, id);
-        }
       }
     },
     onSuccess: () => {
@@ -227,32 +229,113 @@ export default function PacienteDetalhe() {
     onError: () => toast.error("Erro ao salvar tratamento"),
   });
 
+  // Register payment mutation
+  const paymentMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinicId || !id || !user || !paymentTreatment) throw new Error("Dados incompletos");
+      const amount = parseFloat(payAmount) || 0;
+      if (amount <= 0) throw new Error("Valor inválido");
+
+      // 1. Insert payment
+      const { error: payErr } = await supabase.from("payments" as any).insert({
+        clinic_id: clinicId,
+        patient_id: id,
+        treatment_id: paymentTreatment.id,
+        amount,
+        payment_method: payMethod,
+        payment_date: payDate,
+        notes: payNotes || null,
+      } as any);
+      if (payErr) throw payErr;
+
+      // 2. Calculate new totals
+      const newPaid = Number(paymentTreatment.amount_paid || 0) + amount;
+      const totalVal = Number(paymentTreatment.value || 0);
+      let newStatus = "pendente";
+      if (newPaid >= totalVal) newStatus = "pago";
+      else if (newPaid > 0) newStatus = "parcial";
+
+      // 3. Update treatment
+      const { error: upErr } = await supabase
+        .from("treatments" as any)
+        .update({ amount_paid: newPaid, payment_status: newStatus } as any)
+        .eq("id", paymentTreatment.id);
+      if (upErr) throw upErr;
+
+      // 4. Create financial entry (real cash in)
+      await supabase.from("financials").insert({
+        clinic_id: clinicId,
+        type: "entrada",
+        category: "recebimento",
+        value: amount,
+        patient_id: id,
+        responsible_user_id: user.id,
+        date: payDate,
+        status: "pago",
+        payment_method: payMethod,
+        description: `Pgto: ${paymentTreatment.procedure_type}`,
+      });
+
+      // 5. Commission: find dentist commission rate and create expense
+      if (paymentTreatment.dentist_user_id) {
+        const { data: member } = await supabase
+          .from("clinic_members")
+          .select("commission_rate")
+          .eq("clinic_id", clinicId)
+          .eq("user_id", paymentTreatment.dentist_user_id)
+          .maybeSingle();
+
+        const rate = Number(member?.commission_rate || 0) / 100;
+        if (rate > 0) {
+          const commission = amount * rate;
+          await supabase.from("financials").insert({
+            clinic_id: clinicId,
+            type: "saida",
+            category: "comissao",
+            value: commission,
+            responsible_user_id: paymentTreatment.dentist_user_id,
+            date: payDate,
+            status: "pago",
+            description: `Comissão: ${paymentTreatment.procedure_type}`,
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pagamento registrado!");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+      queryClient.invalidateQueries({ queryKey: ["payments", id] });
+      closePaymentDialog();
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao registrar pagamento"),
+  });
+
   function openAdd() {
     setEditingTreatment(null);
-    setFormProcedure("");
-    setFormRegion("");
-    setFormStatus("planejado");
-    setFormValue("");
-    setFormNotes("");
-    setFormTooth("");
+    setFormProcedure(""); setFormRegion(""); setFormStatus("planejado");
+    setFormValue(""); setFormNotes(""); setFormTooth("");
     setShowAdd(true);
   }
 
   function openEdit(t: Treatment) {
     setEditingTreatment(t);
-    setFormProcedure(t.procedure_type);
-    setFormRegion(t.region || "");
-    setFormStatus(t.status);
-    setFormValue(t.value?.toString() || "");
-    setFormNotes(t.notes || "");
-    setFormTooth(t.tooth_number || "");
+    setFormProcedure(t.procedure_type); setFormRegion(t.region || "");
+    setFormStatus(t.status); setFormValue(t.value?.toString() || "");
+    setFormNotes(t.notes || ""); setFormTooth(t.tooth_number || "");
     setShowAdd(true);
   }
 
-  function closeDialog() {
-    setShowAdd(false);
-    setEditingTreatment(null);
+  function closeDialog() { setShowAdd(false); setEditingTreatment(null); }
+
+  function openPaymentDialog(t: Treatment) {
+    setPaymentTreatment(t);
+    const pending = Math.max(0, Number(t.value) - Number(t.amount_paid));
+    setPayAmount(pending > 0 ? String(pending) : "");
+    setPayMethod("pix"); setPayDate(format(new Date(), "yyyy-MM-dd")); setPayNotes("");
+    setShowPayment(true);
   }
+
+  function closePaymentDialog() { setShowPayment(false); setPaymentTreatment(null); }
 
   function openWhatsApp(phone: string | null) {
     if (!phone) return toast.error("Paciente sem telefone");
@@ -316,17 +399,37 @@ export default function PacienteDetalhe() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <DollarSign className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Total Orçado</p>
+                <p className="text-lg font-bold text-foreground">R$ {kpis.totalValue.toLocaleString("pt-BR")}</p>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <Banknote className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Total Faturado</p>
-                <p className="text-lg font-bold text-foreground">
-                  R$ {kpis.billed.toLocaleString("pt-BR")}
-                </p>
+                <p className="text-[11px] text-muted-foreground">Valor Pago</p>
+                <p className="text-lg font-bold text-success">R$ {kpis.totalPaid.toLocaleString("pt-BR")}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Valor Pendente</p>
+                <p className="text-lg font-bold text-destructive">R$ {kpis.totalPending.toLocaleString("pt-BR")}</p>
               </div>
             </CardContent>
           </Card>
@@ -336,7 +439,7 @@ export default function PacienteDetalhe() {
                 <Activity className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Em Andamento</p>
+                <p className="text-[11px] text-muted-foreground">Em Andamento</p>
                 <p className="text-lg font-bold text-foreground">{kpis.ongoing}</p>
               </div>
             </CardContent>
@@ -347,7 +450,7 @@ export default function PacienteDetalhe() {
                 <CheckCircle2 className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Finalizados</p>
+                <p className="text-[11px] text-muted-foreground">Finalizados</p>
                 <p className="text-lg font-bold text-foreground">{kpis.finished}</p>
               </div>
             </CardContent>
@@ -366,54 +469,90 @@ export default function PacienteDetalhe() {
               Nenhum tratamento registrado.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {treatments.map((t) => {
                 const sc = statusConfig[t.status] || { label: t.status, color: "bg-muted text-muted-foreground" };
-                const proc = t.procedure_type;
+                const psc = paymentStatusConfig[t.payment_status] || paymentStatusConfig.pendente;
+                const totalVal = Number(t.value || 0);
+                const paid = Number(t.amount_paid || 0);
+                const pending = Math.max(0, totalVal - paid);
+                const progressPct = totalVal > 0 ? Math.min(100, Math.round((paid / totalVal) * 100)) : 0;
+                const treatmentPayments = payments.filter(p => p.treatment_id === t.id);
+
                 return (
-                  <Card key={t.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-foreground">
-                            {proc || "—"}
-                          </span>
-                          {t.region && (
-                            <span className="text-xs text-muted-foreground">| {t.region}</span>
-                          )}
-                          {t.tooth_number && (
-                            <span className="text-xs text-muted-foreground">| Dente {t.tooth_number}</span>
-                          )}
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${sc.color}`}>
-                            {sc.label}
-                          </span>
+                  <Collapsible key={t.id}>
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-foreground">{t.procedure_type || "—"}</span>
+                              {t.region && <span className="text-xs text-muted-foreground">| {t.region}</span>}
+                              {t.tooth_number && <span className="text-xs text-muted-foreground">| Dente {t.tooth_number}</span>}
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${sc.color}`}>{sc.label}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${psc.color}`}>{psc.label}</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <span>R$ {totalVal.toLocaleString("pt-BR")}</span>
+                              <span>{format(new Date(t.date), "dd/MM/yyyy")}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => openPaymentDialog(t)}>
+                              <CreditCard className="h-3.5 w-3.5" /> Pagar
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>R$ {Number(t.value).toLocaleString("pt-BR")}</span>
-                          <span>{format(new Date(t.date), "dd/MM/yyyy")}</span>
+
+                        {/* Payment progress */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-muted-foreground">
+                            <span>Pago: R$ {paid.toLocaleString("pt-BR")}</span>
+                            <span>Pendente: R$ {pending.toLocaleString("pt-BR")}</span>
+                          </div>
+                          <Progress value={progressPct} className="h-2" />
                         </div>
-                        {t.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">{t.notes}</p>
+
+                        {t.notes && <p className="text-xs text-muted-foreground truncate">{t.notes}</p>}
+
+                        {/* Payment history toggle */}
+                        {treatmentPayments.length > 0 && (
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-xs h-7 gap-1 text-muted-foreground">
+                              <ChevronDown className="h-3 w-3" /> {treatmentPayments.length} pagamento(s)
+                            </Button>
+                          </CollapsibleTrigger>
                         )}
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => openEdit(t)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </CardContent>
-                  </Card>
+
+                        <CollapsibleContent>
+                          <div className="mt-2 space-y-1 pl-2 border-l-2 border-muted">
+                            {treatmentPayments.map(p => (
+                              <div key={p.id} className="flex items-center gap-3 text-xs text-muted-foreground py-1">
+                                <span className="font-medium text-foreground">R$ {Number(p.amount).toLocaleString("pt-BR")}</span>
+                                <span>{paymentMethodLabels[p.payment_method] || p.payment_method}</span>
+                                <span>{format(new Date(p.payment_date), "dd/MM/yyyy")}</span>
+                                {p.notes && <span className="truncate">{p.notes}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      </CardContent>
+                    </Card>
+                  </Collapsible>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* Add/Edit dialog */}
+        {/* Add/Edit Treatment Dialog */}
         <Dialog open={showAdd} onOpenChange={(open) => !open && closeDialog()}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingTreatment ? "Editar Tratamento" : "Novo Tratamento"}
-              </DialogTitle>
+              <DialogTitle>{editingTreatment ? "Editar Tratamento" : "Novo Tratamento"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
@@ -422,9 +561,7 @@ export default function PacienteDetalhe() {
                   value={formProcedure}
                   onSelect={(p) => {
                     setFormProcedure(p.name);
-                    if (p.default_value > 0 && !formValue) {
-                      setFormValue(String(p.default_value));
-                    }
+                    if (p.default_value > 0 && !formValue) setFormValue(String(p.default_value));
                   }}
                 />
               </div>
@@ -469,21 +606,11 @@ export default function PacienteDetalhe() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Valor (R$)</Label>
-                <Input
-                  type="number"
-                  value={formValue}
-                  onChange={(e) => setFormValue(e.target.value)}
-                  placeholder="0"
-                />
+                <Input type="number" value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="0" />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Observação (opcional)</Label>
-                <Textarea
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Observações sobre o tratamento..."
-                  rows={2}
-                />
+                <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Observações..." rows={2} />
               </div>
             </div>
             <DialogFooter>
@@ -491,6 +618,58 @@ export default function PacienteDetalhe() {
               <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment Dialog */}
+        <Dialog open={showPayment} onOpenChange={(open) => !open && closePaymentDialog()}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registrar Pagamento</DialogTitle>
+            </DialogHeader>
+            {paymentTreatment && (
+              <div className="space-y-4 py-2">
+                <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+                  <p className="font-medium text-foreground">{paymentTreatment.procedure_type}</p>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Total: R$ {Number(paymentTreatment.value).toLocaleString("pt-BR")}</span>
+                    <span>Pago: R$ {Number(paymentTreatment.amount_paid).toLocaleString("pt-BR")}</span>
+                    <span>Pendente: R$ {Math.max(0, Number(paymentTreatment.value) - Number(paymentTreatment.amount_paid)).toLocaleString("pt-BR")}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Valor Pago (R$)</Label>
+                  <Input type="number" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Forma de Pagamento</Label>
+                  <Select value={payMethod} onValueChange={setPayMethod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pix">Pix</SelectItem>
+                      <SelectItem value="cartao">Cartão</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Data</Label>
+                  <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Observação (opcional)</Label>
+                  <Textarea value={payNotes} onChange={(e) => setPayNotes(e.target.value)} placeholder="Observação..." rows={2} />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={closePaymentDialog}>Cancelar</Button>
+              <Button onClick={() => paymentMutation.mutate()} disabled={paymentMutation.isPending}>
+                {paymentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Registrar Pagamento
               </Button>
             </DialogFooter>
           </DialogContent>
