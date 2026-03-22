@@ -16,8 +16,13 @@ export function ClinicOnboarding() {
     if (!clinicName.trim()) return;
     setSaving(true);
     try {
-      await createClinic(clinicName.trim());
+      const newClinicId = await createClinic(clinicName.trim());
+      // Seed default procedures for the new clinic
+      if (newClinicId) {
+        await supabase.rpc("seed_default_procedures", { _clinic_id: newClinicId });
+      }
       toast.success("Clínica criada com sucesso!");
+      window.location.reload();
       window.location.reload();
     } catch (err: any) {
       toast.error("Erro ao criar clínica: " + (err.message || "Tente novamente"));
