@@ -250,6 +250,7 @@ export default function PacienteDetalhe() {
     setFormStatus(t.status);
     setFormValue(t.value?.toString() || "");
     setFormNotes(t.notes || "");
+    setFormTooth(t.tooth_number || "");
     setShowAdd(true);
   }
 
