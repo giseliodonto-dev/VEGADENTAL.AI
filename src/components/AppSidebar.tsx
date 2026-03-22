@@ -6,7 +6,6 @@ import {
   BarChart3,
   Crown,
   Settings,
-  Zap,
   LogOut,
   Building2,
   Users,
@@ -15,6 +14,7 @@ import {
   Compass,
   Brain,
 } from "lucide-react";
+import vegaLogo from "@/assets/vega-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,9 +50,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-vendas">
-            <Zap className="h-5 w-5 text-vendas-foreground" />
-          </div>
+          <img src={vegaLogo} alt="VEGA Dental AI" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
           {!collapsed && (
             <div className="animate-slide-in">
               <p className="text-sm font-bold text-sidebar-primary font-display">
