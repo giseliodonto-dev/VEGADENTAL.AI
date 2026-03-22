@@ -22,11 +22,10 @@ const tools = [
     url: "/gestao/agenda",
   },
   {
-    title: "Financeiro",
-    description: "Fluxo de caixa, receitas, despesas e visão clara da saúde financeira.",
+    title: "Finanças VEGA",
+    description: "Análise estratégica da saúde financeira: lucro, margem, comparativos e direcionamentos.",
     icon: DollarSign,
-    url: "#",
-    soon: true,
+    url: "/gestao/financas",
   },
   {
     title: "Pacientes",
