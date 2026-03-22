@@ -449,6 +449,7 @@ export type Database = {
           procedure_type: string
           region: string | null
           status: string
+          tooth_number: string | null
           updated_at: string
           value: number
         }
@@ -463,6 +464,7 @@ export type Database = {
           procedure_type: string
           region?: string | null
           status?: string
+          tooth_number?: string | null
           updated_at?: string
           value?: number
         }
@@ -477,6 +479,7 @@ export type Database = {
           procedure_type?: string
           region?: string | null
           status?: string
+          tooth_number?: string | null
           updated_at?: string
           value?: number
         }

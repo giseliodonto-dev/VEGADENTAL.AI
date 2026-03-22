@@ -1,0 +1,1 @@
+ALTER TABLE public.treatments ADD COLUMN tooth_number text;

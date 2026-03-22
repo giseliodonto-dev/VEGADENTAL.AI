@@ -39,6 +39,19 @@ const regionOptions = [
   { value: "inferior", label: "Inferior" },
 ];
 
+// Permanent teeth: 11-18, 21-28, 31-38, 41-48
+// Deciduous teeth: 51-55, 61-65, 71-75, 81-85
+const toothOptions: { group: string; teeth: string[] }[] = [
+  { group: "Permanentes — Superior Direito", teeth: ["11","12","13","14","15","16","17","18"] },
+  { group: "Permanentes — Superior Esquerdo", teeth: ["21","22","23","24","25","26","27","28"] },
+  { group: "Permanentes — Inferior Esquerdo", teeth: ["31","32","33","34","35","36","37","38"] },
+  { group: "Permanentes — Inferior Direito", teeth: ["41","42","43","44","45","46","47","48"] },
+  { group: "Decíduos — Superior Direito", teeth: ["51","52","53","54","55"] },
+  { group: "Decíduos — Superior Esquerdo", teeth: ["61","62","63","64","65"] },
+  { group: "Decíduos — Inferior Esquerdo", teeth: ["71","72","73","74","75"] },
+  { group: "Decíduos — Inferior Direito", teeth: ["81","82","83","84","85"] },
+];
+
 const statusOptions = [
   { value: "planejado", label: "Planejado" },
   { value: "aprovado", label: "Aprovado" },
@@ -70,6 +83,7 @@ interface Treatment {
   notes: string | null;
   date: string;
   dentist_user_id: string | null;
+  tooth_number: string | null;
 }
 
 export default function PacienteDetalhe() {
@@ -88,6 +102,7 @@ export default function PacienteDetalhe() {
   const [formStatus, setFormStatus] = useState("planejado");
   const [formValue, setFormValue] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formTooth, setFormTooth] = useState("");
 
   // Fetch patient
   const { data: patient, isLoading: patientLoading } = useQuery({
@@ -170,7 +185,8 @@ export default function PacienteDetalhe() {
           .from("treatments" as any)
           .update({
             procedure_type: formProcedure,
-            region: formRegion || null,
+            region: formRegion && formRegion !== "none" ? formRegion : null,
+            tooth_number: formTooth && formTooth !== "none" ? formTooth : null,
             status: formStatus,
             value: val,
             notes: formNotes || null,
@@ -194,7 +210,8 @@ export default function PacienteDetalhe() {
           patient_id: id,
           dentist_user_id: user.id,
           procedure_type: formProcedure,
-          region: formRegion || null,
+          region: formRegion && formRegion !== "none" ? formRegion : null,
+          tooth_number: formTooth && formTooth !== "none" ? formTooth : null,
           status: formStatus,
           value: val,
           notes: formNotes || null,
@@ -222,6 +239,7 @@ export default function PacienteDetalhe() {
     setFormStatus("planejado");
     setFormValue("");
     setFormNotes("");
+    setFormTooth("");
     setShowAdd(true);
   }
 
@@ -232,6 +250,7 @@ export default function PacienteDetalhe() {
     setFormStatus(t.status);
     setFormValue(t.value?.toString() || "");
     setFormNotes(t.notes || "");
+    setFormTooth(t.tooth_number || "");
     setShowAdd(true);
   }
 
@@ -367,6 +386,9 @@ export default function PacienteDetalhe() {
                           {t.region && (
                             <span className="text-xs text-muted-foreground">| {t.region}</span>
                           )}
+                          {t.tooth_number && (
+                            <span className="text-xs text-muted-foreground">| Dente {t.tooth_number}</span>
+                          )}
                           <span className={`text-xs px-2 py-0.5 rounded-full ${sc.color}`}>
                             {sc.label}
                           </span>
@@ -417,6 +439,23 @@ export default function PacienteDetalhe() {
                   <SelectContent>
                     {regionOptions.map((r) => (
                       <SelectItem key={r.value || "none"} value={r.value || "none"}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Dente (opcional)</Label>
+                <Select value={formTooth} onValueChange={setFormTooth}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar dente" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {toothOptions.map((group) => (
+                      <div key={group.group}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.group}</div>
+                        {group.teeth.map((tooth) => (
+                          <SelectItem key={tooth} value={tooth}>Dente {tooth}</SelectItem>
+                        ))}
+                      </div>
                     ))}
                   </SelectContent>
                 </Select>
