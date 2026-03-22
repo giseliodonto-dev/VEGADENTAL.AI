@@ -80,22 +80,31 @@ export type Database = {
       clinic_members: {
         Row: {
           clinic_id: string
+          commission_rate: number | null
+          contract_type: string | null
           created_at: string
           id: string
+          is_active: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           clinic_id: string
+          commission_rate?: number | null
+          contract_type?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           clinic_id?: string
+          commission_rate?: number | null
+          contract_type?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
