@@ -228,7 +228,7 @@ export default function PacienteDetalhe() {
 
   function openAdd() {
     setEditingTreatment(null);
-    setFormProcedure("limpeza");
+    setFormProcedure("");
     setFormRegion("");
     setFormStatus("planejado");
     setFormValue("");
