@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClinic } from "@/hooks/useClinic";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
