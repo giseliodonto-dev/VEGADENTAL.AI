@@ -343,7 +343,95 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error(e.message || "Erro ao registrar pagamento"),
   });
 
-  function openAdd() {
+  // Budget creation mutation
+  const budgetMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinicId || !id || !user) throw new Error("Dados incompletos");
+      const selectedTreatments = treatments.filter(t => selectedTreatmentIds.includes(t.id));
+      if (selectedTreatments.length === 0) throw new Error("Selecione ao menos um tratamento");
+
+      const totalValue = selectedTreatments.reduce((s, t) => s + Number(t.value || 0), 0);
+      const discount = parseFloat(budgetDiscount) || 0;
+      const finalValue = Math.max(0, totalValue - discount);
+
+      // Create budget
+      const { data: budget, error } = await supabase.from("budgets" as any).insert({
+        clinic_id: clinicId,
+        patient_id: id,
+        dentist_user_id: user.id,
+        total_value: totalValue,
+        discount,
+        final_value: finalValue,
+        notes: budgetNotes || null,
+        valid_until: budgetValidUntil || null,
+      } as any).select().single();
+      if (error) throw error;
+
+      // Create budget items
+      const items = selectedTreatments.map(t => ({
+        budget_id: (budget as any).id,
+        treatment_id: t.id,
+        procedure_name: t.procedure_type,
+        tooth_number: t.tooth_number || null,
+        region: t.region || null,
+        value: Number(t.value || 0),
+        notes: t.notes || null,
+      }));
+      const { error: itemsError } = await supabase.from("budget_items" as any).insert(items as any);
+      if (itemsError) throw itemsError;
+    },
+    onSuccess: () => {
+      toast.success("Orçamento criado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["budgets", id] });
+      setShowBudget(false);
+      setSelectedTreatmentIds([]);
+      setBudgetDiscount(""); setBudgetValidUntil(""); setBudgetNotes("");
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao criar orçamento"),
+  });
+
+  function copyBudgetLink(token: string) {
+    const url = `${window.location.origin}/orcamento/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado!");
+  }
+
+  function sendWhatsApp(token: string) {
+    if (!patient?.phone) return toast.error("Paciente sem telefone");
+    const url = `${window.location.origin}/orcamento/${token}`;
+    const msg = encodeURIComponent(`Olá! Segue seu orçamento odontológico: ${url}`);
+    window.open(`https://wa.me/55${patient.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+  }
+
+  function downloadBudgetPdf(budget: any) {
+    const budgetItems = treatments.filter(t =>
+      selectedTreatmentIds.includes(t.id) || true // we use all for now, ideally query budget_items
+    );
+    // For PDF we need the actual items - quick approach using budget data
+    const doc = generateBudgetPdf({
+      clinicName: clinic?.name || "Clínica",
+      clinicPhone: clinic?.phone,
+      clinicEmail: clinic?.email,
+      clinicAddress: clinic?.address,
+      patientName: patient?.name || "",
+      patientPhone: patient?.phone,
+      items: (budget._items || []).map((i: any) => ({
+        procedure_name: i.procedure_name,
+        tooth_number: i.tooth_number,
+        region: i.region,
+        value: Number(i.value),
+      })),
+      totalValue: Number(budget.total_value),
+      discount: Number(budget.discount || 0),
+      finalValue: Number(budget.final_value),
+      validUntil: budget.valid_until ? format(new Date(budget.valid_until), "dd/MM/yyyy") : null,
+      notes: budget.notes,
+      createdAt: format(new Date(budget.created_at), "dd/MM/yyyy"),
+    });
+    doc.save(`orcamento-${patient?.name?.replace(/\s/g, "_") || "paciente"}.pdf`);
+  }
+
+
     setEditingTreatment(null);
     setFormProcedure(""); setFormRegion(""); setFormStatus("planejado");
     setFormValue(""); setFormNotes(""); setFormTooth("");
