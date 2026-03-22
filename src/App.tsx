@@ -70,6 +70,7 @@ const App = () => (
           <Route path="/gestao/equipe" element={<ProtectedRoute><EquipeVega /></ProtectedRoute>} />
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+          <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
