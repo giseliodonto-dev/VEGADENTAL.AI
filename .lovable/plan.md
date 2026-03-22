@@ -1,108 +1,74 @@
 
 
-## Plano: Tela do Paciente com Registro de Tratamentos
+## Plano: Catalogo de Procedimentos Odontologicos
 
-### 1. Migração de banco de dados
+### Contexto
 
-Nova tabela `treatments`:
+Atualmente, procedimentos sao uma lista hardcoded de 5 opcoes em `PacienteDetalhe.tsx`. Precisamos criar uma tabela de catalogo no banco e substituir os selects hardcoded por um componente com busca, favoritos e categorias.
+
+### 1. Migracao de banco de dados
+
+Nova tabela `procedures_catalog`:
 
 ```sql
-CREATE TABLE public.treatments (
+CREATE TABLE public.procedures_catalog (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id uuid NOT NULL REFERENCES clinics(id),
-  patient_id uuid NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-  dentist_user_id uuid,
-  procedure_type text NOT NULL, -- limpeza, restauracao, faceta, implante, outros
-  region text, -- superior, inferior, dente especifico
-  status text NOT NULL DEFAULT 'planejado', -- planejado, aprovado, em_andamento, finalizado
-  value numeric NOT NULL DEFAULT 0,
-  notes text,
-  date date NOT NULL DEFAULT CURRENT_DATE,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  name text NOT NULL,
+  category text NOT NULL, -- preventivo, clinico_geral, endodontia, periodontia, protese, estetica, implantodontia, cirurgia, ortodontia, outros
+  default_value numeric DEFAULT 0,
+  is_favorite boolean DEFAULT false,
+  is_custom boolean DEFAULT false, -- true = adicionado pelo gestor
+  is_active boolean DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
-
-ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
-
--- RLS: membros da clinica podem CRUD
-CREATE POLICY "Members can view treatments" ON treatments FOR SELECT
-  USING (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-CREATE POLICY "Members can insert treatments" ON treatments FOR INSERT
-  WITH CHECK (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-CREATE POLICY "Members can update treatments" ON treatments FOR UPDATE
-  USING (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-CREATE POLICY "Donos can delete treatments" ON treatments FOR DELETE
-  USING (has_clinic_role(auth.uid(), clinic_id, 'dono'));
+ALTER TABLE public.procedures_catalog ENABLE ROW LEVEL SECURITY;
+-- RLS: membros podem ver, donos podem CRUD
 ```
 
-### 2. Criar página `src/pages/PacienteDetalhe.tsx`
+**Seed com procedimentos padrao**: Inserir os ~40 procedimentos listados (profilaxia, aplicacao de fluor, selante, restauracao em resina, etc.) via edge function ou migration com INSERT. Usar `is_custom = false` para os padrao.
 
-Rota: `/pacientes/:id`
+### 2. Criar componente `ProcedureSelector`
 
-**Layout:**
+**`src/components/ProcedureSelector.tsx`**
 
-```text
-┌─────────────────────────────────────────────┐
-│ ← Voltar    Nome do Paciente    📱 Telefone │
-│             Badge: Em tratamento            │
-│                                             │
-│ [+ Adicionar Tratamento]  (botão destaque)  │
-│                                             │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐     │
-│ │ R$ Total │ │ Em anda- │ │ Finali-  │     │
-│ │ Faturado │ │ mento    │ │ zados    │     │
-│ └──────────┘ └──────────┘ └──────────┘     │
-│                                             │
-│ Histórico de Tratamentos                    │
-│ ┌─────────────────────────────────────────┐ │
-│ │ ● Restauração | Superior | R$ 800      │ │
-│ │   Aprovado (azul) | 15/03/2026         │ │
-│ ├─────────────────────────────────────────┤ │
-│ │ ● Limpeza | — | R$ 200                 │ │
-│ │   Finalizado (verde) | 10/03/2026      │ │
-│ └─────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
-```
+Componente reutilizavel usando Popover + Command (cmdk, ja disponivel no projeto):
+- Campo de busca com filtro por nome
+- Agrupado por categoria (Preventivos, Clinico Geral, Endodontia, etc.)
+- Icone de estrela para favoritar/desfavoritar (toggle no banco)
+- Favoritos aparecem primeiro na lista
+- Ao selecionar, retorna `{ id, name, category, default_value }`
+- Botao "Adicionar procedimento personalizado" no final da lista
 
-**Funcionalidades:**
-- Query paciente por ID + todos os treatments do paciente
-- KPIs: soma de valores (status aprovado/finalizado), contagem por status
-- Lista de tratamentos com badges coloridos (cinza=planejado, azul=aprovado, amarelo=em_andamento, verde=finalizado)
-- Botão editar status de cada tratamento
+### 3. Atualizar `PacienteDetalhe.tsx`
 
-**Dialog "Adicionar Tratamento":**
-- Tipo de procedimento (select: Limpeza, Restauração, Faceta, Implante, Outros)
-- Região (opcional: Superior, Inferior, campo livre para dente)
-- Status (Planejado, Aprovado, Em andamento, Finalizado)
-- Valor (R$)
-- Observação (textarea opcional)
+- Remover `procedureOptions` hardcoded
+- Substituir Select de procedimento pelo `ProcedureSelector`
+- Ao selecionar procedimento, preencher automaticamente o campo Valor com `default_value` (se definido e campo vazio)
+- Salvar `procedure_type` com o nome do procedimento selecionado
 
-**Regras de negócio ao salvar:**
-- Insere na tabela `treatments`
-- Se status = "aprovado" ou "finalizado": insere automaticamente uma entrada na tabela `financials` (type='entrada', category='tratamentos', value, patient_id, responsible_user_id = dentista logado)
-- Verificação de duplicidade: checa se já existe financeiro com mesmo patient_id + mesma data + mesmo valor antes de inserir
-- Ao mudar status para aprovado/finalizado (edit): mesma lógica de lançamento financeiro
+### 4. Atualizar `AgendaVega.tsx`
 
-### 3. Atualizar rotas
+- Substituir campo livre de procedimento pelo `ProcedureSelector`
+- Mesmo comportamento de auto-preenchimento de valor
 
-**`src/App.tsx`**: Adicionar rota `/pacientes/:id` → `PacienteDetalhe`
+### 5. Rota de gerenciamento (opcional, dentro de Configuracoes)
 
-### 4. Atualizar lista de Pacientes
-
-**`src/Pacientes.tsx`**: Adicionar botão "Ver ficha" no TableRow que navega para `/pacientes/{id}`
+Nao criar pagina separada agora — gerenciamento de favoritos e procedimentos customizados sera feito inline no proprio seletor.
 
 ### Arquivos
 
-| Ação | Arquivo |
+| Acao | Arquivo |
 |------|---------|
-| Migração | 1 SQL (tabela treatments + RLS) |
-| Criar | `src/pages/PacienteDetalhe.tsx` |
-| Editar | `src/App.tsx` (rota) |
-| Editar | `src/pages/Pacientes.tsx` (link para ficha) |
+| Migracao | 1 SQL (tabela + seed ~40 procedimentos + RLS) |
+| Criar | `src/components/ProcedureSelector.tsx` |
+| Editar | `src/pages/PacienteDetalhe.tsx` (usar ProcedureSelector) |
+| Editar | `src/pages/gestao/AgendaVega.tsx` (usar ProcedureSelector) |
 
-### Integrações automáticas
+### Detalhes tecnicos
 
-- **Financeiro**: lançamento automático ao aprovar/finalizar tratamento
-- **Equipe**: produção do dentista atualizada via financials (já usado pelo EquipeVega)
-- **Dashboard/GPS**: indicadores atualizados automaticamente via financials existente
+- Seed: cada clinica precisa dos seus procedimentos. Opcao 1: seed na migration com trigger que copia ao criar clinica. Opcao 2: seeder no frontend ao primeiro acesso. **Opcao escolhida**: criar uma funcao DB `seed_default_procedures(clinic_id)` chamada no onboarding (ClinicOnboarding.tsx) apos criar a clinica.
+- Busca: filtro local via Command/cmdk (sem roundtrip ao banco)
+- Favoritos: toggle via mutation que faz UPDATE no `is_favorite`
+- Procedimento customizado: dialog inline para inserir nome + categoria + valor padrao
 
