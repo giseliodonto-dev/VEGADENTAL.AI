@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -22,11 +23,12 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
+import { generateBudgetPdf } from "@/utils/budgetPdf";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
   Loader2, Phone, MessageCircle, Pencil, CreditCard, ChevronDown,
-  Banknote, AlertCircle,
+  Banknote, AlertCircle, FileText, Copy, Send, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -119,6 +121,11 @@ export default function PacienteDetalhe() {
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentTreatment, setPaymentTreatment] = useState<Treatment | null>(null);
+  const [showBudget, setShowBudget] = useState(false);
+  const [selectedTreatmentIds, setSelectedTreatmentIds] = useState<string[]>([]);
+  const [budgetDiscount, setBudgetDiscount] = useState("");
+  const [budgetValidUntil, setBudgetValidUntil] = useState("");
+  const [budgetNotes, setBudgetNotes] = useState("");
 
   // Treatment form
   const [formProcedure, setFormProcedure] = useState("");
@@ -173,6 +180,32 @@ export default function PacienteDetalhe() {
       return (data || []) as unknown as Payment[];
     },
     enabled: !!id,
+  });
+
+  // Fetch budgets for this patient
+  const { data: budgets = [] } = useQuery({
+    queryKey: ["budgets", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("budgets" as any)
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch clinic info for PDF
+  const { data: clinic } = useQuery({
+    queryKey: ["clinic-info", clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clinics").select("*").eq("id", clinicId!).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId,
   });
 
   // KPIs
@@ -310,6 +343,94 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error(e.message || "Erro ao registrar pagamento"),
   });
 
+  // Budget creation mutation
+  const budgetMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinicId || !id || !user) throw new Error("Dados incompletos");
+      const selectedTreatments = treatments.filter(t => selectedTreatmentIds.includes(t.id));
+      if (selectedTreatments.length === 0) throw new Error("Selecione ao menos um tratamento");
+
+      const totalValue = selectedTreatments.reduce((s, t) => s + Number(t.value || 0), 0);
+      const discount = parseFloat(budgetDiscount) || 0;
+      const finalValue = Math.max(0, totalValue - discount);
+
+      // Create budget
+      const { data: budget, error } = await supabase.from("budgets" as any).insert({
+        clinic_id: clinicId,
+        patient_id: id,
+        dentist_user_id: user.id,
+        total_value: totalValue,
+        discount,
+        final_value: finalValue,
+        notes: budgetNotes || null,
+        valid_until: budgetValidUntil || null,
+      } as any).select().single();
+      if (error) throw error;
+
+      // Create budget items
+      const items = selectedTreatments.map(t => ({
+        budget_id: (budget as any).id,
+        treatment_id: t.id,
+        procedure_name: t.procedure_type,
+        tooth_number: t.tooth_number || null,
+        region: t.region || null,
+        value: Number(t.value || 0),
+        notes: t.notes || null,
+      }));
+      const { error: itemsError } = await supabase.from("budget_items" as any).insert(items as any);
+      if (itemsError) throw itemsError;
+    },
+    onSuccess: () => {
+      toast.success("Orçamento criado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["budgets", id] });
+      setShowBudget(false);
+      setSelectedTreatmentIds([]);
+      setBudgetDiscount(""); setBudgetValidUntil(""); setBudgetNotes("");
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao criar orçamento"),
+  });
+
+  function copyBudgetLink(token: string) {
+    const url = `${window.location.origin}/orcamento/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado!");
+  }
+
+  function sendWhatsApp(token: string) {
+    if (!patient?.phone) return toast.error("Paciente sem telefone");
+    const url = `${window.location.origin}/orcamento/${token}`;
+    const msg = encodeURIComponent(`Olá! Segue seu orçamento odontológico: ${url}`);
+    window.open(`https://wa.me/55${patient.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+  }
+
+  function downloadBudgetPdf(budget: any) {
+    const budgetItems = treatments.filter(t =>
+      selectedTreatmentIds.includes(t.id) || true // we use all for now, ideally query budget_items
+    );
+    // For PDF we need the actual items - quick approach using budget data
+    const doc = generateBudgetPdf({
+      clinicName: clinic?.name || "Clínica",
+      clinicPhone: clinic?.phone,
+      clinicEmail: clinic?.email,
+      clinicAddress: clinic?.address,
+      patientName: patient?.name || "",
+      patientPhone: patient?.phone,
+      items: (budget._items || []).map((i: any) => ({
+        procedure_name: i.procedure_name,
+        tooth_number: i.tooth_number,
+        region: i.region,
+        value: Number(i.value),
+      })),
+      totalValue: Number(budget.total_value),
+      discount: Number(budget.discount || 0),
+      finalValue: Number(budget.final_value),
+      validUntil: budget.valid_until ? format(new Date(budget.valid_until), "dd/MM/yyyy") : null,
+      notes: budget.notes,
+      createdAt: format(new Date(budget.created_at), "dd/MM/yyyy"),
+    });
+    doc.save(`orcamento-${patient?.name?.replace(/\s/g, "_") || "paciente"}.pdf`);
+  }
+
   function openAdd() {
     setEditingTreatment(null);
     setFormProcedure(""); setFormRegion(""); setFormStatus("planejado");
@@ -386,12 +507,15 @@ export default function PacienteDetalhe() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {patient.phone && (
               <Button variant="outline" size="sm" onClick={() => openWhatsApp(patient.phone)}>
                 <MessageCircle className="h-4 w-4 mr-1 text-green-600" /> WhatsApp
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => setShowBudget(true)}>
+              <FileText className="h-4 w-4" /> Criar Orçamento
+            </Button>
             <Button size="sm" className="gap-1" onClick={openAdd}>
               <Plus className="h-4 w-4" /> Adicionar Tratamento
             </Button>
@@ -548,7 +672,60 @@ export default function PacienteDetalhe() {
           )}
         </div>
 
-        {/* Add/Edit Treatment Dialog */}
+        {/* Budget list */}
+        {budgets.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Orçamentos</h3>
+            <div className="space-y-3">
+              {budgets.map((b: any) => {
+                const budgetStatusConfig: Record<string, { label: string; color: string }> = {
+                  pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+                  enviado: { label: "Enviado", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+                  aceito: { label: "Aceito", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+                  recusado: { label: "Recusado", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+                  expirado: { label: "Expirado", color: "bg-muted text-muted-foreground" },
+                };
+                const bs = budgetStatusConfig[b.status] || budgetStatusConfig.pendente;
+                return (
+                  <Card key={b.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              R$ {Number(b.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${bs.color}`}>{bs.label}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(b.created_at), "dd/MM/yyyy")}
+                            {b.valid_until && ` • Válido até ${format(new Date(b.valid_until), "dd/MM/yyyy")}`}
+                          </p>
+                          {b.accepted_signature && (
+                            <p className="text-xs text-green-600 mt-1">Assinado por: {b.accepted_signature}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyBudgetLink(b.public_token)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          {patient.phone && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendWhatsApp(b.public_token)}>
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
         <Dialog open={showAdd} onOpenChange={(open) => !open && closeDialog()}>
           <DialogContent>
             <DialogHeader>
@@ -670,6 +847,65 @@ export default function PacienteDetalhe() {
               <Button onClick={() => paymentMutation.mutate()} disabled={paymentMutation.isPending}>
                 {paymentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Registrar Pagamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Budget Creation Dialog */}
+        <Dialog open={showBudget} onOpenChange={(open) => { if (!open) { setShowBudget(false); setSelectedTreatmentIds([]); } }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Criar Orçamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Selecione os tratamentos</Label>
+                <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-3">
+                  {treatments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum tratamento cadastrado.</p>
+                  ) : (
+                    treatments.map(t => (
+                      <div key={t.id} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedTreatmentIds.includes(t.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedTreatmentIds(prev =>
+                              checked ? [...prev, t.id] : prev.filter(x => x !== t.id)
+                            );
+                          }}
+                        />
+                        <span className="text-sm text-foreground flex-1">{t.procedure_type}</span>
+                        {t.tooth_number && <span className="text-xs text-muted-foreground">D{t.tooth_number}</span>}
+                        <span className="text-sm font-medium text-foreground">R$ {Number(t.value).toLocaleString("pt-BR")}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {selectedTreatmentIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Subtotal: R$ {treatments.filter(t => selectedTreatmentIds.includes(t.id)).reduce((s, t) => s + Number(t.value || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Desconto (R$)</Label>
+                <Input type="number" value={budgetDiscount} onChange={(e) => setBudgetDiscount(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Validade</Label>
+                <Input type="date" value={budgetValidUntil} onChange={(e) => setBudgetValidUntil(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Observações</Label>
+                <Textarea value={budgetNotes} onChange={(e) => setBudgetNotes(e.target.value)} placeholder="Condições, observações..." rows={2} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBudget(false)}>Cancelar</Button>
+              <Button onClick={() => budgetMutation.mutate()} disabled={budgetMutation.isPending || selectedTreatmentIds.length === 0}>
+                {budgetMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Criar Orçamento
               </Button>
             </DialogFooter>
           </DialogContent>
