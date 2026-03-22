@@ -15,6 +15,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Clinicas from "./pages/Clinicas";
 import Usuarios from "./pages/Usuarios";
 import Pacientes from "./pages/Pacientes";
+import PacienteDetalhe from "./pages/PacienteDetalhe";
 import Leads from "./pages/Leads";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import HoraClinica from "./pages/vega/HoraClinica";
