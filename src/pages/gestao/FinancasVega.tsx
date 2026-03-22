@@ -193,7 +193,7 @@ export default function FinancasVega() {
     const occupancy = totalAppts > 0 ? pct(appointments.filter(a => a.status !== "cancelado").length, totalAppts) : 0;
 
     return {
-      revenue, expenses, grossProfit, netProfit, margin, ticketMedio,
+      revenue, received, expenses, commissions, grossProfit, netProfit, margin, ticketMedio,
       prevRevenue, prevExpenses, prevNetProfit,
       revenueGrowth, expenseGrowth, profitGrowth,
       expenseCategoryData, dentistData, occupancy,
