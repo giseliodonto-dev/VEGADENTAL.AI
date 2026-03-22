@@ -507,12 +507,15 @@ export default function PacienteDetalhe() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {patient.phone && (
               <Button variant="outline" size="sm" onClick={() => openWhatsApp(patient.phone)}>
                 <MessageCircle className="h-4 w-4 mr-1 text-green-600" /> WhatsApp
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => setShowBudget(true)}>
+              <FileText className="h-4 w-4" /> Criar Orçamento
+            </Button>
             <Button size="sm" className="gap-1" onClick={openAdd}>
               <Plus className="h-4 w-4" /> Adicionar Tratamento
             </Button>
