@@ -17,6 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
