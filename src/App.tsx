@@ -22,6 +22,7 @@ import FunilVendas from "./pages/vendas/FunilVendas";
 import MetasMensais from "./pages/gestao/MetasMensais";
 import AgendaVega from "./pages/gestao/AgendaVega";
 import FinancasVega from "./pages/gestao/FinancasVega";
+import EquipeVega from "./pages/gestao/EquipeVega";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
 import InteligenciaVega from "./pages/InteligenciaVega";
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
           <Route path="/gestao/metas" element={<ProtectedRoute><MetasMensais /></ProtectedRoute>} />
           <Route path="/gestao/financas" element={<ProtectedRoute><FinancasVega /></ProtectedRoute>} />
+          <Route path="/gestao/equipe" element={<ProtectedRoute><EquipeVega /></ProtectedRoute>} />
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
