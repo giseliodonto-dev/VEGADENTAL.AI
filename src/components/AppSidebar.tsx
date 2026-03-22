@@ -6,7 +6,6 @@ import {
   BarChart3,
   Crown,
   Settings,
-  Zap,
   LogOut,
   Building2,
   Users,
@@ -15,6 +14,7 @@ import {
   Compass,
   Brain,
 } from "lucide-react";
+import vegaLogo from "@/assets/vega-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
