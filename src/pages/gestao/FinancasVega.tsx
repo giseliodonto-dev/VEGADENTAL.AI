@@ -151,7 +151,9 @@ export default function FinancasVega() {
     const prevExits = exits(prevFinancials);
 
     const revenue = sum(curEntries);
+    const received = sum(curEntries.filter(e => e.category === "recebimento"));
     const expenses = sum(curExits);
+    const commissions = sum(curExits.filter(e => (e.category || "").toLowerCase() === "comissao"));
     const operationalExpenses = sum(curExits.filter(e => OPERATIONAL_CATEGORIES.includes((e.category || "").toLowerCase())));
     const grossProfit = revenue - operationalExpenses;
     const netProfit = revenue - expenses;
