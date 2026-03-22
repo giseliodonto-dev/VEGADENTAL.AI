@@ -1,38 +1,81 @@
 
 
-## Plano: Corrigir cadastro de pacientes — constraint de origem
+## Plano: Modulo Marketing Completo
 
-### Problema
+### Estrutura
 
-A tabela `patients` tem um CHECK constraint que aceita apenas: `instagram`, `indicacao`, `google`, `facebook`, `site`, `outros`. O formulario envia valores capitalizados (`Instagram`, `Indicação`) e inclui `WhatsApp` que nao existe no constraint.
+A pagina hub `/marketing` vira um menu com 4 subpaginas funcionais, seguindo o mesmo padrao de `/gestao`.
 
-### Solucao
+### 1. Migracao de banco de dados
 
-1. **Migracao SQL**: Remover o constraint antigo e recriar com valores atualizados incluindo `whatsapp`:
+Duas novas tabelas:
 
+**`content_calendar`** — Planejamento de conteudo
 ```sql
-ALTER TABLE public.patients DROP CONSTRAINT patients_origin_check;
-ALTER TABLE public.patients ADD CONSTRAINT patients_origin_check
-  CHECK (origin = ANY (ARRAY['instagram','indicacao','google','facebook','whatsapp','site','outros']));
+- id, clinic_id, title, content_type (reels/story/post/video),
+  theme, status (planejado/em_producao/postado),
+  scheduled_date, notes, created_at
 ```
 
-2. **Editar `src/pages/CadastroPaciente.tsx`**: Alterar o array `origins` para usar valores em minusculo no `value` mas manter labels legiveis:
-
-```
-{ value: "instagram", label: "Instagram" },
-{ value: "google", label: "Google" },
-{ value: "indicacao", label: "Indicação" },
-{ value: "facebook", label: "Facebook" },
-{ value: "whatsapp", label: "WhatsApp" },
-{ value: "outros", label: "Outros" },
+**`campaigns`** — Campanhas de marketing
+```sql
+- id, clinic_id, name, channel (instagram/google/whatsapp/facebook/outros),
+  start_date, end_date, investment, status (ativa/finalizada),
+  leads_generated, sales_closed, notes, created_at
 ```
 
-Atualizar o Select para usar `value/label` ao inves de string direta.
+RLS: membros podem ver/inserir/atualizar, donos podem deletar (padrao do projeto).
+
+### 2. Paginas
+
+**`src/pages/Marketing.tsx`** — Hub com 4 cards linkando para subpaginas (remover `soon: true`)
+
+**`src/pages/marketing/PlanejamentoConteudo.tsx`**
+- Calendario mensal visual (grid 7 colunas)
+- Cadastro de conteudo: tipo, tema, status, data, observacao
+- Filtro por semana/mes
+- Badges coloridos por status (cinza=planejado, amarelo=producao, verde=postado)
+
+**`src/pages/marketing/LeadsOrigem.tsx`**
+- Query `patients` + `leads` agrupando por `origin`
+- Ranking de origens por quantidade de leads
+- Grafico de barras (Recharts) origem vs quantidade
+- Faturamento por origem (cruzando patients com financials/treatments)
+
+**`src/pages/marketing/Campanhas.tsx`**
+- CRUD de campanhas com dialog
+- Lista com status, investimento, leads gerados, vendas fechadas
+- Calculo de ROI: (vendas - investimento) / investimento
+
+**`src/pages/marketing/SugestoesEstrategicas.tsx`**
+- Analise automatica baseada nos dados existentes:
+  - Conta leads por origem → identifica melhor e pior canal
+  - Verifica frequencia de conteudo → sugere aumentar se baixa
+  - Verifica campanhas ativas → sugere criar se nenhuma
+  - Verifica taxa de conversao do funil → sugere acoes
+- Cards com icones e links para acao (ex: "Ir para Funil", "Criar Campanha")
+
+### 3. Rotas e navegacao
+
+**`src/App.tsx`** — 4 novas rotas: `/marketing/conteudo`, `/marketing/leads-origem`, `/marketing/campanhas`, `/marketing/sugestoes`
+
+**`src/pages/Marketing.tsx`** — Cards com urls apontando para subpaginas
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Migracao | 1 SQL (drop + recreate constraint) |
-| Editar | `src/pages/CadastroPaciente.tsx` |
+| Migracao | 1 SQL (content_calendar + campaigns + RLS) |
+| Editar | `src/pages/Marketing.tsx` (hub com links) |
+| Criar | `src/pages/marketing/PlanejamentoConteudo.tsx` |
+| Criar | `src/pages/marketing/LeadsOrigem.tsx` |
+| Criar | `src/pages/marketing/Campanhas.tsx` |
+| Criar | `src/pages/marketing/SugestoesEstrategicas.tsx` |
+| Editar | `src/App.tsx` (4 rotas) |
+
+### Dados utilizados
+
+- **Leads por Origem**: query `patients.origin` + `leads.origin` (dados ja existem)
+- **Sugestoes**: cruza `leads`, `patients`, `sales_funnel`, `content_calendar`, `campaigns`
+- **Conteudo e Campanhas**: tabelas novas com CRUD completo
 
