@@ -211,6 +211,7 @@ export default function PacienteDetalhe() {
           dentist_user_id: user.id,
           procedure_type: formProcedure,
           region: formRegion || null,
+          tooth_number: formTooth || null,
           status: formStatus,
           value: val,
           notes: formNotes || null,
