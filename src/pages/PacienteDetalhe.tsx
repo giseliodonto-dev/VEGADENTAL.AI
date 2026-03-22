@@ -375,7 +375,7 @@ export default function PacienteDetalhe() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground">
-                            {proc?.label || t.procedure_type}
+                            {proc || "—"}
                           </span>
                           {t.region && (
                             <span className="text-xs text-muted-foreground">| {t.region}</span>
