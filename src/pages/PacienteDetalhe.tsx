@@ -431,7 +431,7 @@ export default function PacienteDetalhe() {
     doc.save(`orcamento-${patient?.name?.replace(/\s/g, "_") || "paciente"}.pdf`);
   }
 
-
+  function openAdd() {
     setEditingTreatment(null);
     setFormProcedure(""); setFormRegion(""); setFormStatus("planejado");
     setFormValue(""); setFormNotes(""); setFormTooth("");
