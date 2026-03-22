@@ -1,84 +1,38 @@
 
 
-## Plano: Controle de Pagamentos VEGA
+## Plano: Corrigir cadastro de pacientes — constraint de origem
 
-### Problema atual
+### Problema
 
-O sistema atual registra um lançamento financeiro automático quando o tratamento é aprovado/finalizado, mas não controla pagamentos reais (parciais, parcelados). Não diferencia "faturamento" (venda) de "recebimento" (dinheiro entrando). Comissão é calculada sobre venda, não sobre recebimento.
+A tabela `patients` tem um CHECK constraint que aceita apenas: `instagram`, `indicacao`, `google`, `facebook`, `site`, `outros`. O formulario envia valores capitalizados (`Instagram`, `Indicação`) e inclui `WhatsApp` que nao existe no constraint.
 
-### 1. Migração de banco de dados
+### Solucao
 
-Nova tabela `payments`:
-
-```sql
-CREATE TABLE public.payments (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  clinic_id uuid NOT NULL REFERENCES clinics(id),
-  patient_id uuid NOT NULL REFERENCES patients(id),
-  treatment_id uuid NOT NULL,
-  amount numeric NOT NULL,
-  payment_method text NOT NULL DEFAULT 'pix', -- pix, cartao, dinheiro, boleto
-  payment_date date NOT NULL DEFAULT CURRENT_DATE,
-  notes text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
--- RLS: membros podem ver/inserir, donos podem deletar
-```
-
-Adicionar colunas à tabela `treatments`:
+1. **Migracao SQL**: Remover o constraint antigo e recriar com valores atualizados incluindo `whatsapp`:
 
 ```sql
-ALTER TABLE public.treatments
-  ADD COLUMN total_value numeric NOT NULL DEFAULT 0,
-  ADD COLUMN amount_paid numeric NOT NULL DEFAULT 0,
-  ADD COLUMN payment_status text NOT NULL DEFAULT 'pendente', -- pendente, parcial, pago
-  ADD COLUMN payment_type text DEFAULT 'avista'; -- avista, parcelado
-  ADD COLUMN installments integer DEFAULT 1;
+ALTER TABLE public.patients DROP CONSTRAINT patients_origin_check;
+ALTER TABLE public.patients ADD CONSTRAINT patients_origin_check
+  CHECK (origin = ANY (ARRAY['instagram','indicacao','google','facebook','whatsapp','site','outros']));
 ```
 
-### 2. Lógica de pagamentos
+2. **Editar `src/pages/CadastroPaciente.tsx`**: Alterar o array `origins` para usar valores em minusculo no `value` mas manter labels legiveis:
 
-**Ao registrar pagamento:**
-1. Inserir na tabela `payments`
-2. Atualizar `treatments.amount_paid` (soma de todos payments do tratamento)
-3. Recalcular `treatments.payment_status`:
-   - `amount_paid = 0` → pendente
-   - `amount_paid < total_value` → parcial
-   - `amount_paid >= total_value` → pago
-4. Inserir entrada no `financials` com category `'recebimento'` (diferente de `'tratamentos'` que é faturamento)
-5. Calcular comissão proporcional: `amount × commission_rate` do dentista
+```
+{ value: "instagram", label: "Instagram" },
+{ value: "google", label: "Google" },
+{ value: "indicacao", label: "Indicação" },
+{ value: "facebook", label: "Facebook" },
+{ value: "whatsapp", label: "WhatsApp" },
+{ value: "outros", label: "Outros" },
+```
 
-### 3. Alterações em `PacienteDetalhe.tsx`
-
-- Adicionar KPIs: "Valor Pago" e "Valor Pendente"
-- Em cada tratamento na lista: mostrar barra de progresso de pagamento com badge colorido (vermelho=pendente, amarelo=parcial, verde=pago)
-- Botão "Registrar Pagamento" em cada tratamento
-- Dialog de pagamento: valor, forma de pagamento, data, observação
-- Histórico de pagamentos por tratamento (expansível)
-
-### 4. Alteração na lógica financeira
-
-- **Remover** o lançamento automático ao aprovar/finalizar tratamento (isso era faturamento fictício)
-- Agora o financeiro só recebe entradas **reais** via pagamentos
-- Diferenciar no `financials`: `category='faturamento'` (venda) vs `category='recebimento'` (pagamento real)
-
-### 5. Comissão baseada em recebimento
-
-- Ao registrar pagamento, calcular comissão do dentista: `payment.amount × clinic_member.commission_rate`
-- Inserir no `financials` como saída com `category='comissao'`
+Atualizar o Select para usar `value/label` ao inves de string direta.
 
 ### Arquivos
 
-| Ação | Arquivo |
+| Acao | Arquivo |
 |------|---------|
-| Migração | 1 SQL (tabela payments + colunas em treatments + RLS) |
-| Editar | `src/pages/PacienteDetalhe.tsx` (dialog pagamento, KPIs, badges) |
-| Editar | `src/pages/gestao/FinancasVega.tsx` (recebido vs faturado) |
-
-### Impacto nos módulos existentes
-
-- **Finanças VEGA**: mostrará "Total Recebido vs Faturado"
-- **Equipe**: comissão baseada em dinheiro real recebido
-- **Dashboard**: indicadores financeiros refletem caixa real
+| Migracao | 1 SQL (drop + recreate constraint) |
+| Editar | `src/pages/CadastroPaciente.tsx` |
 
