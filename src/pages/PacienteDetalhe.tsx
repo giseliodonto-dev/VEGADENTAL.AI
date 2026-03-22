@@ -25,13 +25,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const procedureOptions = [
-  { value: "limpeza", label: "Limpeza" },
-  { value: "restauracao", label: "Restauração" },
-  { value: "faceta", label: "Faceta" },
-  { value: "implante", label: "Implante" },
-  { value: "outros", label: "Outros" },
-];
+// procedureOptions removed — now using ProcedureSelector
 
 const regionOptions = [
   { value: "", label: "Não informado" },
