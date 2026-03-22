@@ -182,6 +182,32 @@ export default function PacienteDetalhe() {
     enabled: !!id,
   });
 
+  // Fetch budgets for this patient
+  const { data: budgets = [] } = useQuery({
+    queryKey: ["budgets", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("budgets" as any)
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch clinic info for PDF
+  const { data: clinic } = useQuery({
+    queryKey: ["clinic-info", clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clinics").select("*").eq("id", clinicId!).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId,
+  });
+
   // KPIs
   const kpis = useMemo(() => {
     const totalValue = treatments
