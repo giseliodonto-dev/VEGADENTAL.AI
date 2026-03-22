@@ -121,6 +121,11 @@ export default function PacienteDetalhe() {
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentTreatment, setPaymentTreatment] = useState<Treatment | null>(null);
+  const [showBudget, setShowBudget] = useState(false);
+  const [selectedTreatmentIds, setSelectedTreatmentIds] = useState<string[]>([]);
+  const [budgetDiscount, setBudgetDiscount] = useState("");
+  const [budgetValidUntil, setBudgetValidUntil] = useState("");
+  const [budgetNotes, setBudgetNotes] = useState("");
 
   // Treatment form
   const [formProcedure, setFormProcedure] = useState("");
