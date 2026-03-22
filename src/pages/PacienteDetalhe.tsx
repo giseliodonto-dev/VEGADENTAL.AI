@@ -386,6 +386,9 @@ export default function PacienteDetalhe() {
                           {t.region && (
                             <span className="text-xs text-muted-foreground">| {t.region}</span>
                           )}
+                          {t.tooth_number && (
+                            <span className="text-xs text-muted-foreground">| Dente {t.tooth_number}</span>
+                          )}
                           <span className={`text-xs px-2 py-0.5 rounded-full ${sc.color}`}>
                             {sc.label}
                           </span>
