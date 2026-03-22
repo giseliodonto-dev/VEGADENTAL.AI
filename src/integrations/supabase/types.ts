@@ -77,6 +77,123 @@ export type Database = {
           },
         ]
       }
+      budget_items: {
+        Row: {
+          budget_id: string
+          id: string
+          notes: string | null
+          procedure_name: string
+          region: string | null
+          tooth_number: string | null
+          treatment_id: string | null
+          value: number
+        }
+        Insert: {
+          budget_id: string
+          id?: string
+          notes?: string | null
+          procedure_name: string
+          region?: string | null
+          tooth_number?: string | null
+          treatment_id?: string | null
+          value?: number
+        }
+        Update: {
+          budget_id?: string
+          id?: string
+          notes?: string | null
+          procedure_name?: string
+          region?: string | null
+          tooth_number?: string | null
+          treatment_id?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          accepted_at: string | null
+          accepted_signature: string | null
+          clinic_id: string
+          created_at: string
+          dentist_user_id: string | null
+          discount: number | null
+          final_value: number
+          id: string
+          notes: string | null
+          patient_id: string
+          public_token: string | null
+          status: string
+          total_value: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_signature?: string | null
+          clinic_id: string
+          created_at?: string
+          dentist_user_id?: string | null
+          discount?: number | null
+          final_value?: number
+          id?: string
+          notes?: string | null
+          patient_id: string
+          public_token?: string | null
+          status?: string
+          total_value?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_signature?: string | null
+          clinic_id?: string
+          created_at?: string
+          dentist_user_id?: string | null
+          discount?: number | null
+          final_value?: number
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          public_token?: string | null
+          status?: string
+          total_value?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           channel: string
