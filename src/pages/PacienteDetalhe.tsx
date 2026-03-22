@@ -239,6 +239,7 @@ export default function PacienteDetalhe() {
     setFormStatus("planejado");
     setFormValue("");
     setFormNotes("");
+    setFormTooth("");
     setShowAdd(true);
   }
 
