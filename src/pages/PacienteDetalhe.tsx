@@ -851,6 +851,65 @@ export default function PacienteDetalhe() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Budget Creation Dialog */}
+        <Dialog open={showBudget} onOpenChange={(open) => { if (!open) { setShowBudget(false); setSelectedTreatmentIds([]); } }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Criar Orçamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Selecione os tratamentos</Label>
+                <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-3">
+                  {treatments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum tratamento cadastrado.</p>
+                  ) : (
+                    treatments.map(t => (
+                      <div key={t.id} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedTreatmentIds.includes(t.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedTreatmentIds(prev =>
+                              checked ? [...prev, t.id] : prev.filter(x => x !== t.id)
+                            );
+                          }}
+                        />
+                        <span className="text-sm text-foreground flex-1">{t.procedure_type}</span>
+                        {t.tooth_number && <span className="text-xs text-muted-foreground">D{t.tooth_number}</span>}
+                        <span className="text-sm font-medium text-foreground">R$ {Number(t.value).toLocaleString("pt-BR")}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {selectedTreatmentIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Subtotal: R$ {treatments.filter(t => selectedTreatmentIds.includes(t.id)).reduce((s, t) => s + Number(t.value || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Desconto (R$)</Label>
+                <Input type="number" value={budgetDiscount} onChange={(e) => setBudgetDiscount(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Validade</Label>
+                <Input type="date" value={budgetValidUntil} onChange={(e) => setBudgetValidUntil(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Observações</Label>
+                <Textarea value={budgetNotes} onChange={(e) => setBudgetNotes(e.target.value)} placeholder="Condições, observações..." rows={2} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBudget(false)}>Cancelar</Button>
+              <Button onClick={() => budgetMutation.mutate()} disabled={budgetMutation.isPending || selectedTreatmentIds.length === 0}>
+                {budgetMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Criar Orçamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
