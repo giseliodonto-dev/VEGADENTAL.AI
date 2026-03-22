@@ -102,6 +102,7 @@ export default function PacienteDetalhe() {
   const [formStatus, setFormStatus] = useState("planejado");
   const [formValue, setFormValue] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formTooth, setFormTooth] = useState("");
 
   // Fetch patient
   const { data: patient, isLoading: patientLoading } = useQuery({
