@@ -22,6 +22,7 @@ import FunilVendas from "./pages/vendas/FunilVendas";
 import MetasMensais from "./pages/gestao/MetasMensais";
 import AgendaVega from "./pages/gestao/AgendaVega";
 import FinancasVega from "./pages/gestao/FinancasVega";
+import EquipeVega from "./pages/gestao/EquipeVega";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
 import InteligenciaVega from "./pages/InteligenciaVega";

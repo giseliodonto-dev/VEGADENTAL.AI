@@ -37,8 +37,7 @@ const tools = [
     title: "Equipe",
     description: "Gestão de colaboradores, produtividade individual e custo por profissional.",
     icon: UserCog,
-    url: "#",
-    soon: true,
+    url: "/gestao/equipe",
   },
   {
     title: "Indicadores de Desempenho",
