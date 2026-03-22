@@ -151,7 +151,9 @@ export default function FinancasVega() {
     const prevExits = exits(prevFinancials);
 
     const revenue = sum(curEntries);
+    const received = sum(curEntries.filter(e => e.category === "recebimento"));
     const expenses = sum(curExits);
+    const commissions = sum(curExits.filter(e => (e.category || "").toLowerCase() === "comissao"));
     const operationalExpenses = sum(curExits.filter(e => OPERATIONAL_CATEGORIES.includes((e.category || "").toLowerCase())));
     const grossProfit = revenue - operationalExpenses;
     const netProfit = revenue - expenses;
@@ -191,7 +193,7 @@ export default function FinancasVega() {
     const occupancy = totalAppts > 0 ? pct(appointments.filter(a => a.status !== "cancelado").length, totalAppts) : 0;
 
     return {
-      revenue, expenses, grossProfit, netProfit, margin, ticketMedio,
+      revenue, received, expenses, commissions, grossProfit, netProfit, margin, ticketMedio,
       prevRevenue, prevExpenses, prevNetProfit,
       revenueGrowth, expenseGrowth, profitGrowth,
       expenseCategoryData, dentistData, occupancy,
@@ -229,6 +231,7 @@ export default function FinancasVega() {
 
   const comparisonData = [
     { name: "Faturamento", atual: calc.revenue, anterior: calc.prevRevenue },
+    { name: "Recebido", atual: calc.received, anterior: 0 },
     { name: "Despesas", atual: calc.expenses, anterior: calc.prevExpenses },
     { name: "Lucro", atual: calc.netProfit, anterior: calc.prevNetProfit },
   ];

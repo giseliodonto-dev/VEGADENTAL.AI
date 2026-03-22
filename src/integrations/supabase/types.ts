@@ -352,6 +352,64 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          clinic_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          patient_id: string
+          payment_date: string
+          payment_method: string
+          treatment_id: string
+        }
+        Insert: {
+          amount: number
+          clinic_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          payment_date?: string
+          payment_method?: string
+          treatment_id: string
+        }
+        Update: {
+          amount?: number
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          payment_date?: string
+          payment_method?: string
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procedures_catalog: {
         Row: {
           category: string
@@ -483,13 +541,17 @@ export type Database = {
       }
       treatments: {
         Row: {
+          amount_paid: number
           clinic_id: string
           created_at: string
           date: string
           dentist_user_id: string | null
           id: string
+          installments: number | null
           notes: string | null
           patient_id: string
+          payment_status: string
+          payment_type: string | null
           procedure_type: string
           region: string | null
           status: string
@@ -498,13 +560,17 @@ export type Database = {
           value: number
         }
         Insert: {
+          amount_paid?: number
           clinic_id: string
           created_at?: string
           date?: string
           dentist_user_id?: string | null
           id?: string
+          installments?: number | null
           notes?: string | null
           patient_id: string
+          payment_status?: string
+          payment_type?: string | null
           procedure_type: string
           region?: string | null
           status?: string
@@ -513,13 +579,17 @@ export type Database = {
           value?: number
         }
         Update: {
+          amount_paid?: number
           clinic_id?: string
           created_at?: string
           date?: string
           dentist_user_id?: string | null
           id?: string
+          installments?: number | null
           notes?: string | null
           patient_id?: string
+          payment_status?: string
+          payment_type?: string | null
           procedure_type?: string
           region?: string | null
           status?: string
