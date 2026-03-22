@@ -1,74 +1,84 @@
 
 
-## Plano: Catalogo de Procedimentos Odontologicos
+## Plano: Controle de Pagamentos VEGA
 
-### Contexto
+### Problema atual
 
-Atualmente, procedimentos sao uma lista hardcoded de 5 opcoes em `PacienteDetalhe.tsx`. Precisamos criar uma tabela de catalogo no banco e substituir os selects hardcoded por um componente com busca, favoritos e categorias.
+O sistema atual registra um lançamento financeiro automático quando o tratamento é aprovado/finalizado, mas não controla pagamentos reais (parciais, parcelados). Não diferencia "faturamento" (venda) de "recebimento" (dinheiro entrando). Comissão é calculada sobre venda, não sobre recebimento.
 
-### 1. Migracao de banco de dados
+### 1. Migração de banco de dados
 
-Nova tabela `procedures_catalog`:
+Nova tabela `payments`:
 
 ```sql
-CREATE TABLE public.procedures_catalog (
+CREATE TABLE public.payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id uuid NOT NULL REFERENCES clinics(id),
-  name text NOT NULL,
-  category text NOT NULL, -- preventivo, clinico_geral, endodontia, periodontia, protese, estetica, implantodontia, cirurgia, ortodontia, outros
-  default_value numeric DEFAULT 0,
-  is_favorite boolean DEFAULT false,
-  is_custom boolean DEFAULT false, -- true = adicionado pelo gestor
-  is_active boolean DEFAULT true,
+  patient_id uuid NOT NULL REFERENCES patients(id),
+  treatment_id uuid NOT NULL,
+  amount numeric NOT NULL,
+  payment_method text NOT NULL DEFAULT 'pix', -- pix, cartao, dinheiro, boleto
+  payment_date date NOT NULL DEFAULT CURRENT_DATE,
+  notes text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.procedures_catalog ENABLE ROW LEVEL SECURITY;
--- RLS: membros podem ver, donos podem CRUD
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+-- RLS: membros podem ver/inserir, donos podem deletar
 ```
 
-**Seed com procedimentos padrao**: Inserir os ~40 procedimentos listados (profilaxia, aplicacao de fluor, selante, restauracao em resina, etc.) via edge function ou migration com INSERT. Usar `is_custom = false` para os padrao.
+Adicionar colunas à tabela `treatments`:
 
-### 2. Criar componente `ProcedureSelector`
+```sql
+ALTER TABLE public.treatments
+  ADD COLUMN total_value numeric NOT NULL DEFAULT 0,
+  ADD COLUMN amount_paid numeric NOT NULL DEFAULT 0,
+  ADD COLUMN payment_status text NOT NULL DEFAULT 'pendente', -- pendente, parcial, pago
+  ADD COLUMN payment_type text DEFAULT 'avista'; -- avista, parcelado
+  ADD COLUMN installments integer DEFAULT 1;
+```
 
-**`src/components/ProcedureSelector.tsx`**
+### 2. Lógica de pagamentos
 
-Componente reutilizavel usando Popover + Command (cmdk, ja disponivel no projeto):
-- Campo de busca com filtro por nome
-- Agrupado por categoria (Preventivos, Clinico Geral, Endodontia, etc.)
-- Icone de estrela para favoritar/desfavoritar (toggle no banco)
-- Favoritos aparecem primeiro na lista
-- Ao selecionar, retorna `{ id, name, category, default_value }`
-- Botao "Adicionar procedimento personalizado" no final da lista
+**Ao registrar pagamento:**
+1. Inserir na tabela `payments`
+2. Atualizar `treatments.amount_paid` (soma de todos payments do tratamento)
+3. Recalcular `treatments.payment_status`:
+   - `amount_paid = 0` → pendente
+   - `amount_paid < total_value` → parcial
+   - `amount_paid >= total_value` → pago
+4. Inserir entrada no `financials` com category `'recebimento'` (diferente de `'tratamentos'` que é faturamento)
+5. Calcular comissão proporcional: `amount × commission_rate` do dentista
 
-### 3. Atualizar `PacienteDetalhe.tsx`
+### 3. Alterações em `PacienteDetalhe.tsx`
 
-- Remover `procedureOptions` hardcoded
-- Substituir Select de procedimento pelo `ProcedureSelector`
-- Ao selecionar procedimento, preencher automaticamente o campo Valor com `default_value` (se definido e campo vazio)
-- Salvar `procedure_type` com o nome do procedimento selecionado
+- Adicionar KPIs: "Valor Pago" e "Valor Pendente"
+- Em cada tratamento na lista: mostrar barra de progresso de pagamento com badge colorido (vermelho=pendente, amarelo=parcial, verde=pago)
+- Botão "Registrar Pagamento" em cada tratamento
+- Dialog de pagamento: valor, forma de pagamento, data, observação
+- Histórico de pagamentos por tratamento (expansível)
 
-### 4. Atualizar `AgendaVega.tsx`
+### 4. Alteração na lógica financeira
 
-- Substituir campo livre de procedimento pelo `ProcedureSelector`
-- Mesmo comportamento de auto-preenchimento de valor
+- **Remover** o lançamento automático ao aprovar/finalizar tratamento (isso era faturamento fictício)
+- Agora o financeiro só recebe entradas **reais** via pagamentos
+- Diferenciar no `financials`: `category='faturamento'` (venda) vs `category='recebimento'` (pagamento real)
 
-### 5. Rota de gerenciamento (opcional, dentro de Configuracoes)
+### 5. Comissão baseada em recebimento
 
-Nao criar pagina separada agora — gerenciamento de favoritos e procedimentos customizados sera feito inline no proprio seletor.
+- Ao registrar pagamento, calcular comissão do dentista: `payment.amount × clinic_member.commission_rate`
+- Inserir no `financials` como saída com `category='comissao'`
 
 ### Arquivos
 
-| Acao | Arquivo |
+| Ação | Arquivo |
 |------|---------|
-| Migracao | 1 SQL (tabela + seed ~40 procedimentos + RLS) |
-| Criar | `src/components/ProcedureSelector.tsx` |
-| Editar | `src/pages/PacienteDetalhe.tsx` (usar ProcedureSelector) |
-| Editar | `src/pages/gestao/AgendaVega.tsx` (usar ProcedureSelector) |
+| Migração | 1 SQL (tabela payments + colunas em treatments + RLS) |
+| Editar | `src/pages/PacienteDetalhe.tsx` (dialog pagamento, KPIs, badges) |
+| Editar | `src/pages/gestao/FinancasVega.tsx` (recebido vs faturado) |
 
-### Detalhes tecnicos
+### Impacto nos módulos existentes
 
-- Seed: cada clinica precisa dos seus procedimentos. Opcao 1: seed na migration com trigger que copia ao criar clinica. Opcao 2: seeder no frontend ao primeiro acesso. **Opcao escolhida**: criar uma funcao DB `seed_default_procedures(clinic_id)` chamada no onboarding (ClinicOnboarding.tsx) apos criar a clinica.
-- Busca: filtro local via Command/cmdk (sem roundtrip ao banco)
-- Favoritos: toggle via mutation que faz UPDATE no `is_favorite`
-- Procedimento customizado: dialog inline para inserir nome + categoria + valor padrao
+- **Finanças VEGA**: mostrará "Total Recebido vs Faturado"
+- **Equipe**: comissão baseada em dinheiro real recebido
+- **Dashboard**: indicadores financeiros refletem caixa real
 
