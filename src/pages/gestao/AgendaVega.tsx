@@ -424,7 +424,16 @@ const AgendaVega = () => {
                   </div>
                   <div>
                     <Label className="text-xs">Procedimento</Label>
-                    <Input value={newForm.procedure_type} onChange={(e) => setNewForm((f) => ({ ...f, procedure_type: e.target.value }))} placeholder="Ex: Avaliação, Limpeza..." />
+                    <ProcedureSelector
+                      value={newForm.procedure_type}
+                      onSelect={(p) => {
+                        setNewForm((f) => ({
+                          ...f,
+                          procedure_type: p.name,
+                          estimated_value: p.default_value > 0 && !f.estimated_value ? String(p.default_value) : f.estimated_value,
+                        }));
+                      }}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
