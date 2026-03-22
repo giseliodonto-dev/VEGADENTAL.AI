@@ -91,7 +91,7 @@ export default function PacienteDetalhe() {
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
 
   // Form state
-  const [formProcedure, setFormProcedure] = useState("limpeza");
+  const [formProcedure, setFormProcedure] = useState("");
   const [formRegion, setFormRegion] = useState("");
   const [formStatus, setFormStatus] = useState("planejado");
   const [formValue, setFormValue] = useState("");
