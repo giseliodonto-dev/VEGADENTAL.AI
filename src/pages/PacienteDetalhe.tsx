@@ -672,7 +672,60 @@ export default function PacienteDetalhe() {
           )}
         </div>
 
-        {/* Add/Edit Treatment Dialog */}
+        {/* Budget list */}
+        {budgets.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Orçamentos</h3>
+            <div className="space-y-3">
+              {budgets.map((b: any) => {
+                const budgetStatusConfig: Record<string, { label: string; color: string }> = {
+                  pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+                  enviado: { label: "Enviado", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+                  aceito: { label: "Aceito", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+                  recusado: { label: "Recusado", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+                  expirado: { label: "Expirado", color: "bg-muted text-muted-foreground" },
+                };
+                const bs = budgetStatusConfig[b.status] || budgetStatusConfig.pendente;
+                return (
+                  <Card key={b.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              R$ {Number(b.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${bs.color}`}>{bs.label}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(b.created_at), "dd/MM/yyyy")}
+                            {b.valid_until && ` • Válido até ${format(new Date(b.valid_until), "dd/MM/yyyy")}`}
+                          </p>
+                          {b.accepted_signature && (
+                            <p className="text-xs text-green-600 mt-1">Assinado por: {b.accepted_signature}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyBudgetLink(b.public_token)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          {patient.phone && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendWhatsApp(b.public_token)}>
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
         <Dialog open={showAdd} onOpenChange={(open) => !open && closeDialog()}>
           <DialogContent>
             <DialogHeader>
