@@ -39,6 +39,19 @@ const regionOptions = [
   { value: "inferior", label: "Inferior" },
 ];
 
+// Permanent teeth: 11-18, 21-28, 31-38, 41-48
+// Deciduous teeth: 51-55, 61-65, 71-75, 81-85
+const toothOptions: { group: string; teeth: string[] }[] = [
+  { group: "Permanentes — Superior Direito", teeth: ["11","12","13","14","15","16","17","18"] },
+  { group: "Permanentes — Superior Esquerdo", teeth: ["21","22","23","24","25","26","27","28"] },
+  { group: "Permanentes — Inferior Esquerdo", teeth: ["31","32","33","34","35","36","37","38"] },
+  { group: "Permanentes — Inferior Direito", teeth: ["41","42","43","44","45","46","47","48"] },
+  { group: "Decíduos — Superior Direito", teeth: ["51","52","53","54","55"] },
+  { group: "Decíduos — Superior Esquerdo", teeth: ["61","62","63","64","65"] },
+  { group: "Decíduos — Inferior Esquerdo", teeth: ["71","72","73","74","75"] },
+  { group: "Decíduos — Inferior Direito", teeth: ["81","82","83","84","85"] },
+];
+
 const statusOptions = [
   { value: "planejado", label: "Planejado" },
   { value: "aprovado", label: "Aprovado" },
