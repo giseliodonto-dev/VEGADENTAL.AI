@@ -437,6 +437,66 @@ export type Database = {
           },
         ]
       }
+      treatments: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          date: string
+          dentist_user_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          procedure_type: string
+          region: string | null
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          date?: string
+          dentist_user_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          procedure_type: string
+          region?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          date?: string
+          dentist_user_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          procedure_type?: string
+          region?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
