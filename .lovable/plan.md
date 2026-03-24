@@ -1,37 +1,94 @@
 
 
-## Plano: Substituir logo do APP VEGA
+## Plano: Anamnese com Assinatura Digital do Paciente
 
-### Situacao atual
+### 1. Migracao de banco de dados
 
-O logo aparece em 3 locais:
-1. **Sidebar** (`AppSidebar.tsx`): importa `src/assets/vega-logo.png`
-2. **Favicon** (`index.html`): referencia `public/vega-logo.png`
-3. **Tela de login** (`Auth.tsx`): usa icone Zap do Lucide (nao usa o logo real)
+**Nova tabela `anamneses`:**
 
-### Acoes
+```sql
+CREATE TABLE public.anamneses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL,
+  patient_id uuid NOT NULL,
+  diseases text[] DEFAULT '{}',
+  surgeries boolean DEFAULT false,
+  allergies text,
+  medications text,
+  smoker boolean DEFAULT false,
+  alcohol boolean DEFAULT false,
+  bruxism boolean DEFAULT false,
+  current_pain boolean DEFAULT false,
+  gum_bleeding boolean DEFAULT false,
+  sensitivity boolean DEFAULT false,
+  response_date timestamptz,
+  signature text,              -- nome completo como assinatura digital
+  signed_at timestamptz,       -- data/hora da assinatura
+  public_token text UNIQUE DEFAULT gen_random_uuid()::text,
+  status text NOT NULL DEFAULT 'nao_enviada',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
 
-| Acao | Detalhe |
+**RLS:**
+- Membros: SELECT, INSERT, UPDATE via `get_user_clinic_ids`
+- Donos: DELETE via `has_clinic_role`
+- Anon: SELECT e UPDATE por `public_token` (formulario publico)
+
+### 2. Pagina publica — `src/pages/AnamnesePublica.tsx`
+
+- Rota: `/anamnese/:token` (sem ProtectedRoute)
+- Layout mobile-friendly, visual limpo
+- Formulario completo:
+  - Multi-checkbox para doencas (diabetes, hipertensao, cardiopatia, outros)
+  - Toggles sim/nao: cirurgias, fumante, alcool, bruxismo, dor atual, sangramento, sensibilidade
+  - Campos texto: alergias, medicamentos
+- **Secao de assinatura digital** ao final:
+  - Campo "Nome completo" obrigatorio
+  - Texto legal: "Ao assinar, confirmo que as informacoes acima sao verdadeiras"
+- Botao "Assinar e Enviar"
+- Ao enviar: salva respostas + `signature` + `signed_at` + status `respondida`
+- Tela de confirmacao apos envio
+
+### 3. Integracao na ficha do paciente — `src/pages/PacienteDetalhe.tsx`
+
+- Nova secao "Anamnese" com:
+  - Se nao existe: botao "Enviar Anamnese" (cria registro + gera token)
+  - Se existe:
+    - Badge de status (nao enviada / enviada / respondida)
+    - Botoes "Copiar Link" e "Enviar WhatsApp"
+    - Se respondida: resumo das respostas + assinatura + data
+    - Permitir visualizar e editar
+
+### 4. Rotas — `src/App.tsx`
+
+- Adicionar rota publica `/anamnese/:token`
+
+### Arquivos
+
+| Acao | Arquivo |
 |------|---------|
-| Copiar SVG | `user-uploads://Design_sem_nome.svg` → `src/assets/vega-logo.svg` (para imports React) |
-| Copiar SVG | `user-uploads://Design_sem_nome.svg` → `public/vega-logo.svg` (para favicon e meta tags) |
-| Editar `AppSidebar.tsx` | Trocar import de PNG para SVG; manter `h-9 w-9 rounded-lg object-contain` |
-| Editar `Auth.tsx` | Substituir o bloco do icone Zap por `<img>` com o novo logo SVG importado |
-| Editar `index.html` | Atualizar favicon para `/vega-logo.svg` com `type="image/svg+xml"` |
-| Editar `budgetPdf.ts` | Verificar se referencia o logo e atualizar se necessario |
+| Migracao | 1 SQL (anamneses + RLS) |
+| Criar | `src/pages/AnamnesePublica.tsx` |
+| Editar | `src/pages/PacienteDetalhe.tsx` |
+| Editar | `src/App.tsx` |
 
-### Detalhes tecnicos
+### Fluxo
 
-- SVG mantem qualidade em qualquer resolucao (desktop, tablet, mobile)
-- Fundo transparente nativo do SVG
-- Proporcao preservada via `object-contain`
-- Na Auth, o logo tera `h-16 w-16` centralizado, substituindo o quadrado azul com Zap
+```text
+Dentista abre ficha do paciente
+  → Clica "Enviar Anamnese"
+  → Copia link ou envia via WhatsApp
 
-### Arquivos afetados
+Paciente abre link publico
+  → Preenche formulario de saude
+  → Digita nome completo como assinatura
+  → Clica "Assinar e Enviar"
+  → Anamnese salva com assinatura e data
 
-- `src/assets/vega-logo.svg` (novo)
-- `public/vega-logo.svg` (novo)
-- `src/components/AppSidebar.tsx`
-- `src/pages/Auth.tsx`
-- `index.html`
+Dentista ve na ficha:
+  → Status "Respondida"
+  → Resumo + assinatura do paciente
+```
 
