@@ -14,7 +14,7 @@ import {
   Compass,
   Brain,
 } from "lucide-react";
-import vegaLogo from "@/assets/vega-logo.png";
+import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
