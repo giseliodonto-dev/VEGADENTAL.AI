@@ -29,6 +29,7 @@ import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
   Loader2, Phone, MessageCircle, Pencil, CreditCard, ChevronDown,
   Banknote, AlertCircle, FileText, Copy, Send, Download,
+  ClipboardList,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -193,6 +194,23 @@ export default function PacienteDetalhe() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
+    },
+    enabled: !!id,
+  });
+
+  // Fetch anamnese for this patient
+  const { data: anamnese, isLoading: anamneseLoading } = useQuery({
+    queryKey: ["anamnese", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anamneses" as any)
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
     },
     enabled: !!id,
   });
@@ -394,6 +412,37 @@ export default function PacienteDetalhe() {
     const url = `${window.location.origin}/orcamento/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!");
+  }
+
+  // Anamnese mutation
+  const createAnamneseMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinicId || !id) throw new Error("Dados incompletos");
+      const { error } = await supabase.from("anamneses" as any).insert({
+        clinic_id: clinicId,
+        patient_id: id,
+        status: "enviada",
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Anamnese criada! Copie o link para enviar ao paciente.");
+      queryClient.invalidateQueries({ queryKey: ["anamnese", id] });
+    },
+    onError: () => toast.error("Erro ao criar anamnese"),
+  });
+
+  function copyAnamneseLink(token: string) {
+    const url = `${window.location.origin}/anamnese/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link da anamnese copiado!");
+  }
+
+  function sendAnamneseWhatsApp(token: string) {
+    if (!patient?.phone) return toast.error("Paciente sem telefone");
+    const url = `${window.location.origin}/anamnese/${token}`;
+    const msg = encodeURIComponent(`Olá! Por favor, preencha sua anamnese: ${url}`);
+    window.open(`https://wa.me/55${patient.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
   }
 
   function sendWhatsApp(token: string) {
@@ -724,6 +773,109 @@ export default function PacienteDetalhe() {
             </div>
           </div>
         )}
+
+        {/* Anamnese Section */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" /> Anamnese
+          </h3>
+          {anamneseLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : !anamnese ? (
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Nenhuma anamnese enviada.</p>
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => createAnamneseMutation.mutate()}
+                  disabled={createAnamneseMutation.isPending}
+                >
+                  {createAnamneseMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <Send className="h-4 w-4" /> Enviar Anamnese
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      anamnese.status === "respondida"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : anamnese.status === "enviada"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {anamnese.status === "respondida" ? "Respondida" : anamnese.status === "enviada" ? "Enviada" : "Não enviada"}
+                    </span>
+                    {anamnese.response_date && (
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(anamnese.response_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyAnamneseLink(anamnese.public_token)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    {patient.phone && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendAnamneseWhatsApp(anamnese.public_token)}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {anamnese.status === "respondida" && (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1 text-muted-foreground">
+                        <ChevronDown className="h-3 w-3" /> Ver respostas
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="mt-2 space-y-2 text-sm border-t pt-3">
+                        {anamnese.diseases?.length > 0 && (
+                          <div><strong className="text-foreground">Doenças:</strong> <span className="text-muted-foreground">{(anamnese.diseases as string[]).join(", ")}</span></div>
+                        )}
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <span>Cirurgias: {anamnese.surgeries ? "Sim" : "Não"}</span>
+                          <span>Fumante: {anamnese.smoker ? "Sim" : "Não"}</span>
+                          <span>Álcool: {anamnese.alcohol ? "Sim" : "Não"}</span>
+                          <span>Bruxismo: {anamnese.bruxism ? "Sim" : "Não"}</span>
+                          <span>Dor atual: {anamnese.current_pain ? "Sim" : "Não"}</span>
+                          <span>Sangramento: {anamnese.gum_bleeding ? "Sim" : "Não"}</span>
+                          <span>Sensibilidade: {anamnese.sensitivity ? "Sim" : "Não"}</span>
+                        </div>
+                        {anamnese.allergies && (
+                          <div><strong className="text-foreground">Alergias:</strong> <span className="text-muted-foreground">{anamnese.allergies}</span></div>
+                        )}
+                        {anamnese.medications && (
+                          <div><strong className="text-foreground">Medicamentos:</strong> <span className="text-muted-foreground">{anamnese.medications}</span></div>
+                        )}
+                        {anamnese.signature && (
+                          <div className="border-t pt-2 mt-2">
+                            <strong className="text-foreground">Assinado por:</strong>{" "}
+                            <span className="text-muted-foreground">{anamnese.signature}</span>
+                            {anamnese.signed_at && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                em {format(new Date(anamnese.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
 
         <Dialog open={showAdd} onOpenChange={(open) => !open && closeDialog()}>

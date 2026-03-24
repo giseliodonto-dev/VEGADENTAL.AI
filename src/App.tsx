@@ -32,6 +32,7 @@ import LeadsOrigem from "./pages/marketing/LeadsOrigem";
 import Campanhas from "./pages/marketing/Campanhas";
 import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import OrcamentoPublico from "./pages/OrcamentoPublico";
+import AnamnesePublica from "./pages/AnamnesePublica";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
+          <Route path="/anamnese/:token" element={<AnamnesePublica />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

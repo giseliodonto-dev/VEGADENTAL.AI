@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      anamneses: {
+        Row: {
+          alcohol: boolean | null
+          allergies: string | null
+          bruxism: boolean | null
+          clinic_id: string
+          created_at: string
+          current_pain: boolean | null
+          diseases: string[] | null
+          gum_bleeding: boolean | null
+          id: string
+          medications: string | null
+          patient_id: string
+          public_token: string | null
+          response_date: string | null
+          sensitivity: boolean | null
+          signature: string | null
+          signed_at: string | null
+          smoker: boolean | null
+          status: string
+          surgeries: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          alcohol?: boolean | null
+          allergies?: string | null
+          bruxism?: boolean | null
+          clinic_id: string
+          created_at?: string
+          current_pain?: boolean | null
+          diseases?: string[] | null
+          gum_bleeding?: boolean | null
+          id?: string
+          medications?: string | null
+          patient_id: string
+          public_token?: string | null
+          response_date?: string | null
+          sensitivity?: boolean | null
+          signature?: string | null
+          signed_at?: string | null
+          smoker?: boolean | null
+          status?: string
+          surgeries?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          alcohol?: boolean | null
+          allergies?: string | null
+          bruxism?: boolean | null
+          clinic_id?: string
+          created_at?: string
+          current_pain?: boolean | null
+          diseases?: string[] | null
+          gum_bleeding?: boolean | null
+          id?: string
+          medications?: string | null
+          patient_id?: string
+          public_token?: string | null
+          response_date?: string | null
+          sensitivity?: boolean | null
+          signature?: string | null
+          signed_at?: string | null
+          smoker?: boolean | null
+          status?: string
+          surgeries?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anamneses_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anamneses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           clinic_id: string
