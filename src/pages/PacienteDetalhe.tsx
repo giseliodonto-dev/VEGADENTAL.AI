@@ -198,6 +198,23 @@ export default function PacienteDetalhe() {
     enabled: !!id,
   });
 
+  // Fetch anamnese for this patient
+  const { data: anamnese, isLoading: anamneseLoading } = useQuery({
+    queryKey: ["anamnese", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anamneses" as any)
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!id,
+  });
+
   // Fetch clinic info for PDF
   const { data: clinic } = useQuery({
     queryKey: ["clinic-info", clinicId],
