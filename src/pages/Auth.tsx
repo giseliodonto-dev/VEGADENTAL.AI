@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import vegaLogo from "@/assets/vega-logo.svg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,9 +116,7 @@ const Auth = () => {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center space-y-3 animate-fade-up" style={{ opacity: 0, animationFillMode: "forwards" }}>
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mx-auto">
-            <Zap className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <img src={vegaLogo} alt="VEGA Dental AI" className="h-16 w-16 object-contain mx-auto" />
           <h1 className="text-2xl font-bold font-display text-foreground tracking-tight">
             VEGA Dental AI
           </h1>
