@@ -415,36 +415,6 @@ export default function PacienteDetalhe() {
     toast.success("Link copiado!");
   }
 
-  // Anamnese mutation
-  const createAnamneseMutation = useMutation({
-    mutationFn: async () => {
-      if (!clinicId || !id) throw new Error("Dados incompletos");
-      const { error } = await supabase.from("anamneses" as any).insert({
-        clinic_id: clinicId,
-        patient_id: id,
-        status: "enviada",
-      } as any);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Anamnese criada! Copie o link para enviar ao paciente.");
-      queryClient.invalidateQueries({ queryKey: ["anamnese", id] });
-    },
-    onError: () => toast.error("Erro ao criar anamnese"),
-  });
-
-  function copyAnamneseLink(token: string) {
-    const url = `${window.location.origin}/anamnese/${token}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link da anamnese copiado!");
-  }
-
-  function sendAnamneseWhatsApp(token: string) {
-    if (!patient?.phone) return toast.error("Paciente sem telefone");
-    const url = `${window.location.origin}/anamnese/${token}`;
-    const msg = encodeURIComponent(`Olá! Por favor, preencha sua anamnese: ${url}`);
-    window.open(`https://wa.me/55${patient.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-  }
 
   function sendWhatsApp(token: string) {
     if (!patient?.phone) return toast.error("Paciente sem telefone");
