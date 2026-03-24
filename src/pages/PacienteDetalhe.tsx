@@ -29,6 +29,7 @@ import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
   Loader2, Phone, MessageCircle, Pencil, CreditCard, ChevronDown,
   Banknote, AlertCircle, FileText, Copy, Send, Download,
+  ClipboardList,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
