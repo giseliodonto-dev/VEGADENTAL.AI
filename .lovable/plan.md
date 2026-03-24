@@ -1,94 +1,79 @@
 
 
-## Plano: Anamnese com Assinatura Digital do Paciente
+## Plano: Anamnese editavel na ficha do paciente + link publico opcional
 
-### 1. Migracao de banco de dados
+### Mudanca de abordagem
 
-**Nova tabela `anamneses`:**
+Atualmente: o dentista clica "Enviar Anamnese" → cria registro vazio → copia link → paciente preenche externamente.
+
+**Novo fluxo**: Ao clicar "Criar Anamnese", o formulario completo aparece diretamente na ficha do paciente, permitindo que a secretaria preencha ali mesmo. Alem disso, ha a opcao de gerar o link publico para envio ao paciente.
+
+### Alteracoes em `src/pages/PacienteDetalhe.tsx`
+
+**Secao de Anamnese reformulada:**
+
+1. **Sem anamnese**: Botao "Criar Anamnese" (em vez de "Enviar Anamnese")
+2. **Anamnese criada**: Formulario inline editavel com todos os campos:
+   - Checkboxes de doencas (diabetes, hipertensao, cardiopatia, outros)
+   - Toggles: cirurgias, fumante, alcool, bruxismo, dor atual, sangramento, sensibilidade
+   - Campos texto: alergias, medicamentos
+   - Secao de assinatura (nome + data) — visivel mas preenchida pelo paciente via link
+   - Botao "Salvar" para a secretaria salvar alteracoes
+3. **Acoes extras** (sempre visiveis quando anamnese existe):
+   - Badge de status
+   - Botao "Copiar Link" para enviar ao paciente
+   - Botao "WhatsApp" se paciente tem telefone
+4. **Se respondida pelo paciente**: mostrar assinatura e data de resposta
+
+### Mutacao `createAnamnese`
+
+Manter como esta (cria registro no banco), mas apos criar, o formulario inline aparece imediatamente para edicao.
+
+### Nova mutacao `updateAnamnese`
+
+Adicionar mutacao para salvar as edicoes feitas pela secretaria diretamente na ficha, atualizando todos os campos da anamnese sem alterar `status` para "respondida" (isso so acontece quando o paciente assina via link publico).
+
+### Nenhuma alteracao no banco
+
+A tabela `anamneses` ja tem todos os campos necessarios. As foreign keys ainda estao ausentes mas nao bloqueiam este fluxo (queries usam `patient_id` direto sem join).
+
+### Migracao SQL — Adicionar foreign keys
+
+Adicionar as FKs que estao faltando para garantir integridade:
 
 ```sql
-CREATE TABLE public.anamneses (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  clinic_id uuid NOT NULL,
-  patient_id uuid NOT NULL,
-  diseases text[] DEFAULT '{}',
-  surgeries boolean DEFAULT false,
-  allergies text,
-  medications text,
-  smoker boolean DEFAULT false,
-  alcohol boolean DEFAULT false,
-  bruxism boolean DEFAULT false,
-  current_pain boolean DEFAULT false,
-  gum_bleeding boolean DEFAULT false,
-  sensitivity boolean DEFAULT false,
-  response_date timestamptz,
-  signature text,              -- nome completo como assinatura digital
-  signed_at timestamptz,       -- data/hora da assinatura
-  public_token text UNIQUE DEFAULT gen_random_uuid()::text,
-  status text NOT NULL DEFAULT 'nao_enviada',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+ALTER TABLE public.anamneses
+  ADD CONSTRAINT anamneses_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id),
+  ADD CONSTRAINT anamneses_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 ```
 
-**RLS:**
-- Membros: SELECT, INSERT, UPDATE via `get_user_clinic_ids`
-- Donos: DELETE via `has_clinic_role`
-- Anon: SELECT e UPDATE por `public_token` (formulario publico)
+### Pagina publica (`AnamnesePublica.tsx`)
 
-### 2. Pagina publica — `src/pages/AnamnesePublica.tsx`
-
-- Rota: `/anamnese/:token` (sem ProtectedRoute)
-- Layout mobile-friendly, visual limpo
-- Formulario completo:
-  - Multi-checkbox para doencas (diabetes, hipertensao, cardiopatia, outros)
-  - Toggles sim/nao: cirurgias, fumante, alcool, bruxismo, dor atual, sangramento, sensibilidade
-  - Campos texto: alergias, medicamentos
-- **Secao de assinatura digital** ao final:
-  - Campo "Nome completo" obrigatorio
-  - Texto legal: "Ao assinar, confirmo que as informacoes acima sao verdadeiras"
-- Botao "Assinar e Enviar"
-- Ao enviar: salva respostas + `signature` + `signed_at` + status `respondida`
-- Tela de confirmacao apos envio
-
-### 3. Integracao na ficha do paciente — `src/pages/PacienteDetalhe.tsx`
-
-- Nova secao "Anamnese" com:
-  - Se nao existe: botao "Enviar Anamnese" (cria registro + gera token)
-  - Se existe:
-    - Badge de status (nao enviada / enviada / respondida)
-    - Botoes "Copiar Link" e "Enviar WhatsApp"
-    - Se respondida: resumo das respostas + assinatura + data
-    - Permitir visualizar e editar
-
-### 4. Rotas — `src/App.tsx`
-
-- Adicionar rota publica `/anamnese/:token`
+Corrigir a query para nao usar join com `patients!inner` (que falha sem FK). Usar duas queries separadas: buscar anamnese por token, depois buscar nome do paciente pelo `patient_id`.
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Migracao | 1 SQL (anamneses + RLS) |
-| Criar | `src/pages/AnamnesePublica.tsx` |
-| Editar | `src/pages/PacienteDetalhe.tsx` |
-| Editar | `src/App.tsx` |
+| Migracao | 1 SQL (foreign keys) |
+| Editar | `src/pages/PacienteDetalhe.tsx` — formulario inline editavel |
+| Editar | `src/pages/AnamnesePublica.tsx` — corrigir query |
 
-### Fluxo
+### Fluxo final
 
 ```text
-Dentista abre ficha do paciente
-  → Clica "Enviar Anamnese"
-  → Copia link ou envia via WhatsApp
+Dentista/Secretaria abre ficha do paciente
+  → Clica "Criar Anamnese"
+  → Formulario aparece inline na ficha
+  → Secretaria preenche os campos e salva
+  → Opcionalmente: copia link ou envia WhatsApp
 
-Paciente abre link publico
-  → Preenche formulario de saude
-  → Digita nome completo como assinatura
-  → Clica "Assinar e Enviar"
-  → Anamnese salva com assinatura e data
+Se enviado ao paciente:
+  → Paciente abre link publico
+  → Preenche/corrige dados + assina
+  → Status muda para "Respondida"
 
 Dentista ve na ficha:
-  → Status "Respondida"
-  → Resumo + assinatura do paciente
+  → Dados preenchidos + assinatura do paciente
 ```
 
