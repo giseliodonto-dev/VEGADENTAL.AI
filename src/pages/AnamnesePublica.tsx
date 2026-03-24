@@ -42,21 +42,49 @@ export default function AnamnesePublica() {
 
   useEffect(() => {
     if (!token) return;
-    supabase
-      .from("anamneses" as any)
-      .select("*, patients!inner(name)")
-      .eq("public_token", token)
-      .maybeSingle()
-      .then(({ data, error }: any) => {
-        if (error || !data) {
-          setNotFound(true);
-        } else if (data.status === "respondida") {
-          setAlreadyAnswered(true);
-        } else {
-          setPatientName(data.patients?.name || "");
-        }
+    (async () => {
+      // Query 1: fetch anamnese by token
+      const { data: anamneseData, error: anamneseErr } = await supabase
+        .from("anamneses" as any)
+        .select("*")
+        .eq("public_token", token)
+        .maybeSingle() as any;
+
+      if (anamneseErr || !anamneseData) {
+        setNotFound(true);
         setLoading(false);
-      });
+        return;
+      }
+
+      if (anamneseData.status === "respondida") {
+        setAlreadyAnswered(true);
+        setLoading(false);
+        return;
+      }
+
+      // Query 2: fetch patient name
+      const { data: patientData } = await supabase
+        .from("patients")
+        .select("name")
+        .eq("id", anamneseData.patient_id)
+        .maybeSingle();
+
+      setPatientName(patientData?.name || "");
+
+      // Pre-fill form with existing data
+      if (anamneseData.diseases?.length) setDiseases(anamneseData.diseases);
+      if (anamneseData.surgeries) setSurgeries(true);
+      if (anamneseData.allergies) setAllergies(anamneseData.allergies);
+      if (anamneseData.medications) setMedications(anamneseData.medications);
+      if (anamneseData.smoker) setSmoker(true);
+      if (anamneseData.alcohol) setAlcohol(true);
+      if (anamneseData.bruxism) setBruxism(true);
+      if (anamneseData.current_pain) setCurrentPain(true);
+      if (anamneseData.gum_bleeding) setGumBleeding(true);
+      if (anamneseData.sensitivity) setSensitivity(true);
+
+      setLoading(false);
+    })();
   }, [token]);
 
   async function handleSubmit() {
