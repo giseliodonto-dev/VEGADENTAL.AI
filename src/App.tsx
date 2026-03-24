@@ -72,6 +72,7 @@ const App = () => (
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
+          <Route path="/anamnese/:token" element={<AnamnesePublica />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
