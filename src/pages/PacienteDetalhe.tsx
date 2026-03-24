@@ -23,7 +23,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
-import { generateBudgetPdf } from "@/utils/budgetPdf";
+import { AnamneseInlineForm } from "@/components/AnamneseInlineForm";
 import { toast } from "sonner";
 import {
   ArrowLeft, Plus, DollarSign, Activity, CheckCircle2,
