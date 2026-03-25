@@ -33,6 +33,7 @@ import Campanhas from "./pages/marketing/Campanhas";
 import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import OrcamentoPublico from "./pages/OrcamentoPublico";
 import AnamnesePublica from "./pages/AnamnesePublica";
+import Academy from "./pages/Academy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
