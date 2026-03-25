@@ -325,26 +325,6 @@ export default function Pacientes() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => toast.info("Agenda em breve")}
-                            title="Agendar"
-                          >
-                            <CalendarPlus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            asChild
-                            title="Ver no funil"
-                          >
-                            <Link to="/vendas/funil">
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
                             asChild
                             title="Ver ficha"
                           >
