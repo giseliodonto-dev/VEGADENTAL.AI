@@ -1,55 +1,62 @@
 
 
-## Plano: Refinamento UX do VEGA
+## Plano: VEGA Academy — Ferramenta de Performance
 
-### Problemas identificados
+### Conceito
 
-1. **Agenda ausente na sidebar** — so acessivel via /gestao/agenda, mas nao aparece no menu lateral
-2. **Edicao de paciente limitada** — dialog na listagem so edita status e valor; nao edita nome, telefone, origem
-3. **Ficha do paciente sem edicao inline** — nao e possivel editar dados basicos (nome, telefone, origem, status) diretamente na ficha
-4. **Acoes duplicadas na tabela** — dois icones Eye (ver ficha + ver funil), confusos
-5. **Cadastro exige login** — CadastroPaciente esta atras de ProtectedRoute
+Pagina `/academy` com videos curtos organizados por categoria. Conteudo hardcoded inicialmente (sem tabela no banco), com sugestoes contextuais baseadas em dados reais da clinica.
 
-### Correcoes
+### 1. Sidebar — `src/components/AppSidebar.tsx`
 
-#### 1. Adicionar "Agenda" na sidebar — `AppSidebar.tsx`
+Adicionar item "Academy" no grupo principal (abaixo de "Inteligencia VEGA"):
+- Icone: `GraduationCap`
+- URL: `/academy`
+- Cor: `text-gold`
 
-- Adicionar item "Agenda" no grupo "Minha Clinica", entre "Leads" e o divider
-- Icone: `CalendarCheck`
-- URL: `/gestao/agenda`
-- Cor: `text-gestao`
+### 2. Nova pagina — `src/pages/Academy.tsx`
 
-#### 2. Edicao completa na listagem de pacientes — `Pacientes.tsx`
+**Layout:**
+- AppLayout com title "VEGA Academy" e subtitle "Treinamentos rapidos para sua equipe"
+- Hero compacto com gradiente sutil + headline motivacional
+- Filtro por categorias (tabs ou chips): "Como usar o VEGA", "Vendas", "Marketing", "Gestao de Equipe", "Crescimento"
+- Grid de video cards (responsivo: 1-3 colunas)
 
-- Expandir o dialog de edicao para incluir: **nome**, **telefone**, **origem** (alem de status e valor ja existentes)
-- Atualizar a mutation para salvar todos os campos
-- Simplificar acoes na tabela: remover o botao "Ver no funil" (Eye duplicado), manter apenas: WhatsApp, Ver Ficha, Editar
+**Video Card:**
+- Thumbnail placeholder com gradiente da cor da categoria + icone
+- Badge de duracao (ex: "0:45")
+- Titulo (bold)
+- Descricao curta (1 linha)
+- Botao Play (abre dialog com player embed ou placeholder)
 
-#### 3. Edicao inline na ficha do paciente — `PacienteDetalhe.tsx`
+**Dados (hardcoded):**
+- ~12-15 videos distribuidos nas 5 categorias
+- Cada video: `{ id, title, description, duration, category, videoUrl? }`
+- URLs de video podem ser placeholders (YouTube embeds futuros)
 
-- Adicionar estado `isEditingPatient` com campos editaveis (nome, telefone, origem, status)
-- No header da ficha: botao "Editar" ao lado do nome
-- Ao clicar: campos viram inputs editaveis inline (sem dialog)
-- Botoes "Salvar" e "Cancelar" aparecem
-- Mutation para atualizar `patients` + sync `sales_funnel`
+**Secao "Sugerido para voce":**
+- Cards destacados no topo baseados em contexto:
+  - Query `sales_funnel` para pacientes parados → sugere video de vendas
+  - Query `agenda` para dias vazios → sugere video de marketing
+  - Sem leads recentes → sugere video de captacao
+- Se nao houver dados suficientes, mostra "Comece por aqui" com videos da categoria "Como usar o VEGA"
 
-#### 4. Remover acoes redundantes na tabela — `Pacientes.tsx`
+### 3. Rota — `src/App.tsx`
 
-- Remover botao "Ver no funil" (Eye → Link to funil) — raramente usado, gera confusao
-- Remover botao "Agendar" que so mostra toast "em breve" — ou conectar ao `/gestao/agenda`
-- Resultado: 3 acoes por linha (WhatsApp, Ver Ficha, Editar) em vez de 5
-
-#### 5. Nenhuma mudanca no cadastro publico
-
-- CadastroPaciente requer contexto de clinica (clinic_id, user_id) para funcionar
-- Remover ProtectedRoute quebraria a logica de negocio
-- Manter como esta — o fluxo atual e correto
+Adicionar rota protegida `/academy` → `<Academy />`
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Editar | `src/components/AppSidebar.tsx` — adicionar Agenda |
-| Editar | `src/pages/Pacientes.tsx` — expandir edicao + simplificar acoes |
-| Editar | `src/pages/PacienteDetalhe.tsx` — edicao inline do header |
+| Criar | `src/pages/Academy.tsx` |
+| Editar | `src/components/AppSidebar.tsx` — item Academy |
+| Editar | `src/App.tsx` — rota /academy |
+
+### Detalhes tecnicos
+
+- Videos hardcoded em array constante (sem tabela no banco por enquanto)
+- Sugestoes contextuais: 2-3 queries leves ao banco (funnel stagnation, agenda gaps, leads count)
+- Dialog com iframe para YouTube ou player nativo futuro
+- Cards com hover premium (`.card-hover` existente)
+- Categorias com cores mapeadas aos pilares: Vendas (text-vendas), Marketing (text-marketing), Gestao (text-gestao), etc.
 
