@@ -22,8 +22,8 @@ const tools = [
     url: "/gestao/agenda",
   },
   {
-    title: "Finanças VEGA",
-    description: "Análise estratégica da saúde financeira: lucro, margem, comparativos e direcionamentos.",
+    title: "Inteligência Financeira",
+    description: "Análise estratégica: lucro, margem, comparativos e direcionamentos inteligentes.",
     icon: DollarSign,
     url: "/gestao/financas",
   },

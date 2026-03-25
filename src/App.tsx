@@ -34,6 +34,7 @@ import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import OrcamentoPublico from "./pages/OrcamentoPublico";
 import AnamnesePublica from "./pages/AnamnesePublica";
 import Academy from "./pages/Academy";
+import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/gestao/metas" element={<ProtectedRoute><MetasMensais /></ProtectedRoute>} />
           <Route path="/gestao/financas" element={<ProtectedRoute><FinancasVega /></ProtectedRoute>} />
           <Route path="/gestao/equipe" element={<ProtectedRoute><EquipeVega /></ProtectedRoute>} />
+          <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
           <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
