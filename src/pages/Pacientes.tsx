@@ -165,6 +165,9 @@ export default function Pacientes() {
     const { error } = await supabase
       .from("patients")
       .update({
+        name: editName.trim(),
+        phone: editPhone.trim() || null,
+        origin: editOrigin || null,
         status: editStatus,
         treatment_value: editValue ? parseFloat(editValue) : 0,
       })
