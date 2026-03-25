@@ -151,6 +151,9 @@ export default function Pacientes() {
 
   function openEdit(patient: Patient) {
     setEditing(patient);
+    setEditName(patient.name);
+    setEditPhone(patient.phone || "");
+    setEditOrigin(patient.origin || "");
     setEditStatus(patient.status);
     setEditValue(patient.treatment_value?.toString() || "");
   }
