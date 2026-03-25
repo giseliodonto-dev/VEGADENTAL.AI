@@ -1,6 +1,7 @@
 import {
   Home, UserPlus, TrendingUp, Megaphone, BarChart3, Crown,
   Settings, LogOut, Building2, Users, Contact, UserSearch, Compass, Brain,
+  CalendarCheck,
 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
