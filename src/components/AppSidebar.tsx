@@ -1,7 +1,7 @@
 import {
   Home, UserPlus, TrendingUp, Megaphone, BarChart3, Crown,
   Settings, LogOut, Building2, Users, Contact, UserSearch, Compass, Brain,
-  CalendarCheck,
+  CalendarCheck, GraduationCap,
 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
@@ -69,6 +69,14 @@ export function AppSidebar() {
                   <NavLink to="/inteligencia" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                     <Brain className="h-4 w-4 shrink-0 text-autoridade" />
                     {!collapsed && <span>Inteligência VEGA</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/academy" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <GraduationCap className="h-4 w-4 shrink-0 text-vendas" />
+                    {!collapsed && <span>Academy</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

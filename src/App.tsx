@@ -33,6 +33,7 @@ import Campanhas from "./pages/marketing/Campanhas";
 import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import OrcamentoPublico from "./pages/OrcamentoPublico";
 import AnamnesePublica from "./pages/AnamnesePublica";
+import Academy from "./pages/Academy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,8 @@ const App = () => (
           <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
           <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
           <Route path="/anamnese/:token" element={<AnamnesePublica />} />
+          <Route path="/academy" element={<ProtectedRoute><Academy /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
