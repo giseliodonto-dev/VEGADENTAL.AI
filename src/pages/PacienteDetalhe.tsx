@@ -125,6 +125,10 @@ export default function PacienteDetalhe() {
   const [paymentTreatment, setPaymentTreatment] = useState<Treatment | null>(null);
   const [showBudget, setShowBudget] = useState(false);
   const [selectedTreatmentIds, setSelectedTreatmentIds] = useState<string[]>([]);
+
+  // Inline patient editing
+  const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [editedPatient, setEditedPatient] = useState({ name: "", phone: "", origin: "", status: "" });
   const [budgetDiscount, setBudgetDiscount] = useState("");
   const [budgetValidUntil, setBudgetValidUntil] = useState("");
   const [budgetNotes, setBudgetNotes] = useState("");
@@ -506,6 +510,48 @@ export default function PacienteDetalhe() {
 
   const ps = patientStatusConfig[patient.status] || { label: patient.status, variant: "outline" as const };
 
+  function startEditingPatient() {
+    setEditedPatient({
+      name: patient.name,
+      phone: patient.phone || "",
+      origin: patient.origin || "",
+      status: patient.status,
+    });
+    setIsEditingPatient(true);
+  }
+
+  async function savePatientEdit() {
+    if (!editedPatient.name.trim()) return toast.error("Nome é obrigatório");
+    const { error } = await supabase
+      .from("patients")
+      .update({
+        name: editedPatient.name.trim(),
+        phone: editedPatient.phone.trim() || null,
+        origin: editedPatient.origin || null,
+        status: editedPatient.status,
+      })
+      .eq("id", id!);
+    if (error) return toast.error("Erro ao salvar");
+
+    // Sync funnel stage
+    const stageMap: Record<string, string> = {
+      lead: "lead", em_avaliacao: "avaliacao", em_tratamento: "proposta", finalizado: "fechado", perdido: "perdido",
+    };
+    const newStage = stageMap[editedPatient.status];
+    if (newStage && clinicId) {
+      await supabase.from("sales_funnel").update({ stage: newStage }).eq("patient_id", id!).eq("clinic_id", clinicId);
+    }
+
+    toast.success("Paciente atualizado!");
+    setIsEditingPatient(false);
+    queryClient.invalidateQueries({ queryKey: ["patient", id] });
+  }
+
+  const originLabels: Record<string, string> = {
+    instagram: "Instagram", google: "Google", indicacao: "Indicação",
+    facebook: "Facebook", whatsapp: "WhatsApp", outros: "Outros",
+  };
+
   return (
     <AppLayout title="Ficha do Paciente" subtitle={patient.name}>
       <div className="space-y-6">
@@ -515,17 +561,68 @@ export default function PacienteDetalhe() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/pacientes")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{patient.name}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                {patient.phone && (
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5" /> {patient.phone}
-                  </span>
-                )}
-                <Badge variant={ps.variant}>{ps.label}</Badge>
+            {isEditingPatient ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    className="h-9 w-48"
+                    value={editedPatient.name}
+                    onChange={(e) => setEditedPatient(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Nome"
+                  />
+                  <Input
+                    className="h-9 w-40"
+                    value={editedPatient.phone}
+                    onChange={(e) => setEditedPatient(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Telefone"
+                  />
+                  <Select value={editedPatient.origin || "none"} onValueChange={(v) => setEditedPatient(prev => ({ ...prev, origin: v === "none" ? "" : v }))}>
+                    <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Origem" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não informado</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="google">Google</SelectItem>
+                      <SelectItem value="indicacao">Indicação</SelectItem>
+                      <SelectItem value="facebook">Facebook</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="outros">Outros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={editedPatient.status} onValueChange={(v) => setEditedPatient(prev => ({ ...prev, status: v }))}>
+                    <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(patientStatusConfig).map(([val, cfg]) => (
+                        <SelectItem key={val} value={val}>{cfg.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={savePatientEdit}>Salvar</Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingPatient(false)}>Cancelar</Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-foreground">{patient.name}</h2>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditingPatient} title="Editar">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {patient.phone && (
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5" /> {patient.phone}
+                    </span>
+                  )}
+                  {patient.origin && (
+                    <span className="text-xs text-muted-foreground">• {originLabels[patient.origin] || patient.origin}</span>
+                  )}
+                  <Badge variant={ps.variant}>{ps.label}</Badge>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap">
             {patient.phone && (

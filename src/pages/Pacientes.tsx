@@ -35,7 +35,6 @@ import {
   Search,
   UserPlus,
   MessageCircle,
-  CalendarPlus,
   Eye,
   Pencil,
   Loader2,
@@ -89,6 +88,9 @@ export default function Pacientes() {
 
   // Edit dialog
   const [editing, setEditing] = useState<Patient | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editOrigin, setEditOrigin] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -148,6 +150,9 @@ export default function Pacientes() {
 
   function openEdit(patient: Patient) {
     setEditing(patient);
+    setEditName(patient.name);
+    setEditPhone(patient.phone || "");
+    setEditOrigin(patient.origin || "");
     setEditStatus(patient.status);
     setEditValue(patient.treatment_value?.toString() || "");
   }
@@ -159,6 +164,9 @@ export default function Pacientes() {
     const { error } = await supabase
       .from("patients")
       .update({
+        name: editName.trim(),
+        phone: editPhone.trim() || null,
+        origin: editOrigin || null,
         status: editStatus,
         treatment_value: editValue ? parseFloat(editValue) : 0,
       })
@@ -316,26 +324,6 @@ export default function Pacientes() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => toast.info("Agenda em breve")}
-                            title="Agendar"
-                          >
-                            <CalendarPlus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            asChild
-                            title="Ver no funil"
-                          >
-                            <Link to="/vendas/funil">
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
                             asChild
                             title="Ver ficha"
                           >
@@ -370,28 +358,46 @@ export default function Pacientes() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Status</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-medium">Nome</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome do paciente" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Valor do tratamento (R$)</Label>
-                <Input
-                  type="number"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder="0"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Telefone</Label>
+                  <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="(00) 00000-0000" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Origem</Label>
+                  <Select value={editOrigin || "none"} onValueChange={(v) => setEditOrigin(v === "none" ? "" : v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não informado</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="google">Google</SelectItem>
+                      <SelectItem value="indicacao">Indicação</SelectItem>
+                      <SelectItem value="facebook">Facebook</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="outros">Outros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Status</Label>
+                  <Select value={editStatus} onValueChange={setEditStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Valor (R$)</Label>
+                  <Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} placeholder="0" />
+                </div>
               </div>
             </div>
             <DialogFooter>
