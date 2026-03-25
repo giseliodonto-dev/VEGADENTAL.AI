@@ -89,6 +89,9 @@ export default function Pacientes() {
 
   // Edit dialog
   const [editing, setEditing] = useState<Patient | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editOrigin, setEditOrigin] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
