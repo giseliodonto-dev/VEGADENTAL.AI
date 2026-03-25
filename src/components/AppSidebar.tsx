@@ -1,35 +1,15 @@
 import {
-  Home,
-  UserPlus,
-  TrendingUp,
-  Megaphone,
-  BarChart3,
-  Crown,
-  Settings,
-  LogOut,
-  Building2,
-  Users,
-  Contact,
-  UserSearch,
-  Compass,
-  Brain,
+  Home, UserPlus, TrendingUp, Megaphone, BarChart3, Crown,
+  Settings, LogOut, Building2, Users, Contact, UserSearch, Compass, Brain,
 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  SidebarHeader,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarFooter, SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
 
 const pillarItems = [
@@ -42,7 +22,6 @@ const pillarItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
 
@@ -50,7 +29,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <img src={vegaLogo} alt="VEGA Dental AI" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
+          <img src={vegaLogo} alt="VEGA Dental AI" className="h-9 w-9 shrink-0 rounded-lg object-contain animate-glow-pulse" />
           {!collapsed && (
             <div className="animate-slide-in">
               <p className="text-sm font-bold text-sidebar-primary font-display">
@@ -65,7 +44,6 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Início + Cadastro Rápido (itens soltos) */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -105,7 +83,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Minha Clínica */}
+        {/* Divider */}
+        <div className="mx-4 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(var(--sidebar-border)), transparent)" }} />
+
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-medium">
             Minha Clínica
@@ -148,7 +128,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Pilares Estratégicos */}
+        {/* Divider */}
+        <div className="mx-4 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(var(--sidebar-border)), transparent)" }} />
+
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-medium">
             Pilares Estratégicos
@@ -174,11 +156,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <NavLink
-                to="/configuracoes"
-                className="transition-colors duration-150"
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-              >
+              <NavLink to="/configuracoes" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
                 <Settings className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>Configurações</span>}
               </NavLink>

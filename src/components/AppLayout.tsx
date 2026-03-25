@@ -13,7 +13,8 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b bg-card/80 backdrop-blur-sm px-4 shrink-0 sticky top-0 z-10">
+          <header className="h-14 flex items-center bg-card/80 backdrop-blur-sm px-4 shrink-0 sticky top-0 z-10 border-b-0"
+            style={{ borderBottom: "1px solid transparent", borderImage: "linear-gradient(90deg, hsl(var(--border)), hsl(var(--border) / 0.3), transparent) 1" }}>
             <div className="flex items-center gap-3">
               <SidebarTrigger />
               {title && (

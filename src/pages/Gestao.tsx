@@ -66,8 +66,8 @@ const Gestao = () => {
             const Card = (
               <div
                 key={tool.title}
-                className={`animate-fade-up group rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 ${
-                  tool.soon ? "opacity-60" : "hover:shadow-md hover:border-gestao/30 cursor-pointer"
+                className={`animate-fade-up group card-premium card-hover p-5 ${
+                  tool.soon ? "opacity-60 !transform-none" : "hover:border-gestao/40 cursor-pointer"
                 }`}
                 style={{
                   animationDelay: `${100 + i * 80}ms`,

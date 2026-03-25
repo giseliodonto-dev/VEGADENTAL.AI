@@ -39,6 +39,7 @@ import {
   Eye,
   Pencil,
   Loader2,
+  Contact,
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -248,8 +249,20 @@ export default function Pacientes() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : patients.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            Nenhum paciente encontrado.
+          <div className="flex flex-col items-center justify-center py-16 space-y-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/60">
+              <Contact className="h-8 w-8 text-muted-foreground/40" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Nenhum paciente encontrado</p>
+              <p className="text-xs text-muted-foreground/60">Comece cadastrando seu primeiro paciente</p>
+            </div>
+            <Button asChild size="sm" className="gap-2 mt-2">
+              <Link to="/cadastro-paciente">
+                <UserPlus className="h-4 w-4" />
+                Cadastrar Paciente
+              </Link>
+            </Button>
           </div>
         ) : (
           <div className="rounded-xl border bg-card shadow-sm">
