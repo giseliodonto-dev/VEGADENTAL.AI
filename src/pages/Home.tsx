@@ -1,13 +1,7 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
 import {
-  TrendingUp,
-  Megaphone,
-  BarChart3,
-  Crown,
-  ArrowRight,
-  Zap,
-  Compass,
+  TrendingUp, Megaphone, BarChart3, Crown, ArrowRight, Zap, Compass,
 } from "lucide-react";
 
 const pillars = [
@@ -18,7 +12,7 @@ const pillars = [
     icon: TrendingUp,
     url: "/vendas",
     colorClass: "bg-vendas/10 text-vendas",
-    borderClass: "hover:border-vendas/30",
+    borderClass: "hover:border-vendas/40",
   },
   {
     title: "Marketing",
@@ -27,7 +21,7 @@ const pillars = [
     icon: Megaphone,
     url: "/marketing",
     colorClass: "bg-marketing/10 text-marketing",
-    borderClass: "hover:border-marketing/30",
+    borderClass: "hover:border-marketing/40",
   },
   {
     title: "Gestão",
@@ -36,7 +30,7 @@ const pillars = [
     icon: BarChart3,
     url: "/gestao",
     colorClass: "bg-gestao/10 text-gestao",
-    borderClass: "hover:border-gestao/30",
+    borderClass: "hover:border-gestao/40",
   },
   {
     title: "Autoridade",
@@ -45,7 +39,7 @@ const pillars = [
     icon: Crown,
     url: "/autoridade",
     colorClass: "bg-autoridade/10 text-autoridade",
-    borderClass: "hover:border-autoridade/30",
+    borderClass: "hover:border-autoridade/40",
   },
 ];
 
@@ -53,37 +47,37 @@ const Home = () => {
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-10">
-        {/* Hero */}
-        <div
-          className="animate-fade-up text-center space-y-3 pt-6"
-          style={{ opacity: 0, animationFillMode: "forwards" }}
-        >
-          <div className="inline-flex items-center gap-2 rounded-full bg-vendas/10 px-3 py-1 text-xs font-medium text-vendas">
-            <Zap className="h-3 w-3" />
-            Inteligência Estratégica para Dentistas
+        {/* Hero with subtle gradient background */}
+        <div className="relative rounded-2xl overflow-hidden p-8 sm:p-10"
+          style={{ background: "linear-gradient(135deg, hsl(200 65% 28% / 0.06), hsl(42 78% 55% / 0.04), transparent)" }}>
+          <div className="animate-fade-up text-center space-y-3" style={{ opacity: 0, animationFillMode: "forwards" }}>
+            <div className="gold-badge inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-medium">
+              <Zap className="h-3 w-3" />
+              Inteligência Estratégica para Dentistas
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">
+              VEGA Dental AI
+            </h1>
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
+              Seu gestor estratégico com visão de CEO. Pare de só atender e comece a construir um negócio lucrativo.
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold font-display text-foreground tracking-tight">
-            VEGA Dental AI
-          </h1>
-          <p className="text-muted-foreground text-sm max-w-lg mx-auto leading-relaxed">
-            Seu gestor estratégico com visão de CEO. Pare de só atender e comece a construir um negócio lucrativo.
-          </p>
         </div>
 
         {/* VEGA GPS card */}
         <Link
           to="/gps"
-          className="animate-fade-up group flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-vendas/30"
-          style={{ animationDelay: "100ms", opacity: 0, animationFillMode: "forwards" }}
+          className="animate-fade-up group card-premium card-hover flex items-center gap-4 p-5"
+          style={{ animationDelay: "100ms", opacity: 0, animationFillMode: "forwards", borderImage: "linear-gradient(90deg, hsl(var(--gold) / 0.3), hsl(var(--gold) / 0.1), transparent) 1", borderImageSlice: 1 }}
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-vendas/10">
-            <Compass className="h-6 w-6 text-vendas" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gold/10">
+            <Compass className="h-6 w-6 text-gold" />
           </div>
           <div className="flex-1">
             <h3 className="text-base font-semibold font-display">VEGA GPS</h3>
             <p className="text-xs text-muted-foreground">Painel de direção — veja alertas, metas e oportunidades da clínica</p>
           </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground transition-all duration-200 translate-x-0 group-hover:translate-x-1" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-gold transition-all duration-200 translate-x-0 group-hover:translate-x-1" />
         </Link>
 
         {/* Pillar cards */}
@@ -92,7 +86,7 @@ const Home = () => {
             <Link
               key={pillar.title}
               to={pillar.url}
-              className={`animate-fade-up group rounded-xl border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md ${pillar.borderClass}`}
+              className={`animate-fade-up group card-premium card-hover p-6 ${pillar.borderClass}`}
               style={{
                 animationDelay: `${150 + i * 80}ms`,
                 opacity: 0,

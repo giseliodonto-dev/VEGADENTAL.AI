@@ -6,45 +6,49 @@
 
 @layer base {
   :root {
-    --background: 220 14% 96%;
-    --foreground: 224 30% 14%;
+    --background: 220 20% 97%;
+    --foreground: 210 40% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 30% 14%;
+    --card: 220 14% 99%;
+    --card-foreground: 210 40% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 14%;
+    --popover-foreground: 210 40% 12%;
 
-    --primary: 224 30% 14%;
+    --primary: 200 65% 28%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 92%;
-    --secondary-foreground: 224 30% 14%;
+    --secondary-foreground: 210 40% 12%;
 
     --muted: 220 12% 93%;
     --muted-foreground: 220 10% 46%;
 
     --accent: 220 14% 92%;
-    --accent-foreground: 224 30% 14%;
+    --accent-foreground: 210 40% 12%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 224 30% 14%;
+    --border: 220 15% 92%;
+    --input: 220 15% 90%;
+    --ring: 200 65% 28%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Sidebar — clean slate */
-    --sidebar-background: 224 30% 11%;
-    --sidebar-foreground: 220 14% 80%;
+    /* Gold accent */
+    --gold: 42 78% 55%;
+    --gold-foreground: 42 20% 14%;
+
+    /* Sidebar — deep navy */
+    --sidebar-background: 210 40% 8%;
+    --sidebar-foreground: 220 14% 75%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 224 30% 11%;
-    --sidebar-accent: 224 25% 17%;
+    --sidebar-primary-foreground: 210 40% 8%;
+    --sidebar-accent: 210 35% 14%;
     --sidebar-accent-foreground: 220 14% 95%;
-    --sidebar-border: 224 20% 18%;
-    --sidebar-ring: 220 70% 55%;
+    --sidebar-border: 210 30% 14%;
+    --sidebar-ring: 200 65% 45%;
 
     /* Pillar colors */
     --pillar-vendas: 220 70% 55%;
@@ -87,6 +91,44 @@
   }
 }
 
+@layer components {
+  .card-premium {
+    @apply rounded-xl border bg-card;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+  .card-hover:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .btn-press {
+    @apply transition-transform duration-100;
+  }
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  .gold-badge {
+    border: 1px solid hsl(var(--gold) / 0.4);
+    background: hsl(var(--gold) / 0.08);
+    color: hsl(var(--gold));
+    position: relative;
+    overflow: hidden;
+  }
+  .gold-badge::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.15), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+    transform: translateX(-100%);
+  }
+}
+
 @layer utilities {
   .animate-slide-in {
     animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -98,6 +140,10 @@
 
   .animate-scale-in {
     animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-glow-pulse {
+    animation: glowPulse 3s ease-in-out infinite;
   }
 
   .stagger-1 { animation-delay: 0.05s; }
@@ -120,6 +166,16 @@
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  50%, 100% { transform: translateX(100%); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px hsl(var(--gold) / 0.3)); }
+  50% { filter: drop-shadow(0 0 12px hsl(var(--gold) / 0.5)); }
 }
 
 /* Scrollbar */
