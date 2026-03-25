@@ -258,7 +258,7 @@ export default function FinancasVega() {
   };
 
   return (
-    <AppLayout title="Finanças VEGA" subtitle="Análise estratégica da saúde financeira">
+    <AppLayout title="Inteligência Financeira" subtitle="Análise estratégica da saúde financeira">
       <div className="max-w-6xl space-y-6">
         {/* Strategic phrase */}
         <div className="animate-fade-up" style={{ opacity: 0, animationFillMode: "forwards" }}>
