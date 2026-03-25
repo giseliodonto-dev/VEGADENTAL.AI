@@ -1,62 +1,68 @@
 
 
-## Plano: VEGA Academy — Ferramenta de Performance
+## Plano: Restaurar modulo Financeiro Operacional + Reorganizar navegacao
 
-### Conceito
+### Problema
 
-Pagina `/academy` com videos curtos organizados por categoria. Conteudo hardcoded inicialmente (sem tabela no banco), com sugestoes contextuais baseadas em dados reais da clinica.
+Existe apenas "Financas VEGA" (`/gestao/financas`) que e um dashboard analitico. O modulo operacional de controle financeiro (registrar entradas, saidas, fluxo de caixa, comissoes por cargo) foi perdido. A tabela `financials` ja suporta tudo — falta a interface.
 
-### 1. Sidebar — `src/components/AppSidebar.tsx`
+### 1. Nova pagina — `src/pages/Financeiro.tsx`
 
-Adicionar item "Academy" no grupo principal (abaixo de "Inteligencia VEGA"):
-- Icone: `GraduationCap`
-- URL: `/academy`
-- Cor: `text-gold`
+Pagina operacional com 4 abas (Tabs):
 
-### 2. Nova pagina — `src/pages/Academy.tsx`
+**Aba "Caixa do Dia":**
+- Filtro de data (hoje por padrao)
+- Lista de movimentacoes (entradas verdes, saidas vermelhas)
+- Totalizadores: Total Entradas, Total Saidas, Saldo do Dia
+- Botao "Nova Entrada" e "Nova Saida" (dialogs com campos: valor, categoria, descricao, forma de pagamento, status)
 
-**Layout:**
-- AppLayout com title "VEGA Academy" e subtitle "Treinamentos rapidos para sua equipe"
-- Hero compacto com gradiente sutil + headline motivacional
-- Filtro por categorias (tabs ou chips): "Como usar o VEGA", "Vendas", "Marketing", "Gestao de Equipe", "Crescimento"
-- Grid de video cards (responsivo: 1-3 colunas)
+**Aba "Receitas":**
+- Listagem filtrada por type="entrada" com filtros de periodo e categoria
+- CRUD completo (adicionar, editar, excluir)
 
-**Video Card:**
-- Thumbnail placeholder com gradiente da cor da categoria + icone
-- Badge de duracao (ex: "0:45")
-- Titulo (bold)
-- Descricao curta (1 linha)
-- Botao Play (abre dialog com player embed ou placeholder)
+**Aba "Despesas":**
+- Listagem filtrada por type="saida" com filtros de periodo e categoria
+- CRUD completo
 
-**Dados (hardcoded):**
-- ~12-15 videos distribuidos nas 5 categorias
-- Cada video: `{ id, title, description, duration, category, videoUrl? }`
-- URLs de video podem ser placeholders (YouTube embeds futuros)
+**Aba "Comissoes":**
+- Lista todos os membros da clinica com seus cargos (dentista, sdr, crm, recepcao)
+- Para cada membro: producao do periodo, taxa de comissao configurada, valor de comissao calculado
+- Status de pagamento (pago/pendente) baseado nos registros de `financials` com category="comissao"
+- Botao "Pagar Comissao" que cria registro de saida no financials
+- Suporte a comissoes escalonadas: exibir taxa atual e permitir configurar faixas (ex: ate R$10k = 15%, acima = 20%) — armazenado no campo `commission_rate` do `clinic_members` inicialmente, com logica escalonada no frontend
 
-**Secao "Sugerido para voce":**
-- Cards destacados no topo baseados em contexto:
-  - Query `sales_funnel` para pacientes parados → sugere video de vendas
-  - Query `agenda` para dias vazios → sugere video de marketing
-  - Sem leads recentes → sugere video de captacao
-- Se nao houver dados suficientes, mostra "Comece por aqui" com videos da categoria "Como usar o VEGA"
+### 2. Sidebar — `AppSidebar.tsx`
 
-### 3. Rota — `src/App.tsx`
+Adicionar "Financeiro" no grupo "Minha Clinica" (abaixo de Agenda):
+- Icone: `Wallet`
+- URL: `/financeiro`
+- Cor: `text-gestao`
 
-Adicionar rota protegida `/academy` → `<Academy />`
+### 3. Renomear Financas VEGA — `FinancasVega.tsx` + `Gestao.tsx`
+
+- Renomear titulo para "Inteligencia Financeira" (AppLayout title + card no hub Gestao)
+- Manter URL `/gestao/financas` e todo o codigo atual intacto
+
+### 4. Rota — `App.tsx`
+
+- Adicionar `/financeiro` → `<Financeiro />`
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Criar | `src/pages/Academy.tsx` |
-| Editar | `src/components/AppSidebar.tsx` — item Academy |
-| Editar | `src/App.tsx` — rota /academy |
+| Criar | `src/pages/Financeiro.tsx` |
+| Editar | `src/components/AppSidebar.tsx` — item Financeiro |
+| Editar | `src/App.tsx` — rota /financeiro |
+| Editar | `src/pages/gestao/FinancasVega.tsx` — renomear titulo |
+| Editar | `src/pages/Gestao.tsx` — atualizar card nome |
 
-### Detalhes tecnicos
+### Sem migracoes
 
-- Videos hardcoded em array constante (sem tabela no banco por enquanto)
-- Sugestoes contextuais: 2-3 queries leves ao banco (funnel stagnation, agenda gaps, leads count)
-- Dialog com iframe para YouTube ou player nativo futuro
-- Cards com hover premium (`.card-hover` existente)
-- Categorias com cores mapeadas aos pilares: Vendas (text-vendas), Marketing (text-marketing), Gestao (text-gestao), etc.
+A tabela `financials` e `clinic_members` ja possuem todos os campos necessarios. Nenhuma alteracao de banco.
+
+### Separacao clara
+
+- **Financeiro** (`/financeiro`): Operacional — registrar, editar, controlar entradas/saidas/comissoes
+- **Inteligencia Financeira** (`/gestao/financas`): Analitico — KPIs, graficos, alertas, comparativos
 
