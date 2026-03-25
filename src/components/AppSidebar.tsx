@@ -125,6 +125,14 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/gestao/agenda" className="transition-colors duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <CalendarCheck className="h-4 w-4 shrink-0 text-gestao" />
+                    {!collapsed && <span>Agenda</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

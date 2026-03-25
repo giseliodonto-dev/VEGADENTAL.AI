@@ -35,7 +35,6 @@ import {
   Search,
   UserPlus,
   MessageCircle,
-  CalendarPlus,
   Eye,
   Pencil,
   Loader2,
