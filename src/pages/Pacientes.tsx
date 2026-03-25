@@ -39,6 +39,7 @@ import {
   Eye,
   Pencil,
   Loader2,
+  Contact,
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
