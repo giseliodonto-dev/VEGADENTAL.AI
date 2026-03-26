@@ -369,6 +369,11 @@ export default function Financeiro() {
   return (
     <AppLayout title="Financeiro" subtitle="Controle operacional de receitas, despesas e comissões">
       <div className="max-w-6xl space-y-4">
+        <div className="flex justify-end">
+          <Button size="sm" variant="outline" onClick={handleExportPdf} className="text-xs">
+            <FileDown className="h-3.5 w-3.5 mr-1.5" /> Exportar Relatório PDF
+          </Button>
+        </div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="caixa" className="text-xs">
