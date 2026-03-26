@@ -19,11 +19,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Plus, Minus, ArrowUpCircle, ArrowDownCircle, Wallet, Trash2, DollarSign, Users,
+  Plus, Minus, ArrowUpCircle, ArrowDownCircle, Wallet, Trash2, DollarSign, Users, FileDown,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { generateFinanceReportPdf } from "@/utils/financeReportPdf";
 
 const ENTRY_CATEGORIES = ["recebimento", "consulta", "procedimento", "outros"];
 const EXIT_CATEGORIES = ["aluguel", "materiais", "laboratório", "salários", "comissao", "energia", "água", "internet", "marketing", "impostos", "manutenção", "outros"];
@@ -319,9 +320,60 @@ export default function Financeiro() {
     sdr: "SDR",
   };
 
+  const handleExportPdf = async () => {
+    if (!clinicId) return;
+    // Fetch clinic name
+    const { data: clinic } = await supabase.from("clinics").select("name").eq("id", clinicId).single();
+    const clinicName = clinic?.name || "Clínica";
+
+    const entries = periodRecords.filter(r => r.type === "entrada").map(r => ({
+      category: r.category || "outros",
+      description: r.description || "",
+      date: r.date,
+      value: Number(r.value),
+      payment_method: r.payment_method || "",
+      status: r.status,
+    }));
+
+    const exits = periodRecords.filter(r => r.type === "saida").map(r => ({
+      category: r.category || "outros",
+      description: r.description || "",
+      date: r.date,
+      value: Number(r.value),
+      payment_method: r.payment_method || "",
+      status: r.status,
+    }));
+
+    const commissions = commissionData.map((m: any) => ({
+      name: m.name,
+      role: roleLabel[m.role] || m.role,
+      production: m.production,
+      rate: m.rate,
+      commission: m.commission,
+      paid: m.paid,
+      pending: m.pending,
+    }));
+
+    const doc = generateFinanceReportPdf({
+      clinicName,
+      periodLabel: `${periodStart} a ${periodEnd}`,
+      entries,
+      exits,
+      commissions,
+    });
+
+    doc.save(`relatorio-financeiro-${periodStart}-${periodEnd}.pdf`);
+    toast.success("Relatório PDF gerado com sucesso");
+  };
+
   return (
     <AppLayout title="Financeiro" subtitle="Controle operacional de receitas, despesas e comissões">
       <div className="max-w-6xl space-y-4">
+        <div className="flex justify-end">
+          <Button size="sm" variant="outline" onClick={handleExportPdf} className="text-xs">
+            <FileDown className="h-3.5 w-3.5 mr-1.5" /> Exportar Relatório PDF
+          </Button>
+        </div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="caixa" className="text-xs">
