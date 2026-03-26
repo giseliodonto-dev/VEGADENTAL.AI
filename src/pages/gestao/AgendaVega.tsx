@@ -324,7 +324,7 @@ const AgendaVega = () => {
                               ))}
                               <div
                                 className="text-center cursor-pointer hover:bg-accent rounded p-0.5"
-                                onClick={(e) => { e.stopPropagation(); setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                                onClick={(e) => { e.stopPropagation(); handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` }); }}
                               >
                                 <Plus className="h-3 w-3 mx-auto text-muted-foreground/40" />
                               </div>
