@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Users, UserPlus, Crown, Stethoscope, PhoneCall, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Briefcase, Radio } from "lucide-react";
+import { Briefcase, Radio, Shield, Wrench } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -29,6 +29,8 @@ const roleLabels: Record<AppRole, string> = {
   dentista: "Dentista",
   crm: "CRM",
   sdr: "SDR",
+  admin: "Admin",
+  protetico: "Protético",
 };
 
 const roleIcons: Record<AppRole, React.ReactNode> = {
@@ -37,6 +39,8 @@ const roleIcons: Record<AppRole, React.ReactNode> = {
   dentista: <Stethoscope className="h-3.5 w-3.5" />,
   crm: <Briefcase className="h-3.5 w-3.5" />,
   sdr: <Radio className="h-3.5 w-3.5" />,
+  admin: <Shield className="h-3.5 w-3.5" />,
+  protetico: <Wrench className="h-3.5 w-3.5" />,
 };
 
 const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
@@ -45,6 +49,8 @@ const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
   dentista: "outline",
   crm: "secondary",
   sdr: "outline",
+  admin: "default",
+  protetico: "secondary",
 };
 
 const Usuarios = () => {
@@ -255,6 +261,12 @@ const Usuarios = () => {
                       </SelectItem>
                       <SelectItem value="sdr">
                         <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> SDR</span>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <span className="flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Admin</span>
+                      </SelectItem>
+                      <SelectItem value="protetico">
+                        <span className="flex items-center gap-2"><Wrench className="h-3.5 w-3.5" /> Protético</span>
                       </SelectItem>
                     </SelectContent>
                   </Select>

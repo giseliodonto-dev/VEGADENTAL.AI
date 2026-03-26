@@ -80,6 +80,17 @@ const AgendaVega = () => {
   const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
   const [mobileDay, setMobileDay] = useState(0);
 
+  // Auto-select logged-in user as dentist when opening new appointment dialog
+  const handleOpenNewSlot = (slot: { date: string; time: string }) => {
+    const userIsDentist = dentists.some((d) => d.id === user?.id);
+    setNewForm({
+      patient_id: "", procedure_type: "", estimated_value: "",
+      dentist_user_id: userIsDentist ? user!.id : "",
+      duration_minutes: "60", notes: "",
+    });
+    setSelectedSlot(slot);
+  };
+
   const weekDays = useMemo(() => Array.from({ length: DAYS_COUNT }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = weekDays[weekDays.length - 1];
 
@@ -109,7 +120,7 @@ const AgendaVega = () => {
         .from("clinic_members")
         .select("user_id, role, profile:profiles(full_name)")
         .eq("clinic_id", clinicId)
-        .in("role", ["dono", "dentista"]);
+        .in("role", ["dono", "dentista", "admin"]);
       return (data || []).map((d: any) => ({ id: d.user_id, name: d.profile?.full_name || "Sem nome", role: d.role }));
     },
     enabled: !!clinicId,
@@ -289,7 +300,7 @@ const AgendaVega = () => {
                           key={dateStr + h}
                           className={`p-1 border-l align-top ${isToday(d) ? "bg-primary/5" : ""} ${apts.length === 0 ? "hover:bg-accent cursor-pointer" : ""}`}
                           onClick={() => {
-                            if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` });
+                            if (apts.length === 0) handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` });
                           }}
                         >
                           {apts.length > 0 ? (
@@ -313,7 +324,7 @@ const AgendaVega = () => {
                               ))}
                               <div
                                 className="text-center cursor-pointer hover:bg-accent rounded p-0.5"
-                                onClick={(e) => { e.stopPropagation(); setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                                onClick={(e) => { e.stopPropagation(); handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` }); }}
                               >
                                 <Plus className="h-3 w-3 mx-auto text-muted-foreground/40" />
                               </div>
@@ -351,7 +362,7 @@ const AgendaVega = () => {
                 <div key={h} className="rounded-lg border">
                   <div
                     className={`flex items-center gap-3 p-3 ${apts.length === 0 ? "cursor-pointer hover:bg-accent" : ""}`}
-                    onClick={() => { if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                    onClick={() => { if (apts.length === 0) handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` }); }}
                   >
                     <span className="text-xs font-mono text-muted-foreground w-12">{hourStr}:00</span>
                     {apts.length === 0 && <span className="text-xs text-muted-foreground/50">Horário livre</span>}
@@ -376,7 +387,7 @@ const AgendaVega = () => {
                           </Badge>
                         </div>
                       ))}
-                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setSelectedSlot({ date: dateStr, time: `${hourStr}:00` })}>
+                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` })}>
                         <Plus className="h-3 w-3 mr-1" /> Adicionar
                       </Button>
                     </div>
