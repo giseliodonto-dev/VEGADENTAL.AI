@@ -24,6 +24,7 @@ import {
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { generateFinanceReportPdf } from "@/utils/financeReportPdf";
 
 const ENTRY_CATEGORIES = ["recebimento", "consulta", "procedimento", "outros"];
 const EXIT_CATEGORIES = ["aluguel", "materiais", "laboratório", "salários", "comissao", "energia", "água", "internet", "marketing", "impostos", "manutenção", "outros"];
