@@ -29,6 +29,8 @@ const roleLabels: Record<AppRole, string> = {
   dentista: "Dentista",
   crm: "CRM",
   sdr: "SDR",
+  admin: "Admin",
+  protetico: "Protético",
 };
 
 const roleIcons: Record<AppRole, React.ReactNode> = {
