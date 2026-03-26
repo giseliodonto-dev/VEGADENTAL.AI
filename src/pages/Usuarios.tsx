@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Users, UserPlus, Crown, Stethoscope, PhoneCall, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Briefcase, Radio } from "lucide-react";
+import { Briefcase, Radio, Shield, Wrench } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
