@@ -1,68 +1,50 @@
 
 
-## Plano: Restaurar modulo Financeiro Operacional + Reorganizar navegacao
+## Plano: Corrigir autenticacao + novos cargos + auto-associar dentista
 
-### Problema
+### Diagnostico
 
-Existe apenas "Financas VEGA" (`/gestao/financas`) que e um dashboard analitico. O modulo operacional de controle financeiro (registrar entradas, saidas, fluxo de caixa, comissoes por cargo) foi perdido. A tabela `financials` ja suporta tudo — falta a interface.
+O sistema ja usa autenticacao interna (email/senha via Supabase Auth integrado). Nao ha redirecionamento externo — o fluxo de login/signup esta em `/auth`. O problema real e:
 
-### 1. Nova pagina — `src/pages/Financeiro.tsx`
+1. **Cargos faltando**: O enum `app_role` so tem `dono | recepcao | dentista | crm | sdr`. Faltam `admin` e `protetico`.
+2. **Agendamento nao auto-associa dentista**: Ao criar agendamento, o campo `dentist_user_id` e manual. Deveria pre-selecionar o usuario logado se ele for dentista.
+3. **UX na pagina de Usuarios**: Os labels de cargo precisam incluir os novos tipos.
 
-Pagina operacional com 4 abas (Tabs):
+### 1. Migracao — adicionar novos valores ao enum
 
-**Aba "Caixa do Dia":**
-- Filtro de data (hoje por padrao)
-- Lista de movimentacoes (entradas verdes, saidas vermelhas)
-- Totalizadores: Total Entradas, Total Saidas, Saldo do Dia
-- Botao "Nova Entrada" e "Nova Saida" (dialogs com campos: valor, categoria, descricao, forma de pagamento, status)
+```sql
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'admin';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'protetico';
+```
 
-**Aba "Receitas":**
-- Listagem filtrada por type="entrada" com filtros de periodo e categoria
-- CRUD completo (adicionar, editar, excluir)
+### 2. Atualizar labels de cargo — `src/pages/Usuarios.tsx`
 
-**Aba "Despesas":**
-- Listagem filtrada por type="saida" com filtros de periodo e categoria
-- CRUD completo
+Adicionar ao `roleLabels`, `roleIcons` e `roleBadgeVariant`:
+- `admin`: "Admin" (icone: `Shield`)
+- `protetico`: "Protético" (icone: `Wrench` ou similar)
 
-**Aba "Comissoes":**
-- Lista todos os membros da clinica com seus cargos (dentista, sdr, crm, recepcao)
-- Para cada membro: producao do periodo, taxa de comissao configurada, valor de comissao calculado
-- Status de pagamento (pago/pendente) baseado nos registros de `financials` com category="comissao"
-- Botao "Pagar Comissao" que cria registro de saida no financials
-- Suporte a comissoes escalonadas: exibir taxa atual e permitir configurar faixas (ex: ate R$10k = 15%, acima = 20%) — armazenado no campo `commission_rate` do `clinic_members` inicialmente, com logica escalonada no frontend
+### 3. Auto-associar dentista na Agenda — `src/pages/gestao/AgendaVega.tsx`
 
-### 2. Sidebar — `AppSidebar.tsx`
+- Ao abrir o dialog de novo agendamento, verificar se o usuario logado e dentista/dono
+- Se sim, pre-preencher `newForm.dentist_user_id` com `user.id`
+- Manter a opcao de trocar o dentista manualmente (para recepcionistas agendando para outro dentista)
 
-Adicionar "Financeiro" no grupo "Minha Clinica" (abaixo de Agenda):
-- Icone: `Wallet`
-- URL: `/financeiro`
-- Cor: `text-gestao`
+### 4. Incluir `admin` e `protetico` na query de dentistas da agenda
 
-### 3. Renomear Financas VEGA — `FinancasVega.tsx` + `Gestao.tsx`
-
-- Renomear titulo para "Inteligencia Financeira" (AppLayout title + card no hub Gestao)
-- Manter URL `/gestao/financas` e todo o codigo atual intacto
-
-### 4. Rota — `App.tsx`
-
-- Adicionar `/financeiro` → `<Financeiro />`
+- Na query de dentistas, incluir `admin` nos roles que podem aparecer (admin pode agendar)
+- `protetico` nao precisa aparecer como dentista na agenda (nao atende pacientes diretamente)
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Criar | `src/pages/Financeiro.tsx` |
-| Editar | `src/components/AppSidebar.tsx` — item Financeiro |
-| Editar | `src/App.tsx` — rota /financeiro |
-| Editar | `src/pages/gestao/FinancasVega.tsx` — renomear titulo |
-| Editar | `src/pages/Gestao.tsx` — atualizar card nome |
+| Migracao | Adicionar `admin` e `protetico` ao enum `app_role` |
+| Editar | `src/pages/Usuarios.tsx` — labels e icones dos novos cargos |
+| Editar | `src/pages/gestao/AgendaVega.tsx` — pre-selecionar dentista logado |
 
-### Sem migracoes
+### Sem quebras
 
-A tabela `financials` e `clinic_members` ja possuem todos os campos necessarios. Nenhuma alteracao de banco.
-
-### Separacao clara
-
-- **Financeiro** (`/financeiro`): Operacional — registrar, editar, controlar entradas/saidas/comissoes
-- **Inteligencia Financeira** (`/gestao/financas`): Analitico — KPIs, graficos, alertas, comparativos
+- Auth existente (login/signup) permanece intacto
+- Fluxo de onboarding (ClinicOnboarding) permanece intacto
+- RLS policies usam o enum por referencia, novos valores sao compatveis automaticamente
 
