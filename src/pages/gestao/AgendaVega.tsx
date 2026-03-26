@@ -300,7 +300,7 @@ const AgendaVega = () => {
                           key={dateStr + h}
                           className={`p-1 border-l align-top ${isToday(d) ? "bg-primary/5" : ""} ${apts.length === 0 ? "hover:bg-accent cursor-pointer" : ""}`}
                           onClick={() => {
-                            if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` });
+                            if (apts.length === 0) handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` });
                           }}
                         >
                           {apts.length > 0 ? (
