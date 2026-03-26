@@ -80,6 +80,17 @@ const AgendaVega = () => {
   const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
   const [mobileDay, setMobileDay] = useState(0);
 
+  // Auto-select logged-in user as dentist when opening new appointment dialog
+  const handleOpenNewSlot = (slot: { date: string; time: string }) => {
+    const userIsDentist = dentists.some((d) => d.id === user?.id);
+    setNewForm({
+      patient_id: "", procedure_type: "", estimated_value: "",
+      dentist_user_id: userIsDentist ? user!.id : "",
+      duration_minutes: "60", notes: "",
+    });
+    setSelectedSlot(slot);
+  };
+
   const weekDays = useMemo(() => Array.from({ length: DAYS_COUNT }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = weekDays[weekDays.length - 1];
 
