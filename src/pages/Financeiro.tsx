@@ -320,6 +320,52 @@ export default function Financeiro() {
     sdr: "SDR",
   };
 
+  const handleExportPdf = async () => {
+    if (!clinicId) return;
+    // Fetch clinic name
+    const { data: clinic } = await supabase.from("clinics").select("name").eq("id", clinicId).single();
+    const clinicName = clinic?.name || "Clínica";
+
+    const entries = periodRecords.filter(r => r.type === "entrada").map(r => ({
+      category: r.category || "outros",
+      description: r.description || "",
+      date: r.date,
+      value: Number(r.value),
+      payment_method: r.payment_method || "",
+      status: r.status,
+    }));
+
+    const exits = periodRecords.filter(r => r.type === "saida").map(r => ({
+      category: r.category || "outros",
+      description: r.description || "",
+      date: r.date,
+      value: Number(r.value),
+      payment_method: r.payment_method || "",
+      status: r.status,
+    }));
+
+    const commissions = commissionData.map((m: any) => ({
+      name: m.name,
+      role: roleLabel[m.role] || m.role,
+      production: m.production,
+      rate: m.rate,
+      commission: m.commission,
+      paid: m.paid,
+      pending: m.pending,
+    }));
+
+    const doc = generateFinanceReportPdf({
+      clinicName,
+      periodLabel: `${periodStart} a ${periodEnd}`,
+      entries,
+      exits,
+      commissions,
+    });
+
+    doc.save(`relatorio-financeiro-${periodStart}-${periodEnd}.pdf`);
+    toast.success("Relatório PDF gerado com sucesso");
+  };
+
   return (
     <AppLayout title="Financeiro" subtitle="Controle operacional de receitas, despesas e comissões">
       <div className="max-w-6xl space-y-4">
