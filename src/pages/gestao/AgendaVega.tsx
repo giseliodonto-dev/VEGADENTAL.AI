@@ -387,7 +387,7 @@ const AgendaVega = () => {
                           </Badge>
                         </div>
                       ))}
-                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setSelectedSlot({ date: dateStr, time: `${hourStr}:00` })}>
+                      <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` })}>
                         <Plus className="h-3 w-3 mr-1" /> Adicionar
                       </Button>
                     </div>
