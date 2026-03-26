@@ -109,7 +109,7 @@ const AgendaVega = () => {
         .from("clinic_members")
         .select("user_id, role, profile:profiles(full_name)")
         .eq("clinic_id", clinicId)
-        .in("role", ["dono", "dentista"]);
+        .in("role", ["dono", "dentista", "admin"]);
       return (data || []).map((d: any) => ({ id: d.user_id, name: d.profile?.full_name || "Sem nome", role: d.role }));
     },
     enabled: !!clinicId,
