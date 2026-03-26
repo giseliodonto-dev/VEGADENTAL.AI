@@ -362,7 +362,7 @@ const AgendaVega = () => {
                 <div key={h} className="rounded-lg border">
                   <div
                     className={`flex items-center gap-3 p-3 ${apts.length === 0 ? "cursor-pointer hover:bg-accent" : ""}`}
-                    onClick={() => { if (apts.length === 0) setSelectedSlot({ date: dateStr, time: `${hourStr}:00` }); }}
+                    onClick={() => { if (apts.length === 0) handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` }); }}
                   >
                     <span className="text-xs font-mono text-muted-foreground w-12">{hourStr}:00</span>
                     {apts.length === 0 && <span className="text-xs text-muted-foreground/50">Horário livre</span>}
