@@ -19,7 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Plus, Minus, ArrowUpCircle, ArrowDownCircle, Wallet, Trash2, DollarSign, Users,
+  Plus, Minus, ArrowUpCircle, ArrowDownCircle, Wallet, Trash2, DollarSign, Users, FileDown,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
