@@ -262,6 +262,12 @@ const Usuarios = () => {
                       <SelectItem value="sdr">
                         <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> SDR</span>
                       </SelectItem>
+                      <SelectItem value="admin">
+                        <span className="flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Admin</span>
+                      </SelectItem>
+                      <SelectItem value="protetico">
+                        <span className="flex items-center gap-2"><Wrench className="h-3.5 w-3.5" /> Protético</span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
