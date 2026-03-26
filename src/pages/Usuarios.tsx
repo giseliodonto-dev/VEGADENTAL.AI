@@ -39,6 +39,8 @@ const roleIcons: Record<AppRole, React.ReactNode> = {
   dentista: <Stethoscope className="h-3.5 w-3.5" />,
   crm: <Briefcase className="h-3.5 w-3.5" />,
   sdr: <Radio className="h-3.5 w-3.5" />,
+  admin: <Shield className="h-3.5 w-3.5" />,
+  protetico: <Wrench className="h-3.5 w-3.5" />,
 };
 
 const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
