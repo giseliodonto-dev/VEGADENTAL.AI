@@ -49,6 +49,8 @@ const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
   dentista: "outline",
   crm: "secondary",
   sdr: "outline",
+  admin: "default",
+  protetico: "secondary",
 };
 
 const Usuarios = () => {
