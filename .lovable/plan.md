@@ -1,50 +1,68 @@
 
 
-## Plano: Corrigir autenticacao + novos cargos + auto-associar dentista
+## Plano: Renomear "Usuarios" para "Colaboradores" + Corrigir bug do convite
 
-### Diagnostico
+### Problema
 
-O sistema ja usa autenticacao interna (email/senha via Supabase Auth integrado). Nao ha redirecionamento externo — o fluxo de login/signup esta em `/auth`. O problema real e:
+Quando um colaborador convidado cria conta (via link ou login), o sistema tenta inseri-lo em `clinic_members`, mas a politica RLS so permite insercao por usuarios com cargo `dono`. O insert falha silenciosamente e o colaborador cai na tela "Crie sua Clinica" — que nao deveria aparecer para ele.
 
-1. **Cargos faltando**: O enum `app_role` so tem `dono | recepcao | dentista | crm | sdr`. Faltam `admin` e `protetico`.
-2. **Agendamento nao auto-associa dentista**: Ao criar agendamento, o campo `dentist_user_id` e manual. Deveria pre-selecionar o usuario logado se ele for dentista.
-3. **UX na pagina de Usuarios**: Os labels de cargo precisam incluir os novos tipos.
+### Solucao
 
-### 1. Migracao — adicionar novos valores ao enum
+**1. Migracao — funcao `accept_pending_invites` (SECURITY DEFINER)**
+
+Criar funcao no banco que:
+- Recebe o `user_id` e `email` do usuario logado
+- Busca convites pendentes para aquele email
+- Para cada convite: insere em `clinic_members` e marca convite como `accepted`
+- Executa com privilegios elevados (bypassa RLS)
 
 ```sql
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'admin';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'protetico';
+CREATE OR REPLACE FUNCTION public.accept_pending_invites(_user_id uuid, _email text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  inv RECORD;
+BEGIN
+  FOR inv IN
+    SELECT * FROM invites WHERE email = _email AND status = 'pending'
+  LOOP
+    INSERT INTO clinic_members (clinic_id, user_id, role)
+    VALUES (inv.clinic_id, _user_id, inv.role)
+    ON CONFLICT DO NOTHING;
+
+    UPDATE invites SET status = 'accepted', accepted_at = now()
+    WHERE id = inv.id;
+  END LOOP;
+END;
+$$;
 ```
 
-### 2. Atualizar labels de cargo — `src/pages/Usuarios.tsx`
+**2. Editar `src/pages/Auth.tsx`**
 
-Adicionar ao `roleLabels`, `roleIcons` e `roleBadgeVariant`:
-- `admin`: "Admin" (icone: `Shield`)
-- `protetico`: "Protético" (icone: `Wrench` ou similar)
+No login, substituir as queries manuais de insert/update por chamada a `supabase.rpc('accept_pending_invites', { _user_id, _email })`.
 
-### 3. Auto-associar dentista na Agenda — `src/pages/gestao/AgendaVega.tsx`
+**3. Editar `src/pages/Convite.tsx`**
 
-- Ao abrir o dialog de novo agendamento, verificar se o usuario logado e dentista/dono
-- Se sim, pre-preencher `newForm.dentist_user_id` com `user.id`
-- Manter a opcao de trocar o dentista manualmente (para recepcionistas agendando para outro dentista)
+No signup com auto-confirm, tambem usar o RPC em vez de insert direto (para consistencia e para funcionar com RLS).
 
-### 4. Incluir `admin` e `protetico` na query de dentistas da agenda
+**4. Renomear "Usuarios" para "Colaboradores"**
 
-- Na query de dentistas, incluir `admin` nos roles que podem aparecer (admin pode agendar)
-- `protetico` nao precisa aparecer como dentista na agenda (nao atende pacientes diretamente)
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/components/AppSidebar.tsx` | Label "Usuarios" → "Colaboradores" |
+| `src/pages/Usuarios.tsx` | Titulo `AppLayout title` → "Colaboradores" |
+| Titulo do card "Equipe da Clinica" permanece (ja esta correto) |
 
 ### Arquivos
 
 | Acao | Arquivo |
 |------|---------|
-| Migracao | Adicionar `admin` e `protetico` ao enum `app_role` |
-| Editar | `src/pages/Usuarios.tsx` — labels e icones dos novos cargos |
-| Editar | `src/pages/gestao/AgendaVega.tsx` — pre-selecionar dentista logado |
-
-### Sem quebras
-
-- Auth existente (login/signup) permanece intacto
-- Fluxo de onboarding (ClinicOnboarding) permanece intacto
-- RLS policies usam o enum por referencia, novos valores sao compatveis automaticamente
+| Migracao | Funcao `accept_pending_invites` |
+| Editar | `src/pages/Auth.tsx` — usar RPC |
+| Editar | `src/pages/Convite.tsx` — usar RPC |
+| Editar | `src/components/AppSidebar.tsx` — renomear label |
+| Editar | `src/pages/Usuarios.tsx` — renomear titulo |
 
