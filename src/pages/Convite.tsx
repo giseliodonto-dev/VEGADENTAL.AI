@@ -150,7 +150,7 @@ const Convite = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500" />
+          <CheckCircle2 className="h-12 w-12 mx-auto text-primary" />
           <h1 className="text-xl font-bold text-foreground">Quase lá!</h1>
           <p className="text-sm text-muted-foreground">
             Verifique seu e-mail para confirmar o cadastro. Após confirmar, faça login normalmente e você já estará vinculado à clínica <strong>{clinicName}</strong>.
