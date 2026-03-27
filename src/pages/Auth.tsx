@@ -26,28 +26,12 @@ const Auth = () => {
     if (error) {
       toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
     } else {
-      // Check for pending invites and auto-accept
+      // Auto-accept pending invites via secure RPC
       if (data.user) {
-        const { data: pendingInvites } = await supabase
-          .from("invites")
-          .select("*")
-          .eq("email", email.trim().toLowerCase())
-          .eq("status", "pending");
-
-        if (pendingInvites && pendingInvites.length > 0) {
-          for (const inv of pendingInvites) {
-            await supabase.from("clinic_members").insert({
-              clinic_id: inv.clinic_id,
-              user_id: data.user.id,
-              role: inv.role,
-            });
-            await supabase.from("invites").update({
-              status: "accepted",
-              accepted_at: new Date().toISOString(),
-            }).eq("id", inv.id);
-          }
-          toast.success("Convites aceitos automaticamente!");
-        }
+        await supabase.rpc("accept_pending_invites", {
+          _user_id: data.user.id,
+          _email: email.trim().toLowerCase(),
+        });
       }
       navigate("/");
     }

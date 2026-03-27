@@ -207,7 +207,7 @@ const Usuarios = () => {
   }
 
   return (
-    <AppLayout title="Usuários">
+    <AppLayout title="Colaboradores">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Members list */}
         <Card>
