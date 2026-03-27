@@ -22,10 +22,33 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
     } else {
+      // Check for pending invites and auto-accept
+      if (data.user) {
+        const { data: pendingInvites } = await supabase
+          .from("invites")
+          .select("*")
+          .eq("email", email.trim().toLowerCase())
+          .eq("status", "pending");
+
+        if (pendingInvites && pendingInvites.length > 0) {
+          for (const inv of pendingInvites) {
+            await supabase.from("clinic_members").insert({
+              clinic_id: inv.clinic_id,
+              user_id: data.user.id,
+              role: inv.role,
+            });
+            await supabase.from("invites").update({
+              status: "accepted",
+              accepted_at: new Date().toISOString(),
+            }).eq("id", inv.id);
+          }
+          toast.success("Convites aceitos automaticamente!");
+        }
+      }
       navigate("/");
     }
     setLoading(false);
