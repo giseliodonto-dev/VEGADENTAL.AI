@@ -94,27 +94,12 @@ const Convite = () => {
       return;
     }
 
-    // 2. If auto-confirmed, add to clinic
+    // 2. If auto-confirmed, accept invite via secure RPC
     if (signUpData.user && signUpData.session) {
-      const { error: memberError } = await supabase
-        .from("clinic_members")
-        .insert({
-          clinic_id: invite.clinic_id,
-          user_id: signUpData.user.id,
-          role: invite.role,
-        });
-
-      if (memberError) {
-        toast.error("Erro ao vincular à clínica: " + memberError.message);
-        setSubmitting(false);
-        return;
-      }
-
-      // 3. Mark invite as accepted
-      await supabase
-        .from("invites")
-        .update({ status: "accepted", accepted_at: new Date().toISOString() })
-        .eq("id", invite.id);
+      await supabase.rpc("accept_pending_invites", {
+        _user_id: signUpData.user.id,
+        _email: invite.email,
+      });
 
       toast.success("Conta criada e vinculada à clínica com sucesso!");
       navigate("/");

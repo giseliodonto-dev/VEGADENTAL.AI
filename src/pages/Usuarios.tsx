@@ -198,7 +198,7 @@ const Usuarios = () => {
 
   if (loading) {
     return (
-      <AppLayout title="Usuários">
+      <AppLayout title="Colaboradores">
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -207,7 +207,7 @@ const Usuarios = () => {
   }
 
   return (
-    <AppLayout title="Usuários">
+    <AppLayout title="Colaboradores">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Members list */}
         <Card>
