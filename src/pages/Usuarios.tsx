@@ -13,6 +13,7 @@ import { Users, UserPlus, Crown, Stethoscope, PhoneCall, Loader2, Trash2, Copy, 
 import { toast } from "sonner";
 import { Briefcase, Radio, Shield, Wrench } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -151,7 +152,7 @@ const Usuarios = () => {
         toast.error("Erro ao criar convite: " + error.message);
       }
     } else {
-      const link = `${window.location.origin}/convite/${invite.token}`;
+      const link = `${getPublicAppOrigin()}/convite/${invite.token}`;
       await navigator.clipboard.writeText(link);
       toast.success("Convite criado! Link copiado para a área de transferência.");
       setEmail("");
@@ -161,7 +162,7 @@ const Usuarios = () => {
   }
 
   function copyInviteLink(token: string) {
-    const link = `${window.location.origin}/convite/${token}`;
+    const link = `${getPublicAppOrigin()}/convite/${token}`;
     navigator.clipboard.writeText(link);
     setCopiedToken(token);
     toast.success("Link copiado!");
