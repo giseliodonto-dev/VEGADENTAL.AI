@@ -107,7 +107,7 @@ const AgendaVega = () => {
         .order("time");
       if (filterDentist !== "all") q = q.eq("dentist_user_id", filterDentist);
       const { data } = await q;
-      return (data || []) as Appointment[];.select("user_id, role, profiles(full_name)")
+      return (data || []) as Appointment[];
     },
     enabled: !!clinicId,
   });
