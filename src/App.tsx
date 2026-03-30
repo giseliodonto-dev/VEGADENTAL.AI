@@ -48,37 +48,233 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/gps" element={<ProtectedRoute><VegaGPS /></ProtectedRoute>} />
-          <Route path="/inteligencia" element={<ProtectedRoute><InteligenciaVega /></ProtectedRoute>} />
-          <Route path="/cadastro-paciente" element={<ProtectedRoute><CadastroPaciente /></ProtectedRoute>} />
-          <Route path="/clinicas" element={<ProtectedRoute><Clinicas /></ProtectedRoute>} />
-          <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
-          <Route path="/pacientes" element={<ProtectedRoute><Pacientes /></ProtectedRoute>} />
-          <Route path="/pacientes/:id" element={<ProtectedRoute><PacienteDetalhe /></ProtectedRoute>} />
-          <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-          <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
-          <Route path="/vendas/perguntas-decisao" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
-          <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
-          <Route path="/vendas/follow-up" element={<ProtectedRoute><FollowUpInteligente /></ProtectedRoute>} />
-          <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
-          <Route path="/marketing/conteudo" element={<ProtectedRoute><PlanejamentoConteudo /></ProtectedRoute>} />
-          <Route path="/marketing/leads-origem" element={<ProtectedRoute><LeadsOrigem /></ProtectedRoute>} />
-          <Route path="/marketing/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
-          <Route path="/marketing/sugestoes" element={<ProtectedRoute><SugestoesEstrategicas /></ProtectedRoute>} />
-          <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
-          <Route path="/gestao/agenda" element={<ProtectedRoute><AgendaVega /></ProtectedRoute>} />
-          <Route path="/gestao/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
-          <Route path="/gestao/metas" element={<ProtectedRoute><MetasMensais /></ProtectedRoute>} />
-          <Route path="/gestao/financas" element={<ProtectedRoute><FinancasVega /></ProtectedRoute>} />
-          <Route path="/gestao/equipe" element={<ProtectedRoute><EquipeVega /></ProtectedRoute>} />
-          <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
-          <Route path="/autoridade" element={<ProtectedRoute><Autoridade /></ProtectedRoute>} />
-          <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gps"
+            element={
+              <ProtectedRoute>
+                <VegaGPS />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inteligencia"
+            element={
+              <ProtectedRoute>
+                <InteligenciaVega />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastro-paciente"
+            element={
+              <ProtectedRoute>
+                <CadastroPaciente />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clinicas"
+            element={
+              <ProtectedRoute>
+                <Clinicas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <ProtectedRoute>
+                <Usuarios />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pacientes"
+            element={
+              <ProtectedRoute>
+                <Pacientes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pacientes/:id"
+            element={
+              <ProtectedRoute>
+                <PacienteDetalhe />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leads"
+            element={
+              <ProtectedRoute>
+                <Leads />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendas"
+            element={
+              <ProtectedRoute>
+                <Vendas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendas/perguntas-decisao"
+            element={
+              <ProtectedRoute>
+                <PerguntasDecisao />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendas/funil"
+            element={
+              <ProtectedRoute>
+                <FunilVendas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendas/follow-up"
+            element={
+              <ProtectedRoute>
+                <FollowUpInteligente />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing"
+            element={
+              <ProtectedRoute>
+                <Marketing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/conteudo"
+            element={
+              <ProtectedRoute>
+                <PlanejamentoConteudo />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/leads-origem"
+            element={
+              <ProtectedRoute>
+                <LeadsOrigem />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/campanhas"
+            element={
+              <ProtectedRoute>
+                <Campanhas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketing/sugestoes"
+            element={
+              <ProtectedRoute>
+                <SugestoesEstrategicas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao"
+            element={
+              <ProtectedRoute>
+                <Gestao />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao/agenda"
+            element={
+              <ProtectedRoute>
+                <AgendaVega />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao/hora-clinica"
+            element={
+              <ProtectedRoute>
+                <HoraClinica />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao/metas"
+            element={
+              <ProtectedRoute>
+                <MetasMensais />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao/financas"
+            element={
+              <ProtectedRoute>
+                <FinancasVega />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gestao/equipe"
+            element={
+              <ProtectedRoute>
+                <EquipeVega />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/financeiro"
+            element={
+              <ProtectedRoute>
+                <Financeiro />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/autoridade"
+            element={
+              <ProtectedRoute>
+                <Autoridade />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/configuracoes"
+            element={
+              <ProtectedRoute>
+                <Configuracoes />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
           <Route path="/anamnese/:token" element={<AnamnesePublica />} />
           <Route path="/convite/:token" element={<Convite />} />
-          <Route path="/academy" element={<ProtectedRoute><Academy /></ProtectedRoute>} />
+          <Route
+            path="/academy"
+            element={
+              <ProtectedRoute>
+                <Academy />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -88,3 +284,5 @@ const App = () => (
 );
 
 export default App;
+// Onde você busca anamnese por token público (ex: página /anamnese/:token)
+const { data } = await supabase.from("anamneses").select("*").eq("public_token", token).single();
