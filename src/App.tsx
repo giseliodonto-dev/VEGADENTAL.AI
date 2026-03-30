@@ -284,5 +284,3 @@ const App = () => (
 );
 
 export default App;
-// Onde você busca anamnese por token público (ex: página /anamnese/:token)
-const { data } = await supabase.from("anamneses").select("*").eq("public_token", token).single();
