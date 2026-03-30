@@ -14,27 +14,34 @@ export function useClinic() {
       return;
     }
 
+    setLoading(true);
+
     supabase
       .from("clinic_members")
       .select("clinic_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => {
-        setClinicId(data?.clinic_id ?? null);
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Erro ao buscar clínica do usuário:", error);
+          setClinicId(null);
+        } else {
+          setClinicId(data?.clinic_id ?? null);
+        }
         setLoading(false);
       });
-  }, [user]);
+  }, [user?.id]);
 
   const createClinic = async (clinicName: string) => {
     if (!user) return null;
-
-    const slug = clinicName
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "clinica";
+    const slug =
+      clinicName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "clinica";
 
     const { data: clinic, error: clinicError } = await supabase
       .from("clinics")
