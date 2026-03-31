@@ -649,8 +649,11 @@ export type Database = {
       }
       patients: {
         Row: {
+          birthdate: string | null
           clinic_id: string
+          cpf: string | null
           created_at: string
+          email: string | null
           id: string
           name: string
           origin: string | null
@@ -661,8 +664,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birthdate?: string | null
           clinic_id: string
+          cpf?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name: string
           origin?: string | null
@@ -673,8 +679,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birthdate?: string | null
           clinic_id?: string
+          cpf?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
           origin?: string | null
