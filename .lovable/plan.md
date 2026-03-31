@@ -1,68 +1,47 @@
 
 
-## Plano: Renomear "Usuarios" para "Colaboradores" + Corrigir bug do convite
+## Plano: Adicionar colunas faltantes na tabela patients
 
-### Problema
+### Analise
 
-Quando um colaborador convidado cria conta (via link ou login), o sistema tenta inseri-lo em `clinic_members`, mas a politica RLS so permite insercao por usuarios com cargo `dono`. O insert falha silenciosamente e o colaborador cai na tela "Crie sua Clinica" — que nao deveria aparecer para ele.
+O SQL enviado descreve o schema desejado. Comparando com o banco atual:
 
-### Solucao
+- **Tabelas**: Todas ja existem (profiles, clinics, clinic_members, patients, appointments, anamneses, invites). Nao precisa recriar.
+- **Enum app_role**: Ja inclui os 7 cargos (dono, recepcao, dentista, crm, sdr, admin, protetico).
+- **RLS policies**: As existentes usam funcoes `SECURITY DEFINER` (get_user_clinic_ids, is_clinic_member, has_clinic_role) que evitam recursao infinita. As policies do SQL enviado usam subqueries diretas em clinic_members que **causariam recursao infinita** — nao devem ser aplicadas.
+- **Trigger handle_new_user**: Ja existe como funcao. O trigger precisa ser verificado/recriado.
+- **Colunas faltantes em patients**: `email`, `birthdate`, `cpf` nao existem no banco atual.
 
-**1. Migracao — funcao `accept_pending_invites` (SECURITY DEFINER)**
+### O que fazer
 
-Criar funcao no banco que:
-- Recebe o `user_id` e `email` do usuario logado
-- Busca convites pendentes para aquele email
-- Para cada convite: insere em `clinic_members` e marca convite como `accepted`
-- Executa com privilegios elevados (bypassa RLS)
+**1. Migracao — adicionar colunas em patients**
 
 ```sql
-CREATE OR REPLACE FUNCTION public.accept_pending_invites(_user_id uuid, _email text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  inv RECORD;
-BEGIN
-  FOR inv IN
-    SELECT * FROM invites WHERE email = _email AND status = 'pending'
-  LOOP
-    INSERT INTO clinic_members (clinic_id, user_id, role)
-    VALUES (inv.clinic_id, _user_id, inv.role)
-    ON CONFLICT DO NOTHING;
-
-    UPDATE invites SET status = 'accepted', accepted_at = now()
-    WHERE id = inv.id;
-  END LOOP;
-END;
-$$;
+ALTER TABLE public.patients
+  ADD COLUMN IF NOT EXISTS email text,
+  ADD COLUMN IF NOT EXISTS birthdate date,
+  ADD COLUMN IF NOT EXISTS cpf text;
 ```
 
-**2. Editar `src/pages/Auth.tsx`**
+**2. Migracao — garantir trigger existe**
 
-No login, substituir as queries manuais de insert/update por chamada a `supabase.rpc('accept_pending_invites', { _user_id, _email })`.
+```sql
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
 
-**3. Editar `src/pages/Convite.tsx`**
+### O que NAO fazer
 
-No signup com auto-confirm, tambem usar o RPC em vez de insert direto (para consistencia e para funcionar com RLS).
-
-**4. Renomear "Usuarios" para "Colaboradores"**
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/AppSidebar.tsx` | Label "Usuarios" → "Colaboradores" |
-| `src/pages/Usuarios.tsx` | Titulo `AppLayout title` → "Colaboradores" |
-| Titulo do card "Equipe da Clinica" permanece (ja esta correto) |
+- **Nao recriar tabelas** — todas ja existem com dados
+- **Nao substituir RLS policies** — as atuais usam funcoes SECURITY DEFINER que sao mais seguras e evitam recursao infinita
+- **Nao remover colunas extras** que ja existem (status, origin, treatment_value, responsible_user_id em patients; duration_minutes, estimated_value em appointments, etc.)
 
 ### Arquivos
 
-| Acao | Arquivo |
+| Acao | Detalhe |
 |------|---------|
-| Migracao | Funcao `accept_pending_invites` |
-| Editar | `src/pages/Auth.tsx` — usar RPC |
-| Editar | `src/pages/Convite.tsx` — usar RPC |
-| Editar | `src/components/AppSidebar.tsx` — renomear label |
-| Editar | `src/pages/Usuarios.tsx` — renomear titulo |
+| Migracao | ADD COLUMN email, birthdate, cpf em patients |
+| Migracao | Recriar trigger on_auth_user_created (seguranca) |
 
