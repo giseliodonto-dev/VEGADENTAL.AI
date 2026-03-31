@@ -1,4 +1,4 @@
-const FALLBACK_PUBLISHED_ORIGIN = "https://vegadental-com-br.lovable.app";
+const FALLBACK_PUBLISHED_ORIGIN = "https://vegadental.com.br";
 
 function normalizeOrigin(url: string) {
   return url.replace(/\/+$/, "");
@@ -9,12 +9,10 @@ export function getPublicAppOrigin() {
   if (configuredOrigin) {
     return normalizeOrigin(configuredOrigin);
   }
-
   const currentOrigin = window.location.origin;
   const isPreviewHost =
     window.location.hostname.includes("id-preview--") ||
     window.location.hostname.endsWith(".lovableproject.com");
-
   return isPreviewHost
     ? FALLBACK_PUBLISHED_ORIGIN
     : normalizeOrigin(currentOrigin);
