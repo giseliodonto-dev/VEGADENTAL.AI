@@ -3,10 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Loader2, Zap } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type AuthMode = "login" | "signup";
 
@@ -22,17 +19,11 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
     if (error) {
       toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
     } else {
-      // Auto-accept pending invites via secure RPC
-      if (data.user) {
-        await supabase.rpc("accept_pending_invites", {
-          _user_id: data.user.id,
-          _email: email.trim().toLowerCase(),
-        });
-      }
       navigate("/");
     }
     setLoading(false);
@@ -45,111 +36,88 @@ const Auth = () => {
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+      options: { data: { full_name: fullName } },
     });
 
-    if (signUpError) { toast.error(signUpError.message); setLoading(false); return; }
-    if (signUpData.user && !signUpData.session) {
+    if (signUpError) { 
+      toast.error(signUpError.message); 
+    } else {
       toast.success("Verifique seu e-mail para confirmar o cadastro.");
-      setMode("login"); setLoading(false); return;
-    }
-
-    if (signUpData.user && signUpData.session) {
-      const slug = clinicName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const { data: clinic, error: clinicError } = await supabase
-        .from("clinics").insert({ name: clinicName.trim(), slug: slug || "clinica" }).select("id").single();
-      if (clinicError) { toast.error("Erro ao criar clínica: " + clinicError.message); setLoading(false); return; }
-
-      const { error: memberError } = await supabase
-        .from("clinic_members").insert({ clinic_id: clinic.id, user_id: signUpData.user.id, role: "dono" as const });
-      if (memberError) { toast.error("Erro ao vincular usuário: " + memberError.message); setLoading(false); return; }
-
-      toast.success("Clínica criada com sucesso!");
-      navigate("/");
+      setMode("login");
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel — gradient branding */}
-      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden items-center justify-center"
-        style={{ background: "linear-gradient(135deg, hsl(200 65% 22%), hsl(200 65% 28%) 50%, hsl(42 78% 45% / 0.3))" }}>
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+    <div className="min-h-screen flex font-sans">
+      {/* Lado Esquerdo - Branding Vega */}
+      <div className="hidden lg:flex lg:w-[45%] relative items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #103444, #1a4a5e)" }}>
         <div className="relative z-10 text-center space-y-6 px-12">
-          <img src={vegaLogo} alt="VEGA" className="h-24 w-24 mx-auto animate-glow-pulse" />
-          <h2 className="text-3xl font-bold font-display text-white tracking-tight">
-            VEGA Dental AI
-          </h2>
-          <p className="text-white/70 text-sm max-w-xs mx-auto leading-relaxed">
+          <img src={vegaLogo} alt="VEGA" className="h-24 w-24 mx-auto" />
+          <h2 className="text-3xl font-bold text-white">VEGA Dental AI</h2>
+          <p className="text-white/70 text-sm max-w-xs mx-auto">
             Inteligência estratégica para dentistas que pensam como CEO.
           </p>
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/60">
-            <Zap className="h-3 w-3" />
-            Gestão · Vendas · Marketing · Autoridade
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs text-white/60">
+            <Zap className="h-3 w-3" /> Gestão · Vendas · Marketing · Autoridade
           </div>
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      {/* Lado Direito - Formulário Limpo */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <div className="w-full max-w-md space-y-8">
-          {/* Mobile logo */}
-          <div className="text-center space-y-3 lg:hidden animate-fade-up" style={{ opacity: 0, animationFillMode: "forwards" }}>
-            <img src={vegaLogo} alt="VEGA" className="h-16 w-16 object-contain mx-auto animate-glow-pulse" />
-            <h1 className="text-2xl font-bold font-display text-foreground tracking-tight">VEGA Dental AI</h1>
-          </div>
-
-          {/* Desktop heading */}
-          <div className="hidden lg:block animate-fade-up" style={{ opacity: 0, animationFillMode: "forwards" }}>
-            <h1 className="text-2xl font-bold font-display text-foreground tracking-tight">
+          <div className="text-center lg:text-left">
+            <h1 className="text-2xl font-bold text-slate-900">
               {mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mode === "login" ? "Entre na sua conta para continuar" : "Cadastre-se e comece a usar"}
+            <p className="text-sm text-slate-500 mt-1">
+              {mode === "login" ? "Entre para gerir sua clínica" : "Cadastre sua clínica agora"}
             </p>
           </div>
 
-          {/* Mobile subtitle */}
-          <p className="text-sm text-muted-foreground text-center lg:hidden">
-            {mode === "login" ? "Entre na sua conta para continuar" : "Crie sua conta e cadastre sua clínica"}
-          </p>
-
-          <div className="animate-fade-up card-premium p-8" style={{ opacity: 0, animationDelay: "100ms", animationFillMode: "forwards" }}>
-            <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-5">
-              {mode === "signup" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Seu nome completo</Label>
-                    <Input id="fullName" type="text" placeholder="Dr. João Silva" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="h-11" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clinicName" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome da Clínica</Label>
-                    <Input id="clinicName" type="text" placeholder="Odonto Excellence" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required className="h-11" />
-                  </div>
-                </>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">E-mail</Label>
-                <Input id="email" type="email" placeholder="voce@clinica.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Senha</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-11" />
-              </div>
-              <Button type="submit" className="w-full h-11 gap-2 btn-press" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                  <>{mode === "login" ? "Entrar" : "Criar Conta e Clínica"}<ArrowRight className="h-4 w-4" /></>
-                )}
-              </Button>
-            </form>
-            <div className="mt-6 text-center">
-              <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
-              </button>
+          <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-4">
+            {mode === "signup" && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Seu nome completo</label>
+                  <input type="text" placeholder="Dr. João Silva" value={fullName} onChange={(e) => setFullName(e.target.value)} required 
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#103444]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Nome da Clínica</label>
+                  <input type="text" placeholder="Odonto Excellence" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required 
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#103444]" />
+                </div>
+              </>
+            )}
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase">E-mail</label>
+              <input type="email" placeholder="voce@clinica.com" value={email} onChange={(e) => setEmail(e.target.value)} required 
+                className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#103444]" />
             </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase">Senha</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} 
+                className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#103444]" />
+            </div>
+
+            <button type="submit" disabled={loading}
+              className="w-full h-12 bg-[#103444] text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1a4a5e] transition-all disabled:opacity-50">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                <>{mode === "login" ? "Entrar" : "Criar Conta"}<ArrowRight className="h-4 w-4" /></>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center">
+            <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              className="text-sm text-slate-500 hover:text-[#103444] font-medium transition-colors">
+              {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
+            </button>
           </div>
         </div>
       </div>
