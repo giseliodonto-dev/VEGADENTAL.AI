@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
-import CadastroPaciente from "./pages/CadastroPaciente";
 import Home from "./pages/Home";
 import Vendas from "./pages/Vendas";
 import Marketing from "./pages/Marketing";
@@ -69,14 +68,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <InteligenciaVega />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastro-paciente"
-            element={
-              <ProtectedRoute>
-                <CadastroPaciente />
               </ProtectedRoute>
             }
           />
@@ -275,7 +266,6 @@ const App = () => (
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
