@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Pacientes from "./pages/Pacientes";
-import Equipe from "./pages/Equipe";
+import Equipe from "./pages/gestao/EquipeVega";
 import Vendas from "./pages/Vendas";
 import Auth from "./pages/Auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
