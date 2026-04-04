@@ -12,7 +12,7 @@ import Gestao from "./pages/Gestao";
 import Autoridade from "./pages/Autoridade";
 import Configuracoes from "./pages/Configuracoes";
 import Clinicas from "./pages/Clinicas";
-import Usuarios from "./pages/Usuarios";
+import Equipe from "./pages/Equipe"; 
 import Pacientes from "./pages/Pacientes";
 import PacienteDetalhe from "./pages/PacienteDetalhe";
 import Leads from "./pages/Leads";
@@ -22,7 +22,6 @@ import FunilVendas from "./pages/vendas/FunilVendas";
 import MetasMensais from "./pages/gestao/MetasMensais";
 import AgendaVega from "./pages/gestao/AgendaVega";
 import FinancasVega from "./pages/gestao/FinancasVega";
-import EquipeVega from "./pages/gestao/EquipeVega";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
 import VegaGPS from "./pages/VegaGPS";
 import InteligenciaVega from "./pages/InteligenciaVega";
@@ -76,14 +75,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Clinicas />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/usuarios"
-            element={
-              <ProtectedRoute>
-                <Usuarios />
               </ProtectedRoute>
             }
           />
@@ -227,7 +218,7 @@ const App = () => (
             path="/gestao/equipe"
             element={
               <ProtectedRoute>
-                <EquipeVega />
+                <Equipe />
               </ProtectedRoute>
             }
           />
