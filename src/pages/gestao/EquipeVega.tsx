@@ -1,142 +1,127 @@
-import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
+import { UserPlus, Mail, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Users, Plus, UserCog, Trash2 } from "lucide-react";
 
-const EquipeVega = () => {
+export default function Equipe() {
   const { clinicId } = useClinic();
-  const queryClient = useQueryClient();
-  const [addOpen, setAddOpen] = useState(false);
-  const [formEmail, setFormEmail] = useState("");
-  const [formRole, setFormRole] = useState("dentista");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Busca quem está autorizado
-  const { data: members = [] } = useQuery({
-    queryKey: ["equipe-members", clinicId],
+  // 1. Busca quem já faz parte da clínica (Sem travar no cache!)
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ["clinic-members", clinicId],
     queryFn: async () => {
-      if (!clinicId) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("clinic_members")
-        .select("id, role, email_autorizado")
+        .select("*")
         .eq("clinic_id", clinicId);
-      return data || [];
+      if (error) throw error;
+      return data;
     },
     enabled: !!clinicId,
   });
 
-  // LIBERAR ACESSO (O MÉTODO FÁCIL)
-  const addMemberMut = useMutation({
-    mutationFn: async () => {
-      if (!clinicId) throw new Error("Sem clínica vinculada");
-      const { error } = await supabase.from("clinic_members").insert({
-        clinic_id: clinicId,
-        role: formRole,
-        email_autorizado: formEmail.trim().toLowerCase(),
+  // 2. Função de Gerar Convite (A única que importa!)
+  const handleInvite = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: { email, clinicId, role: 'dentist' }
       });
       if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("E-mail autorizado! O colaborador já pode criar a conta dele.");
-      queryClient.invalidateQueries({ queryKey: ["equipe-members"] });
-      setAddOpen(false);
-      setFormEmail("");
-    },
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-  // REMOVER ACESSO
-  const removeMember = async (id: string) => {
-    const { error } = await supabase.from("clinic_members").delete().eq("id", id);
-    if (error) toast.error("Erro ao remover");
-    else {
-      toast.success("Acesso removido");
-      queryClient.invalidateQueries({ queryKey: ["equipe-members"] });
+      toast.success("Convite enviado com sucesso!");
+      setEmail("");
+    } catch (e: any) {
+      toast.error("Erro ao enviar: " + e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AppLayout title="Equipe" subtitle="Gerencie quem acessa sua clínica">
-      <div className="max-w-4xl space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Users className="h-5 w-5" /> Colaboradores Autorizados
-          </h2>
-          <Button onClick={() => setAddOpen(true)} className="gap-2 bg-[#103444]">
-            <Plus className="h-4 w-4" /> Liberar Novo Acesso
-          </Button>
+    <AppLayout title="Minha Equipe" subtitle="Gerencie acessos de dentistas e secretárias">
+      <div className="max-w-5xl mx-auto space-y-6">
+        
+        {/* TOPO COM BOTÃO DE CONVITE */}
+        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+          <div>
+            <h3 className="text-lg font-bold text-[#103444]">Gerenciar Acessos</h3>
+            <p className="text-sm text-slate-500">Adicione novos colaboradores à sua clínica.</p>
+          </div>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-[#103444] hover:bg-[#0a232d] gap-2">
+                <UserPlus className="h-5 w-5" /> Convidar Colaborador
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enviar Convite de Acesso</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>E-mail do Colaborador</Label>
+                  <Input 
+                    type="email" 
+                    placeholder="exemplo@email.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  className="w-full bg-[#103444]" 
+                  onClick={handleInvite}
+                  disabled={!email || loading}
+                >
+                  {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Gerar Link de Acesso"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <div className="grid gap-3">
-          {members.map((m: any) => (
-            <Card key={m.id}>
-              <CardContent className="py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback className="bg-slate-100 text-slate-600 uppercase">
-                      {m.role[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm">{m.email_autorizado || "Membro Ativo"}</p>
-                    <p className="text-xs text-muted-foreground uppercase font-bold">{m.role}</p>
+        {/* LISTA DE MEMBROS ATUAIS */}
+        <div className="grid gap-4">
+          <h4 className="font-semibold text-slate-700 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-green-600" /> Colaboradores Ativos
+          </h4>
+          
+          {isLoading ? (
+            <p className="text-slate-400 text-center py-10">Buscando equipe...</p>
+          ) : members.length > 0 ? (
+            members.map((m: any) => (
+              <Card key={m.id}>
+                <CardContent className="py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-slate-100 p-2 rounded-full"><Mail className="h-5 w-5 text-slate-400" /></div>
+                    <p className="font-medium text-slate-800">{m.user_email || "E-mail não informado"}</p>
                   </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => removeMember(m.id)}>
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-
-          {members.length === 0 && (
-            <div className="text-center py-12 border-2 border-dashed rounded-xl text-muted-foreground">
-              <UserCog className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p>Nenhum acesso liberado. Comece clicando no botão acima.</p>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase font-bold">
+                    {m.role}
+                  </span>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <p className="text-slate-400">Nenhum colaborador cadastrado ainda.</p>
             </div>
           )}
         </div>
-
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Liberar Acesso</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>E-mail do Colaborador</Label>
-                <Input placeholder="exemplo@clinica.com" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Cargo</Label>
-                <Select value={formRole} onValueChange={setFormRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dentista">Dentista</SelectItem>
-                    <SelectItem value="sdr">SDR / Comercial</SelectItem>
-                    <SelectItem value="recepcao">Recepção</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
-              <Button onClick={() => addMemberMut.mutate()} disabled={!formEmail || addMemberMut.isPending} className="bg-[#103444]">
-                {addMemberMut.isPending ? "Salvando..." : "Autorizar Agora"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </AppLayout>
   );
-};
+}
 
-export default EquipeVega;
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="text-sm font-medium text-slate-700">{children}</label>;
+}
