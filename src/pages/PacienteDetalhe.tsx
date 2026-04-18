@@ -517,6 +517,121 @@ export default function PacienteDetalhe() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="plano">
+            <Card className="bg-white border-amber-400/30">
+              <CardContent className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#103444] uppercase tracking-wider">Procedimentos do Plano</h3>
+                    <p className="text-xs text-[#103444]/60 mt-1">Selecione da biblioteca, vincule a dentes e gere o contrato.</p>
+                  </div>
+                  <Button onClick={() => setAddOpen(true)} className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2">
+                    <Plus className="h-4 w-4" /> Adicionar Procedimento
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-amber-400/30 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead className="text-[#103444] font-semibold">Procedimento</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Dente / Região</TableHead>
+                        <TableHead className="text-[#103444] font-semibold text-right">Valor</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Status</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Pagamento</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {treatments.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center text-[#103444]/50 py-8">Nenhum procedimento ainda.</TableCell></TableRow>
+                      )}
+                      {treatments.map((t: any) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-medium text-[#103444]">{t.procedure_type}</TableCell>
+                          <TableCell className="text-[#103444]/80">{[t.tooth_number, t.region].filter(Boolean).join(" · ") || "—"}</TableCell>
+                          <TableCell className="text-right font-semibold text-[#103444]">{fmtBRL(Number(t.value))}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[#103444] border-[#103444]/30">{STATUS_LABELS[t.status] || t.status}</Badge></TableCell>
+                          <TableCell><Badge className={`${PAY_STATUS_COLORS[t.payment_status] || ""} border`}>{t.payment_status}</Badge></TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" onClick={() => deleteTreatment.mutate(t.id)} className="text-red-600 hover:bg-red-50 h-8 w-8 p-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {planned.length > 0 && (
+                  <div className="rounded-xl border-2 border-amber-400/50 bg-gradient-to-br from-slate-50 to-amber-50/20 p-6 space-y-5">
+                    <h4 className="text-xs font-bold text-[#103444] uppercase tracking-wider">Negociação</h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-[#103444]">Desconto (%)</Label>
+                        <Input type="number" min="0" max="100" value={discountPct} onChange={e => setDiscountPct(Number(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-[#103444]">Forma de Pagamento</Label>
+                        <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pix">Pix</SelectItem>
+                            <SelectItem value="cartao">Cartão de Crédito</SelectItem>
+                            <SelectItem value="parcelado">Parcelado</SelectItem>
+                            <SelectItem value="boleto">Boleto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {paymentMethod === "parcelado" && (
+                        <div>
+                          <Label className="text-[#103444]">Nº de Parcelas</Label>
+                          <Input type="number" min="2" max="36" value={installmentsN} onChange={e => setInstallmentsN(Math.max(2, Number(e.target.value) || 2))} />
+                        </div>
+                      )}
+                    </div>
+
+                    {installmentSchedule.length > 0 && (
+                      <div className="rounded-lg border border-[#103444]/10 bg-white p-3">
+                        <div className="text-xs font-semibold text-[#103444]/70 mb-2">Grade de Parcelas</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                          {installmentSchedule.map(p => (
+                            <div key={p.n} className="flex justify-between bg-slate-50 px-2 py-1 rounded">
+                              <span className="text-[#103444]/70">{p.n}ª · {p.date}</span>
+                              <span className="font-semibold text-[#103444]">{fmtBRL(p.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-end justify-between gap-4 pt-2 border-t border-amber-400/30">
+                      <div className="space-y-1 text-sm text-[#103444]/70">
+                        <div className="flex justify-between gap-8"><span>Subtotal:</span><span className="font-medium">{fmtBRL(subtotal)}</span></div>
+                        <div className="flex justify-between gap-8"><span>Desconto ({discountPct}%):</span><span className="font-medium text-red-600">- {fmtBRL(discountValue)}</span></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-[#103444]/60 font-semibold">Valor Final</div>
+                        <div className="text-3xl font-bold text-[#103444] border-b-2 border-amber-500 pb-1">{fmtBRL(finalValue)}</div>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => generateBudget.mutate()}
+                      disabled={generateBudget.isPending}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold gap-2 h-12 shadow-md"
+                    >
+                      {generateBudget.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-5 w-5" />}
+                      Gerar Aprovação do Plano
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
