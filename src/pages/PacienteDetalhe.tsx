@@ -640,8 +640,43 @@ export default function PacienteDetalhe() {
                       className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold gap-2 h-12 shadow-md"
                     >
                       {generateBudget.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-5 w-5" />}
-                      Gerar Aprovação do Plano
+                      {lastBudgetToken ? "Gerar Novo Orçamento" : "Gerar Aprovação do Plano"}
                     </Button>
+
+                    {budgetUrl && budgetWhatsAppUrl && (
+                      <div className="rounded-xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 to-white p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <FileSignature className="h-5 w-5 text-amber-600" />
+                          <span className="text-sm font-bold text-[#103444]">Orçamento gerado — envie ao paciente</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input value={budgetUrl} readOnly className="text-xs bg-white" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(budgetUrl);
+                              toast.success("Link copiado");
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white h-11">
+                            <a href={budgetWhatsAppUrl} target="_blank" rel="noreferrer">
+                              <WhatsAppIcon size={20} /> Enviar Orçamento via WhatsApp
+                            </a>
+                          </Button>
+                        </div>
+                        {!formatWhatsAppPhone(patient?.phone) && (
+                          <p className="text-[11px] text-amber-700 italic">
+                            ⚠️ Paciente sem telefone cadastrado — o WhatsApp abrirá para você escolher o contato.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
