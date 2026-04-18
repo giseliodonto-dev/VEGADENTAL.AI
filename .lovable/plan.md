@@ -1,30 +1,37 @@
 
 
-A query no `EquipeVega.tsx` está quebrando porque tenta um join `profiles:user_id(...)` que depende de uma foreign key explícita entre `clinic_members.user_id` e `profiles.id` — que não existe no schema (PostgREST retorna `PGRST200`). Por isso a lista de membros aparece vazia/erro, mas os convites antigos continuam lá no banco.
+O usuário está confuso porque existem **duas páginas** parecidas: "Equipe" e "Usuários" (ou similar). Preciso confirmar antes de planejar.
 
-**Não, não foram removidos.** A função `send-invite` reaproveita convites `pending` antigos (mesmo email + clínica) em vez de criar novos. Quem foi convidado antes ainda tem link válido.
+Vou verificar no AppSidebar quais rotas existem.
 
-## Plano
+Pelas rotas conhecidas: `/gestao/equipe` (EquipeVega.tsx) e `/configuracoes` (Configuracoes.tsx) — provavelmente Configurações tem aba de usuários/membros também. Ou pode ser `/clinicas`.
 
-### 1. Confirmar convites existentes
-Vou rodar `SELECT email, role, status, created_at FROM invites WHERE clinic_id = '015e4c57-...'` para listar tudo que existe (pending, accepted, cancelled) e te mostrar.
+## Plano de investigação + consolidação
 
-### 2. Corrigir o erro 400 da lista de membros
-O join PostgREST falha. Trocar por duas queries em sequência:
-- `clinic_members` (id, role, user_id) por clinic_id
-- `profiles` (id, full_name, email) com `.in('id', userIds)`
-- Mesclar no client.
+### 1. Mapear duplicação
+Vou abrir:
+- `src/components/AppSidebar.tsx` — ver itens de menu
+- `src/pages/Configuracoes.tsx` — ver se tem gestão de membros
+- `src/pages/Clinicas.tsx` — ver se gerencia usuários
 
-Arquivo: `src/pages/gestao/EquipeVega.tsx` — apenas a query `clinic-members`.
+### 2. Decidir fonte única
+Manter **apenas `/gestao/equipe`** como tela única de gestão de colaboradores (convites + membros ativos + roles). Remover qualquer duplicação em Configurações ou Clínicas.
 
-### 3. (Opcional) Adicionar botão "Limpar convites antigos"
-Se quiser, adiciono ação para cancelar em massa convites `pending` com mais de X dias. Me confirma se quer isso.
+### 3. Ações concretas
+- Remover seção/aba duplicada da página redundante
+- Adicionar link/atalho da página antiga apontando para `/gestao/equipe`
+- Garantir que o sidebar tenha **apenas um item** "Equipe" (ou "Colaboradores")
 
-### Arquivos
+### 4. Cancelar convites pendentes (pendência anterior)
+Executar `UPDATE invites SET status='cancelled' WHERE status='pending'` via ferramenta de insert/migração para limpar a lista atual.
+
+### Arquivos prováveis
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/gestao/EquipeVega.tsx` | Trocar join quebrado por duas queries + merge client-side |
+| `src/components/AppSidebar.tsx` | Remover item duplicado de menu |
+| `src/pages/Configuracoes.tsx` ou `Clinicas.tsx` | Remover aba/seção de membros, deixar só link para /gestao/equipe |
+| Banco | UPDATE invites cancelando pendentes |
 
-Sem migração — schema correto, só código cliente.
+Antes de implementar, preciso confirmar **qual** é a outra página que você está chamando de "Usuários" — pode ser Configurações, Clínicas, ou outra. Vou abrir os arquivos do sidebar para identificar com certeza assim que aprovar.
 
