@@ -634,6 +634,59 @@ export default function PacienteDetalhe() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#103444]">Adicionar Procedimento ao Plano</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-[#103444]">Procedimento</Label>
+              <ProcedureSelector
+                value={newItem.procedure_type}
+                onSelect={(p) => setNewItem(s => ({ ...s, procedure_type: p.name, value: p.default_value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[#103444]">Dente</Label>
+                {markedTeeth.length > 0 ? (
+                  <Select value={newItem.tooth_number} onValueChange={v => setNewItem(s => ({ ...s, tooth_number: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {markedTeeth.map(n => (
+                        <SelectItem key={n} value={n}>{n} — {TOOTH_STATES[teeth[n]].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
+                )}
+              </div>
+              <div>
+                <Label className="text-[#103444]">Região (opcional)</Label>
+                <Input value={newItem.region} onChange={e => setNewItem(s => ({ ...s, region: e.target.value }))} placeholder="Ex: superior direito" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[#103444]">Valor (R$)</Label>
+              <Input type="number" step="0.01" value={newItem.value} onChange={e => setNewItem(s => ({ ...s, value: Number(e.target.value) || 0 }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addTreatment.mutate()}
+              disabled={addTreatment.isPending || !newItem.procedure_type}
+              className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60"
+            >
+              {addTreatment.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
