@@ -17,7 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
+import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído" };
@@ -263,6 +266,7 @@ export default function PacienteDetalhe() {
   const [discountPct, setDiscountPct] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
   const [installmentsN, setInstallmentsN] = useState(2);
+  const [lastBudgetToken, setLastBudgetToken] = useState<string | null>(null);
 
   const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento");
   const subtotal = planned.reduce((s: number, t: any) => s + Number(t.value || 0), 0);
@@ -313,11 +317,22 @@ export default function PacienteDetalhe() {
       return budget;
     },
     onSuccess: (budget: any) => {
+      setLastBudgetToken(budget.public_token);
       toast.success("Plano aprovado! Abrindo contrato...");
       window.open(`/orcamento/${budget.public_token}`, "_blank");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
+  const budgetUrl = lastBudgetToken
+    ? `${getPublicAppOrigin()}/orcamento/${lastBudgetToken}`
+    : null;
+  const budgetWhatsAppUrl = budgetUrl
+    ? buildWhatsAppUrl(
+        patient?.phone,
+        `Olá${patient?.name ? `, ${patient.name.split(" ")[0]}` : ""}! Segue o seu orçamento de tratamento odontológico no valor de ${fmtBRL(finalValue)}. Acesse e assine pelo link: ${budgetUrl}`,
+      )
+    : null;
 
   if (isLoading) {
     return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
@@ -625,8 +640,43 @@ export default function PacienteDetalhe() {
                       className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold gap-2 h-12 shadow-md"
                     >
                       {generateBudget.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-5 w-5" />}
-                      Gerar Aprovação do Plano
+                      {lastBudgetToken ? "Gerar Novo Orçamento" : "Gerar Aprovação do Plano"}
                     </Button>
+
+                    {budgetUrl && budgetWhatsAppUrl && (
+                      <div className="rounded-xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 to-white p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <FileSignature className="h-5 w-5 text-amber-600" />
+                          <span className="text-sm font-bold text-[#103444]">Orçamento gerado — envie ao paciente</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input value={budgetUrl} readOnly className="text-xs bg-white" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(budgetUrl);
+                              toast.success("Link copiado");
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white h-11">
+                            <a href={budgetWhatsAppUrl} target="_blank" rel="noreferrer">
+                              <WhatsAppIcon size={20} /> Enviar Orçamento via WhatsApp
+                            </a>
+                          </Button>
+                        </div>
+                        {!formatWhatsAppPhone(patient?.phone) && (
+                          <p className="text-[11px] text-amber-700 italic">
+                            ⚠️ Paciente sem telefone cadastrado — o WhatsApp abrirá para você escolher o contato.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

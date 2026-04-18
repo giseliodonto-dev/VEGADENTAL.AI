@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { ChevronLeft, ChevronRight, CalendarCheck, DollarSign, AlertTriangle, Clock, Plus, User } from "lucide-react";
+import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
 const DAYS_COUNT = 6;
@@ -33,7 +35,7 @@ type Appointment = {
   notes: string | null;
   patient_id: string | null;
   dentist_user_id: string | null;
-  patient?: { name: string } | null;
+  patient?: { name: string; phone: string | null } | null;
 };
 
 type Dentist = { id: string; name: string; role: string };
@@ -67,6 +69,14 @@ function getDentistInitials(dentistId: string | null, dentists: Dentist[]) {
   return d.name.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase();
 }
 
+function buildConfirmationMessage(apt: Appointment) {
+  const firstName = apt.patient?.name?.split(" ")[0] ?? "";
+  const dateLabel = format(new Date(apt.date + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR });
+  const timeLabel = apt.time.substring(0, 5);
+  const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
+  return `${greeting} Tudo bem? Passando para confirmar sua consulta na ${dateLabel} às ${timeLabel}. Podemos contar com sua presença? 😊`;
+}
+
 const AgendaVega = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
@@ -98,7 +108,7 @@ const AgendaVega = () => {
       if (!clinicId) return [];
       let q = supabase
         .from("appointments")
-        .select("*, patient:patients(name)")
+        .select("*, patient:patients(name, phone)")
         .eq("clinic_id", clinicId)
         .gte("date", format(weekStart, "yyyy-MM-dd"))
         .lte("date", format(weekEnd, "yyyy-MM-dd"))
@@ -335,7 +345,19 @@ const AgendaVega = () => {
                                         {getDentistInitials(apt.dentist_user_id, dentists)}
                                       </span>
                                     )}
-                                    <p className="font-medium truncate text-[11px]">{apt.patient?.name || "—"}</p>
+                                    <p className="font-medium truncate text-[11px] flex-1">{apt.patient?.name || "—"}</p>
+                                    {formatWhatsAppPhone(apt.patient?.phone) && (
+                                      <a
+                                        href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        title="Confirmar consulta via WhatsApp"
+                                        className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                                      >
+                                        <WhatsAppIcon size={14} />
+                                      </a>
+                                    )}
                                   </div>
                                   <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
                                 </div>
@@ -403,6 +425,18 @@ const AgendaVega = () => {
                           <Badge variant="outline" className={`text-[10px] ${STATUS_CONFIG[apt.status]?.color || ""}`}>
                             {STATUS_CONFIG[apt.status]?.label || apt.status}
                           </Badge>
+                          {formatWhatsAppPhone(apt.patient?.phone) && (
+                            <a
+                              href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Confirmar via WhatsApp"
+                              className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                            >
+                              <WhatsAppIcon size={22} />
+                            </a>
+                          )}
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` })}>
@@ -520,6 +554,20 @@ const AgendaVega = () => {
                   {(selectedAppointment.estimated_value ?? 0) > 0 && <p className="text-sm">Valor: R$ {selectedAppointment.estimated_value?.toLocaleString("pt-BR")}</p>}
                   {selectedAppointment.notes && <p className="text-xs text-muted-foreground">{selectedAppointment.notes}</p>}
                 </div>
+                {formatWhatsAppPhone(selectedAppointment.patient?.phone) && (
+                  <Button asChild className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
+                    <a
+                      href={buildWhatsAppUrl(
+                        selectedAppointment.patient?.phone,
+                        buildConfirmationMessage(selectedAppointment),
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <WhatsAppIcon size={20} /> Confirmar via WhatsApp
+                    </a>
+                  </Button>
+                )}
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">

@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -59,6 +61,21 @@ const ROLE_LABEL: Record<AppRole, string> = {
 export default function Equipe() {
   const { clinicId } = useClinic();
   const qc = useQueryClient();
+
+  const { data: clinic } = useQuery({
+    queryKey: ["clinic-name", clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clinics")
+        .select("name")
+        .eq("id", clinicId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId,
+  });
+  const clinicName = clinic?.name ?? "nossa clínica";
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("dentista");
@@ -157,9 +174,10 @@ export default function Equipe() {
   };
 
   const whatsappUrl = (link: string) =>
-    `https://wa.me/?text=${encodeURIComponent(
-      `Você foi convidado(a) para acessar a clínica no VEGA Dental. Clique para entrar: ${link}`,
-    )}`;
+    buildWhatsAppUrl(
+      null,
+      `Bem-vindo(a) à equipe da ${clinicName}! Aqui está o seu link de acesso ao Sistema VEGA: ${link}`,
+    );
 
   const cancelInvite = async (id: string) => {
     const { error } = await supabase
@@ -265,14 +283,13 @@ export default function Equipe() {
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button asChild className="flex-1 gap-2">
+                    <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
                       <a
                         href={whatsappUrl(generatedLink)}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <MessageCircle className="h-4 w-4" /> Enviar via
-                        WhatsApp
+                        <WhatsAppIcon size={20} /> Enviar via WhatsApp
                       </a>
                     </Button>
                     <Button variant="outline" onClick={closeDialog}>
@@ -322,13 +339,13 @@ export default function Equipe() {
                     >
                       <Copy className="h-4 w-4 mr-1" /> Copiar link
                     </Button>
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
                       <a
                         href={whatsappUrl(linkFor(inv.token))}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                        <WhatsAppIcon size={16} /> WhatsApp
                       </a>
                     </Button>
                     <Button
