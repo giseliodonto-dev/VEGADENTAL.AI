@@ -12,8 +12,20 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature } from "lucide-react";
+
+const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído" };
+const PAY_STATUS_COLORS: Record<string, string> = {
+  pendente: "bg-amber-100 text-amber-800 border-amber-300",
+  parcial: "bg-blue-100 text-blue-800 border-blue-300",
+  pago: "bg-emerald-100 text-emerald-800 border-emerald-300",
+};
 
 const TOOTH_STATES = {
   higido: { label: "Hígido", color: "bg-white border-[#103444]/30 text-[#103444]" },
@@ -175,9 +187,6 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  if (isLoading) {
-    return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
-  }
 
   const Tooth = ({ n }: { n: number }) => {
     const st = teeth[n] || "higido";
@@ -192,6 +201,127 @@ export default function PacienteDetalhe() {
       </button>
     );
   };
+
+  // ===== PLANO DE TRATAMENTO =====
+  const { data: treatments = [] } = useQuery({
+    queryKey: ["treatments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [newItem, setNewItem] = useState<{ procedure_type: string; tooth_number: string; region: string; value: number }>({
+    procedure_type: "", tooth_number: "", region: "", value: 0,
+  });
+  const markedTeeth = Object.keys(teeth);
+
+  const addTreatment = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada");
+      if (!newItem.procedure_type) throw new Error("Selecione um procedimento");
+      const { error } = await supabase.from("treatments").insert({
+        clinic_id: clinicId,
+        patient_id: id!,
+        procedure_type: newItem.procedure_type,
+        tooth_number: newItem.tooth_number || null,
+        region: newItem.region || null,
+        value: newItem.value || 0,
+        status: "planejado",
+        payment_status: "pendente",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Procedimento adicionado");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+      setAddOpen(false);
+      setNewItem({ procedure_type: "", tooth_number: "", region: "", value: 0 });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteTreatment = useMutation({
+    mutationFn: async (tid: string) => {
+      const { error } = await supabase.from("treatments").delete().eq("id", tid);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Procedimento removido");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [discountPct, setDiscountPct] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
+  const [installmentsN, setInstallmentsN] = useState(2);
+
+  const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento");
+  const subtotal = planned.reduce((s: number, t: any) => s + Number(t.value || 0), 0);
+  const discountValue = subtotal * (discountPct / 100);
+  const finalValue = Math.max(0, subtotal - discountValue);
+
+  const installmentSchedule = (() => {
+    if (paymentMethod !== "parcelado" || installmentsN < 1) return [];
+    const per = finalValue / installmentsN;
+    const today = new Date();
+    return Array.from({ length: installmentsN }, (_, i) => {
+      const d = new Date(today);
+      d.setMonth(d.getMonth() + i);
+      return { n: i + 1, date: d.toLocaleDateString("pt-BR"), value: per };
+    });
+  })();
+
+  const generateBudget = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada");
+      if (planned.length === 0) throw new Error("Adicione ao menos um procedimento");
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+
+      const { data: budget, error: bErr } = await supabase.from("budgets").insert({
+        clinic_id: clinicId,
+        patient_id: id!,
+        total_value: subtotal,
+        discount: discountValue,
+        final_value: finalValue,
+        status: "pendente",
+        valid_until: validUntil.toISOString().slice(0, 10),
+        notes: `Forma de pagamento: ${paymentMethod}${paymentMethod === "parcelado" ? ` em ${installmentsN}x` : ""}`,
+      }).select("id, public_token").single();
+      if (bErr) throw bErr;
+
+      const items = planned.map((t: any) => ({
+        budget_id: budget.id,
+        treatment_id: t.id,
+        procedure_name: t.procedure_type,
+        tooth_number: t.tooth_number,
+        region: t.region,
+        value: Number(t.value || 0),
+      }));
+      const { error: iErr } = await supabase.from("budget_items").insert(items);
+      if (iErr) throw iErr;
+
+      return budget;
+    },
+    onSuccess: (budget: any) => {
+      toast.success("Plano aprovado! Abrindo contrato...");
+      window.open(`/orcamento/${budget.public_token}`, "_blank");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  if (isLoading) {
+    return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
+  }
 
   return (
     <AppLayout title={patient?.name || "Paciente"} subtitle="Ficha completa do paciente">
@@ -210,6 +340,9 @@ export default function PacienteDetalhe() {
             </TabsTrigger>
             <TabsTrigger value="odonto" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <Smile className="h-4 w-4" /> Odontograma
+            </TabsTrigger>
+            <TabsTrigger value="plano" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <ClipboardList className="h-4 w-4" /> Plano de Tratamento
             </TabsTrigger>
           </TabsList>
 
@@ -384,8 +517,176 @@ export default function PacienteDetalhe() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="plano">
+            <Card className="bg-white border-amber-400/30">
+              <CardContent className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#103444] uppercase tracking-wider">Procedimentos do Plano</h3>
+                    <p className="text-xs text-[#103444]/60 mt-1">Selecione da biblioteca, vincule a dentes e gere o contrato.</p>
+                  </div>
+                  <Button onClick={() => setAddOpen(true)} className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2">
+                    <Plus className="h-4 w-4" /> Adicionar Procedimento
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-amber-400/30 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead className="text-[#103444] font-semibold">Procedimento</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Dente / Região</TableHead>
+                        <TableHead className="text-[#103444] font-semibold text-right">Valor</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Status</TableHead>
+                        <TableHead className="text-[#103444] font-semibold">Pagamento</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {treatments.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center text-[#103444]/50 py-8">Nenhum procedimento ainda.</TableCell></TableRow>
+                      )}
+                      {treatments.map((t: any) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-medium text-[#103444]">{t.procedure_type}</TableCell>
+                          <TableCell className="text-[#103444]/80">{[t.tooth_number, t.region].filter(Boolean).join(" · ") || "—"}</TableCell>
+                          <TableCell className="text-right font-semibold text-[#103444]">{fmtBRL(Number(t.value))}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[#103444] border-[#103444]/30">{STATUS_LABELS[t.status] || t.status}</Badge></TableCell>
+                          <TableCell><Badge className={`${PAY_STATUS_COLORS[t.payment_status] || ""} border`}>{t.payment_status}</Badge></TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="ghost" onClick={() => deleteTreatment.mutate(t.id)} className="text-red-600 hover:bg-red-50 h-8 w-8 p-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {planned.length > 0 && (
+                  <div className="rounded-xl border-2 border-amber-400/50 bg-gradient-to-br from-slate-50 to-amber-50/20 p-6 space-y-5">
+                    <h4 className="text-xs font-bold text-[#103444] uppercase tracking-wider">Negociação</h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-[#103444]">Desconto (%)</Label>
+                        <Input type="number" min="0" max="100" value={discountPct} onChange={e => setDiscountPct(Number(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-[#103444]">Forma de Pagamento</Label>
+                        <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pix">Pix</SelectItem>
+                            <SelectItem value="cartao">Cartão de Crédito</SelectItem>
+                            <SelectItem value="parcelado">Parcelado</SelectItem>
+                            <SelectItem value="boleto">Boleto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {paymentMethod === "parcelado" && (
+                        <div>
+                          <Label className="text-[#103444]">Nº de Parcelas</Label>
+                          <Input type="number" min="2" max="36" value={installmentsN} onChange={e => setInstallmentsN(Math.max(2, Number(e.target.value) || 2))} />
+                        </div>
+                      )}
+                    </div>
+
+                    {installmentSchedule.length > 0 && (
+                      <div className="rounded-lg border border-[#103444]/10 bg-white p-3">
+                        <div className="text-xs font-semibold text-[#103444]/70 mb-2">Grade de Parcelas</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                          {installmentSchedule.map(p => (
+                            <div key={p.n} className="flex justify-between bg-slate-50 px-2 py-1 rounded">
+                              <span className="text-[#103444]/70">{p.n}ª · {p.date}</span>
+                              <span className="font-semibold text-[#103444]">{fmtBRL(p.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-end justify-between gap-4 pt-2 border-t border-amber-400/30">
+                      <div className="space-y-1 text-sm text-[#103444]/70">
+                        <div className="flex justify-between gap-8"><span>Subtotal:</span><span className="font-medium">{fmtBRL(subtotal)}</span></div>
+                        <div className="flex justify-between gap-8"><span>Desconto ({discountPct}%):</span><span className="font-medium text-red-600">- {fmtBRL(discountValue)}</span></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-[#103444]/60 font-semibold">Valor Final</div>
+                        <div className="text-3xl font-bold text-[#103444] border-b-2 border-amber-500 pb-1">{fmtBRL(finalValue)}</div>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => generateBudget.mutate()}
+                      disabled={generateBudget.isPending}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold gap-2 h-12 shadow-md"
+                    >
+                      {generateBudget.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-5 w-5" />}
+                      Gerar Aprovação do Plano
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#103444]">Adicionar Procedimento ao Plano</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-[#103444]">Procedimento</Label>
+              <ProcedureSelector
+                value={newItem.procedure_type}
+                onSelect={(p) => setNewItem(s => ({ ...s, procedure_type: p.name, value: p.default_value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[#103444]">Dente</Label>
+                {markedTeeth.length > 0 ? (
+                  <Select value={newItem.tooth_number} onValueChange={v => setNewItem(s => ({ ...s, tooth_number: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {markedTeeth.map(n => (
+                        <SelectItem key={n} value={n}>{n} — {TOOTH_STATES[teeth[n]].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
+                )}
+              </div>
+              <div>
+                <Label className="text-[#103444]">Região (opcional)</Label>
+                <Input value={newItem.region} onChange={e => setNewItem(s => ({ ...s, region: e.target.value }))} placeholder="Ex: superior direito" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[#103444]">Valor (R$)</Label>
+              <Input type="number" step="0.01" value={newItem.value} onChange={e => setNewItem(s => ({ ...s, value: Number(e.target.value) || 0 }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addTreatment.mutate()}
+              disabled={addTreatment.isPending || !newItem.procedure_type}
+              className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60"
+            >
+              {addTreatment.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
