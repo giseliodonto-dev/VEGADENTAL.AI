@@ -68,12 +68,20 @@ export default function Equipe() {
   const { data: members = [], isLoading: loadingMembers } = useQuery({
     queryKey: ["clinic-members", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: mems, error } = await supabase
         .from("clinic_members")
-        .select("id, role, user_id, profiles:user_id(full_name, email)")
+        .select("id, role, user_id")
         .eq("clinic_id", clinicId!);
       if (error) throw error;
-      return data;
+      const ids = (mems ?? []).map((m) => m.user_id).filter(Boolean);
+      if (ids.length === 0) return [];
+      const { data: profs, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      if (pErr) throw pErr;
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return (mems ?? []).map((m) => ({ ...m, profiles: byId.get(m.user_id) ?? null }));
     },
     enabled: !!clinicId,
   });
