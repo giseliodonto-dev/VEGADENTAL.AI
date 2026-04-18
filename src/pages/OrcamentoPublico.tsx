@@ -88,10 +88,10 @@ export default function OrcamentoPublico() {
     onError: (e: any) => toast.error(e.message || "Erro ao aceitar"),
   });
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!budget || !clinic || !patient) return;
     const paymentMethod = budget.notes?.replace(/^Forma de pagamento:\s*/i, "") || null;
-    const doc = generateContractPdf({
+    const doc = await generateContractPdf({
       clinic,
       patient,
       items: items as any,
