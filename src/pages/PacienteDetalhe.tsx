@@ -341,6 +341,9 @@ export default function PacienteDetalhe() {
             <TabsTrigger value="odonto" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <Smile className="h-4 w-4" /> Odontograma
             </TabsTrigger>
+            <TabsTrigger value="plano" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <ClipboardList className="h-4 w-4" /> Plano de Tratamento
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="cadastro">
