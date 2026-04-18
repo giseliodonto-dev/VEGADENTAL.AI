@@ -39,12 +39,10 @@ type Appointment = {
 type Dentist = { id: string; name: string; role: string };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  agendado: { label: "Agendado", color: "bg-blue-100 text-blue-700 border-blue-200" },
   confirmado: { label: "Confirmado", color: "bg-green-100 text-green-700 border-green-200" },
-  atendido: { label: "Atendido", color: "bg-muted text-muted-foreground border-border" },
   faltou: { label: "Faltou", color: "bg-red-100 text-red-700 border-red-200" },
   remarcado: { label: "Remarcado", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border line-through" },
+  cancelou: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border line-through" },
 };
 
 const DENTIST_COLORS = [
