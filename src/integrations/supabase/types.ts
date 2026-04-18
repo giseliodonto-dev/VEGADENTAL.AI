@@ -647,49 +647,100 @@ export type Database = {
           },
         ]
       }
+      odontograms: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          patient_id: string
+          teeth_data: Json
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          patient_id: string
+          teeth_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+          teeth_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           birthdate: string | null
+          city: string | null
           clinic_id: string
           cpf: string | null
           created_at: string
           email: string | null
+          gender: string | null
           id: string
           name: string
+          neighborhood: string | null
+          number: string | null
           origin: string | null
           phone: string | null
+          postal_code: string | null
           responsible_user_id: string | null
+          rg: string | null
+          state: string | null
           status: string
+          street: string | null
           treatment_value: number | null
           updated_at: string
         }
         Insert: {
           birthdate?: string | null
+          city?: string | null
           clinic_id: string
           cpf?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name: string
+          neighborhood?: string | null
+          number?: string | null
           origin?: string | null
           phone?: string | null
+          postal_code?: string | null
           responsible_user_id?: string | null
+          rg?: string | null
+          state?: string | null
           status?: string
+          street?: string | null
           treatment_value?: number | null
           updated_at?: string
         }
         Update: {
           birthdate?: string | null
+          city?: string | null
           clinic_id?: string
           cpf?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string
+          neighborhood?: string | null
+          number?: string | null
           origin?: string | null
           phone?: string | null
+          postal_code?: string | null
           responsible_user_id?: string | null
+          rg?: string | null
+          state?: string | null
           status?: string
+          street?: string | null
           treatment_value?: number | null
           updated_at?: string
         }
