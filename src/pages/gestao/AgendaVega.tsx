@@ -208,7 +208,7 @@ const AgendaVega = () => {
   const totalSlots = filterDentist === "all"
     ? DAYS_COUNT * SLOTS_PER_DAY * numDentists
     : DAYS_COUNT * SLOTS_PER_DAY;
-  const activeAppts = appointments.filter((a) => a.status !== "cancelado");
+  const activeAppts = appointments.filter((a) => a.status !== "cancelou");
   const occupied = activeAppts.length;
   const occupancyRate = totalSlots > 0 ? Math.round((occupied / totalSlots) * 100) : 0;
   const estimatedProduction = activeAppts.reduce((s, a) => s + (a.estimated_value || 0), 0);
