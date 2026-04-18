@@ -1,70 +1,76 @@
 
 
-## Diagnóstico do estado atual
+## Plano — Contrato/Orçamento Formal GC Odontologia
 
-Já existe a infra para isso — não precisa criar `patient_treatment_plans` nem `financial_installments`. Reuso:
+### Estado atual
+- `/orcamento/:token` (`OrcamentoPublico.tsx`) já renderiza contrato com header da clínica, dados das partes (Contratada/Contratante), itens, totais e área de assinatura digital.
+- Botão "Gerar Aprovação do Plano" na ficha já cria `budgets` + `budget_items` e abre essa rota.
+- Faltam: cabeçalho oficial (Responsável Técnica, CROSP, logo), cláusulas contratuais, validade 15 dias, ações de PDF e WhatsApp, refino Quiet Luxury (Azul Petróleo / Dourado).
 
-- **`treatments`** — já tem `procedure_type, value, payment_type, installments, payment_status, amount_paid, tooth_number, region, status`. É o "item do plano".
-- **`budgets` + `budget_items`** — já agrupam tratamentos como proposta formal, com `public_token`, `accepted_signature`, `accepted_at`, `status` (pendente/enviado/aceito), `discount`, `total_value`, `final_value`. **Esse É o "Plano de Tratamento aprovado / Contrato"**.
-- **`procedures_catalog`** — biblioteca já populada com 70 itens (categoria, valor, tempo, observações).
-- **`payments`** — registra cada parcela paga, vinculada a `treatment_id`.
-- **`financials`** — caixa real (Recebimento). Não é onde "Receita Prevista" entra; previsão = soma de `treatments.value` com `payment_status != 'pago'`. O módulo Gestão já lê assim.
+### 1. Identidade da Responsável Técnica (configurável por clínica)
 
-Página `/orcamento/:token` (`OrcamentoPublico.tsx`) já gera a visualização pública do contrato com assinatura digital. Não precisamos duplicar.
+Migration:
+```sql
+ALTER TABLE clinics
+  ADD COLUMN responsible_name text,
+  ADD COLUMN responsible_cro text,
+  ADD COLUMN logo_url text,
+  ADD COLUMN cancellation_fee numeric DEFAULT 100;
+```
 
-## Plano — Aba "Plano de Tratamento" em `PacienteDetalhe.tsx`
+Pré-popular GC Odontologia (UPDATE pelo nome): `responsible_name='Dra. Giseli da Costa Lage'`, `responsible_cro='CROSP 165.429'`.
 
-### 1. Nova aba (4ª) na ficha do paciente
+Em `Configuracoes.tsx` (aba Clínica), adicionar inputs para os 4 novos campos + upload de logo (storage bucket `clinic-logos` público, criar via migration).
 
-Em `src/pages/PacienteDetalhe.tsx`, adicionar `TabsTrigger` "Plano" + `TabsContent value="plano"`.
+### 2. Validade automática 15 dias
 
-### 2. Listagem dos tratamentos do paciente
+No `PacienteDetalhe.tsx`, mutation "Gerar Aprovação" passa a setar `valid_until = hoje + 15 dias` (hoje está hardcoded sem validade). Sem schema change.
 
-Query em `treatments` filtrando por `patient_id`. Tabela limpa estilo Quiet Luxury com colunas:
+### 3. Reescrever `OrcamentoPublico.tsx` — layout Quiet Luxury
 
-| Procedimento | Dente/Região | Valor | Status | Ações |
+**Cabeçalho oficial centralizado:**
+- Logo da clínica (`clinic.logo_url`) ou placeholder dourado redondo com iniciais
+- Nome da clínica em Plus Jakarta Sans, Azul Petróleo `text-[#103444]`
+- Linha dourada fina abaixo (`border-amber-400`)
+- Responsável Técnica + CROSP em fonte serifada/itálico discreto
+- Endereço, telefone, email em linha única menor
 
-Cada linha mostra `procedure_type`, `tooth_number`, `value` formatado, `status` (planejado/em_andamento/concluido) e `payment_status` como badge.
+**Corpo:**
+- Título "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS"
+- Card duplo Contratada/Contratante (já existe — mantém)
+- **Objeto** (novo): parágrafo introdutório + tabela de procedimentos (já existe — mantém estrutura, refina tipografia)
+- **Valores e Condições** (novo bloco): subtotal, desconto, valor final em destaque + linha "Forma de pagamento: X" lida do `notes` do budget (que já guarda isso)
+- **Cláusulas Contratuais** (novo): bloco numerado 1-5 com cláusulas padrão:
+  1. Ciência do plano e responsabilidade biológica individual
+  2. Cumprimento das orientações pós-operatórias
+  3. Faltas sem aviso de 24h → taxa R$ {clinic.cancellation_fee}
+  4. Validade do orçamento: 15 dias a partir da emissão
+  5. Foro e legislação aplicável
+- **Assinaturas**: 2 colunas — Paciente (input + botão "Aceitar") e Responsável Técnica (carimbo: nome + CROSP em caixa com borda dourada)
 
-### 3. Adicionar item via biblioteca
+**Paleta:**
+- Fundo `bg-slate-50`
+- Card branco com `border-amber-400/30`
+- Títulos `text-[#103444]`
+- Detalhes / divisores `border-amber-400` ou `text-amber-600`
+- Fonte do contrato: serifada para corpo (`font-serif`), Plus Jakarta para títulos
 
-Botão dourado "Adicionar Procedimento" → abre `Dialog` com:
-- `ProcedureSelector` (já existe, lê `procedures_catalog`) → preenche `procedure_type` e sugere `value` automaticamente
-- Input `tooth_number` (livre, ou dropdown integrado ao odontograma do mesmo paciente — autocomplete dos dentes já marcados)
-- Input `region` (opcional)
-- Input `value` editável (vem preenchido)
-- Insert em `treatments` com `status='planejado'`, `payment_status='pendente'`, `clinic_id`, `patient_id`
+### 4. Ações pós-renderização
 
-### 4. Negociação e geração do orçamento/contrato
+Header sticky discreto com 3 botões:
+- **Baixar Contrato em PDF** (dourado, primário): nova função `generateContractPdf` em `src/utils/contractPdf.ts` usando jsPDF, replicando exatamente o layout (cabeçalho, partes, tabela, cláusulas, assinatura). Reutiliza padrão de `budgetPdf.ts`.
+- **Enviar via WhatsApp** (outline): abre `https://wa.me/{patient.phone}?text=` com mensagem pré-formatada contendo link público do contrato (`window.location.href`).
+- **Imprimir** (ghost): `window.print()` com CSS `@media print` escondendo o header sticky.
 
-Painel "Resumo do Plano" no rodapé da aba:
-- Subtotal (soma `value` dos planejados)
-- Input Desconto (%) ou Acréscimo (R$)
-- **Valor Final** em destaque grande (texto Azul Petróleo, borda dourada)
-- Select Forma de Pagamento: `pix | cartao | parcelado | boleto`
-- Se `parcelado`: input `installments` (nº) + preview da grade de parcelas (data + valor) calculada client-side a partir de hoje (mensal)
-- Botão dourado **"Gerar Aprovação do Plano"**:
-  1. `INSERT` em `budgets` (clinic_id, patient_id, total_value=subtotal, discount, final_value, status='pendente', valid_until=+30d)
-  2. `INSERT` em `budget_items` (uma linha por treatment do plano: procedure_name, tooth_number, region, value, treatment_id)
-  3. Redireciona para `/orcamento/:token` (já renderiza o contrato pronto pra assinatura/impressão)
-
-### 5. Integração com Financeiro (Receita Prevista)
-
-Sem mudança de schema. O módulo Financeiro já calcula receita prevista somando `treatments.value` onde `payment_status != 'pago'`. A aprovação do plano gera `treatments` que entram automaticamente nesse cálculo. Quando paciente paga uma parcela, registra-se em `payments` (já existe fluxo).
-
-Quando `budgets.status = 'aceito'` (via `/orcamento/:token`), opcionalmente atualizar `treatments.status` dos itens vinculados para `'em_andamento'`.
-
-### 6. Arquivos
+### 5. Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/PacienteDetalhe.tsx` | +Tab "Plano" com listagem, dialog de adicionar via `ProcedureSelector`, painel de negociação, botão "Gerar Aprovação" |
+| Migration | +4 colunas em `clinics` + UPDATE GC + bucket `clinic-logos` |
+| `src/pages/Configuracoes.tsx` | Inputs de Responsável Técnica, CRO, logo, taxa cancelamento |
+| `src/pages/PacienteDetalhe.tsx` | `valid_until = +15 dias` na mutation de aprovação |
+| `src/pages/OrcamentoPublico.tsx` | Refatorar layout Quiet Luxury + cláusulas + carimbo + botões de ação |
+| `src/utils/contractPdf.ts` | **Novo** — gera PDF do contrato com jsPDF |
 
-Sem migração. Sem novas tabelas.
-
-### 7. Por que não criar `patient_treatment_plans` / `financial_installments`
-
-- `treatments` + `budgets` + `budget_items` cobrem 100% do fluxo descrito
-- `payments` já é o "financial_installments" funcional (1 linha por parcela paga)
-- Duplicar quebraria Funil de Vendas, Inteligência Financeira e Comissões que já leem dessas tabelas
+Sem novas tabelas. Reusa `budgets` + `budget_items` + `clinics` + `patients`.
 
