@@ -76,18 +76,32 @@ Deno.serve(async (req) => {
       return json({ error: "Apenas o dono da clínica pode convidar" }, 403);
     }
 
-    // Reuse existing pending invite if any
+    // Check for existing invite (any status) — unique key is (clinic_id, email)
     const { data: existing } = await admin
       .from("invites")
-      .select("token")
+      .select("id, token, status")
       .eq("clinic_id", clinicId)
       .eq("email", email)
-      .eq("status", "pending")
       .maybeSingle();
 
-    if (existing?.token) {
+    if (existing) {
+      // Reactivate (covers cancelled/accepted/pending) and refresh role/inviter
+      const { data: updated, error: updErr } = await admin
+        .from("invites")
+        .update({
+          status: "pending",
+          role,
+          invited_by: userId,
+          accepted_at: null,
+        })
+        .eq("id", existing.id)
+        .select("token")
+        .single();
+
+      if (updErr) return json({ error: updErr.message }, 500);
+
       return json({
-        inviteUrl: `${origin}/convite/${existing.token}`,
+        inviteUrl: `${origin}/convite/${updated.token}`,
         reused: true,
       });
     }
