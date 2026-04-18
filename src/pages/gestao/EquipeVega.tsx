@@ -190,7 +190,7 @@ export default function Equipe() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Enviar Convite de Acesso</DialogTitle>
+                <DialogTitle>Gerar Link de Convite</DialogTitle>
               </DialogHeader>
 
               {!generatedLink ? (
@@ -237,8 +237,9 @@ export default function Equipe() {
               ) : (
                 <div className="space-y-4 py-4">
                   <p className="text-sm text-muted-foreground">
-                    Envie este link ao colaborador. Ele cria a conta e entra
-                    direto na clínica.
+                    O sistema <strong>não envia e-mail automático</strong>.
+                    Copie o link abaixo e envie ao colaborador via WhatsApp,
+                    e-mail manual ou outro canal de sua preferência.
                   </p>
                   <div className="flex gap-2">
                     <Input value={generatedLink} readOnly className="text-xs" />
@@ -294,6 +295,9 @@ export default function Equipe() {
                       <p className="font-medium truncate">{inv.email}</p>
                       <p className="text-xs text-muted-foreground uppercase">
                         {ROLE_LABEL[inv.role as AppRole] ?? inv.role}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Envio manual — sem e-mail automático
                       </p>
                     </div>
                   </div>
