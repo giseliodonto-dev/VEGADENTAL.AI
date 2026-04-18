@@ -106,26 +106,68 @@ export default function Equipe() {
     setLoading(true);
     setGeneratedLink(null);
     try {
-      const { data, error } = await supabase.functions.invoke("send-invite", {
-        body: {
-          email: email.trim(),
-          clinicId,
-          role,
-          origin: getPublicAppOrigin(),
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        throw new Error("E-mail inválido");
+      }
 
-      setGeneratedLink(data.inviteUrl);
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData?.user?.id) throw new Error("Sessão expirada");
+      const userId = userData.user.id;
+
+      // Check if invite already exists for this email + clinic
+      const { data: existing, error: selErr } = await supabase
+        .from("invites")
+        .select("id, token, status")
+        .eq("clinic_id", clinicId)
+        .eq("email", cleanEmail)
+        .maybeSingle();
+      if (selErr) throw selErr;
+
+      let token: string;
+      let reused = false;
+
+      if (existing) {
+        const { data: upd, error: updErr } = await supabase
+          .from("invites")
+          .update({
+            status: "pending",
+            role,
+            invited_by: userId,
+            accepted_at: null,
+          })
+          .eq("id", existing.id)
+          .select("token")
+          .single();
+        if (updErr) throw updErr;
+        token = upd.token;
+        reused = true;
+      } else {
+        const { data: ins, error: insErr } = await supabase
+          .from("invites")
+          .insert({
+            email: cleanEmail,
+            clinic_id: clinicId,
+            role,
+            invited_by: userId,
+            status: "pending",
+          })
+          .select("token")
+          .single();
+        if (insErr) throw insErr;
+        token = ins.token;
+      }
+
+      const inviteUrl = `${getPublicAppOrigin()}/convite/${token}`;
+      setGeneratedLink(inviteUrl);
       toast.success(
-        data.reused
+        reused
           ? "Convite já existia — link recuperado"
-          : "Convite gerado com sucesso!",
+          : "Convite criado com sucesso!",
       );
       qc.invalidateQueries({ queryKey: ["clinic-invites", clinicId] });
     } catch (e: any) {
-      toast.error("Erro: " + (e.message ?? "falha ao gerar convite"));
+      toast.error("Erro: " + (e.message ?? "falha ao criar convite"));
     } finally {
       setLoading(false);
     }
