@@ -114,14 +114,30 @@ const AgendaVega = () => {
 
   const { data: dentists = [] } = useQuery({
     queryKey: ["dentists", clinicId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Dentist[]> => {
       if (!clinicId) return [];
-      const { data } = await supabase
+      const { data: mems, error } = await supabase
         .from("clinic_members")
-        .select("user_id, role, profile:profiles(full_name)")
+        .select("user_id, role, is_active")
         .eq("clinic_id", clinicId)
         .in("role", ["dono", "dentista", "admin"]);
-      return (data || []).map((d: any) => ({ id: d.user_id, name: d.profile?.full_name || "Sem nome", role: d.role }));
+      if (error) throw error;
+      const active = (mems ?? []).filter((m) => m.is_active !== false);
+      const ids = active.map((m) => m.user_id).filter(Boolean);
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return active.map((m) => {
+        const p = byId.get(m.user_id);
+        return {
+          id: m.user_id,
+          name: p?.full_name || p?.email || "Sem nome",
+          role: m.role,
+        };
+      });
     },
     enabled: !!clinicId,
   });
