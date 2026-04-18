@@ -45,6 +45,7 @@ import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -68,12 +69,12 @@ const App = () => {
             <Route path="/pacientes/:id" element={<ProtectedRoute><PacienteDetalhe /></ProtectedRoute>} />
             <Route path="/vendas" element={<ProtectedRoute><Vendas /></ProtectedRoute>} />
             <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
-            <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
-            <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+            <Route path="/financeiro" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><Financeiro /></RoleProtectedRoute>} />
+            <Route path="/configuracoes" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><Configuracoes /></RoleProtectedRoute>} />
             <Route path="/gps" element={<ProtectedRoute><VegaGPS /></ProtectedRoute>} />
             <Route path="/gestao" element={<ProtectedRoute><Gestao /></ProtectedRoute>} />
             <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-            <Route path="/clinicas" element={<ProtectedRoute><Clinicas /></ProtectedRoute>} />
+            <Route path="/clinicas" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><Clinicas /></RoleProtectedRoute>} />
             <Route path="/academy" element={<ProtectedRoute><Academy /></ProtectedRoute>} />
             <Route path="/inteligencia" element={<ProtectedRoute><InteligenciaVega /></ProtectedRoute>} />
             <Route path="/ia-vendas" element={<ProtectedRoute><IAVendasNEPQ /></ProtectedRoute>} />
@@ -85,8 +86,8 @@ const App = () => {
             {/* Gestão */}
             <Route path="/gestao/agenda" element={<ProtectedRoute><AgendaVega /></ProtectedRoute>} />
             <Route path="/gestao/equipe" element={<ProtectedRoute><EquipeVega /></ProtectedRoute>} />
-            <Route path="/gestao/financas" element={<ProtectedRoute><FinancasVega /></ProtectedRoute>} />
-            <Route path="/gestao/metas" element={<ProtectedRoute><MetasMensais /></ProtectedRoute>} />
+            <Route path="/gestao/financas" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><FinancasVega /></RoleProtectedRoute>} />
+            <Route path="/gestao/metas" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><MetasMensais /></RoleProtectedRoute>} />
 
             {/* Vendas sub */}
             <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
