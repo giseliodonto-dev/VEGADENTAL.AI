@@ -17,7 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
+import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído" };
@@ -263,6 +266,7 @@ export default function PacienteDetalhe() {
   const [discountPct, setDiscountPct] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
   const [installmentsN, setInstallmentsN] = useState(2);
+  const [lastBudgetToken, setLastBudgetToken] = useState<string | null>(null);
 
   const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento");
   const subtotal = planned.reduce((s: number, t: any) => s + Number(t.value || 0), 0);
@@ -313,11 +317,22 @@ export default function PacienteDetalhe() {
       return budget;
     },
     onSuccess: (budget: any) => {
+      setLastBudgetToken(budget.public_token);
       toast.success("Plano aprovado! Abrindo contrato...");
       window.open(`/orcamento/${budget.public_token}`, "_blank");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
+  const budgetUrl = lastBudgetToken
+    ? `${getPublicAppOrigin()}/orcamento/${lastBudgetToken}`
+    : null;
+  const budgetWhatsAppUrl = budgetUrl
+    ? buildWhatsAppUrl(
+        patient?.phone,
+        `Olá${patient?.name ? `, ${patient.name.split(" ")[0]}` : ""}! Segue o seu orçamento de tratamento odontológico no valor de ${fmtBRL(finalValue)}. Acesse e assine pelo link: ${budgetUrl}`,
+      )
+    : null;
 
   if (isLoading) {
     return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
