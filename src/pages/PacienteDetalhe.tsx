@@ -319,6 +319,10 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  if (isLoading) {
+    return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
+  }
+
   return (
     <AppLayout title={patient?.name || "Paciente"} subtitle="Ficha completa do paciente">
       <div className="max-w-5xl mx-auto space-y-4">
