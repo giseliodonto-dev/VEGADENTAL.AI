@@ -823,6 +823,8 @@ export type Database = {
           is_custom: boolean | null
           is_favorite: boolean | null
           name: string
+          observations: string | null
+          time_minutes: number | null
         }
         Insert: {
           category: string
@@ -834,6 +836,8 @@ export type Database = {
           is_custom?: boolean | null
           is_favorite?: boolean | null
           name: string
+          observations?: string | null
+          time_minutes?: number | null
         }
         Update: {
           category?: string
@@ -845,6 +849,8 @@ export type Database = {
           is_custom?: boolean | null
           is_favorite?: boolean | null
           name?: string
+          observations?: string | null
+          time_minutes?: number | null
         }
         Relationships: [
           {
