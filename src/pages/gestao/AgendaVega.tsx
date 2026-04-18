@@ -39,12 +39,10 @@ type Appointment = {
 type Dentist = { id: string; name: string; role: string };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  agendado: { label: "Agendado", color: "bg-blue-100 text-blue-700 border-blue-200" },
   confirmado: { label: "Confirmado", color: "bg-green-100 text-green-700 border-green-200" },
-  atendido: { label: "Atendido", color: "bg-muted text-muted-foreground border-border" },
   faltou: { label: "Faltou", color: "bg-red-100 text-red-700 border-red-200" },
   remarcado: { label: "Remarcado", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border line-through" },
+  cancelou: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border line-through" },
 };
 
 const DENTIST_COLORS = [
@@ -159,6 +157,7 @@ const AgendaVega = () => {
         clinic_id: clinicId,
         date: slot.date,
         time: slot.time,
+        status: "confirmado",
         patient_id: newForm.patient_id || null,
         procedure_type: newForm.procedure_type || null,
         estimated_value: newForm.estimated_value ? Number(newForm.estimated_value) : 0,
@@ -209,7 +208,7 @@ const AgendaVega = () => {
   const totalSlots = filterDentist === "all"
     ? DAYS_COUNT * SLOTS_PER_DAY * numDentists
     : DAYS_COUNT * SLOTS_PER_DAY;
-  const activeAppts = appointments.filter((a) => a.status !== "cancelado");
+  const activeAppts = appointments.filter((a) => a.status !== "cancelou");
   const occupied = activeAppts.length;
   const occupancyRate = totalSlots > 0 ? Math.round((occupied / totalSlots) * 100) : 0;
   const estimatedProduction = activeAppts.reduce((s, a) => s + (a.estimated_value || 0), 0);
@@ -524,7 +523,7 @@ const AgendaVega = () => {
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
-                    {(["confirmado", "atendido", "faltou", "remarcado", "cancelado"] as const).map((s) => (
+                    {(["confirmado", "faltou", "remarcado", "cancelou"] as const).map((s) => (
                       <Button key={s} variant="outline" size="sm" className="text-xs" disabled={selectedAppointment.status === s}
                         onClick={() => updateStatusMutation.mutate({ id: selectedAppointment.id, status: s })}>
                         {STATUS_CONFIG[s].label}
