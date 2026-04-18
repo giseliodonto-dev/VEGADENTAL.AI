@@ -174,7 +174,10 @@ const AgendaVega = () => {
       setSelectedSlot(null);
       setNewForm({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
     },
-    onError: () => toast.error("Erro ao criar agendamento"),
+    onError: (e: any) => {
+      console.error("Erro ao criar agendamento:", e);
+      toast.error("Erro ao criar agendamento: " + (e?.message ?? "desconhecido"));
+    },
   });
 
   const updateStatusMutation = useMutation({
