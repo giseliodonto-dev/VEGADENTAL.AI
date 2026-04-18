@@ -1,37 +1,26 @@
 
 
-O usuário está confuso porque existem **duas páginas** parecidas: "Equipe" e "Usuários" (ou similar). Preciso confirmar antes de planejar.
+O fluxo atual já faz exatamente isso: `send-invite` apenas gera o token e devolve a URL; a tela `EquipeVega.tsx` mostra o link copiável + botão WhatsApp. Nenhum e-mail é disparado.
 
-Vou verificar no AppSidebar quais rotas existem.
+## Plano
 
-Pelas rotas conhecidas: `/gestao/equipe` (EquipeVega.tsx) e `/configuracoes` (Configuracoes.tsx) — provavelmente Configurações tem aba de usuários/membros também. Ou pode ser `/clinicas`.
+Nenhuma mudança de código necessária. Apenas ajustes de UX para deixar claro ao usuário que **não há envio automático de e-mail** — o link deve ser entregue manualmente.
 
-## Plano de investigação + consolidação
+### Alterações em `src/pages/gestao/EquipeVega.tsx`
 
-### 1. Mapear duplicação
-Vou abrir:
-- `src/components/AppSidebar.tsx` — ver itens de menu
-- `src/pages/Configuracoes.tsx` — ver se tem gestão de membros
-- `src/pages/Clinicas.tsx` — ver se gerencia usuários
+1. No diálogo de convite gerado, trocar o texto atual por algo mais explícito:
+   > "O sistema **não envia e-mail automático**. Copie o link abaixo e envie ao colaborador via WhatsApp, e-mail manual ou outro canal de sua preferência."
 
-### 2. Decidir fonte única
-Manter **apenas `/gestao/equipe`** como tela única de gestão de colaboradores (convites + membros ativos + roles). Remover qualquer duplicação em Configurações ou Clínicas.
+2. No card de cada convite pendente, adicionar uma legenda discreta:
+   > "Envio manual — sem e-mail automático"
 
-### 3. Ações concretas
-- Remover seção/aba duplicada da página redundante
-- Adicionar link/atalho da página antiga apontando para `/gestao/equipe`
-- Garantir que o sidebar tenha **apenas um item** "Equipe" (ou "Colaboradores")
+3. (Opcional) Renomear o título do diálogo de "Enviar Convite de Acesso" para "Gerar Link de Convite" para alinhar expectativa.
 
-### 4. Cancelar convites pendentes (pendência anterior)
-Executar `UPDATE invites SET status='cancelled' WHERE status='pending'` via ferramenta de insert/migração para limpar a lista atual.
-
-### Arquivos prováveis
+### Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/AppSidebar.tsx` | Remover item duplicado de menu |
-| `src/pages/Configuracoes.tsx` ou `Clinicas.tsx` | Remover aba/seção de membros, deixar só link para /gestao/equipe |
-| Banco | UPDATE invites cancelando pendentes |
+| `src/pages/gestao/EquipeVega.tsx` | Ajustar textos do diálogo e legenda dos convites pendentes |
 
-Antes de implementar, preciso confirmar **qual** é a outra página que você está chamando de "Usuários" — pode ser Configurações, Clínicas, ou outra. Vou abrir os arquivos do sidebar para identificar com certeza assim que aprovar.
+Sem mudanças de banco, edge function ou rotas.
 
