@@ -205,6 +205,123 @@ export default function PacienteDetalhe() {
     );
   };
 
+  // ===== PLANO DE TRATAMENTO =====
+  const { data: treatments = [] } = useQuery({
+    queryKey: ["treatments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("*")
+        .eq("patient_id", id!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [newItem, setNewItem] = useState<{ procedure_type: string; tooth_number: string; region: string; value: number }>({
+    procedure_type: "", tooth_number: "", region: "", value: 0,
+  });
+  const markedTeeth = Object.keys(teeth);
+
+  const addTreatment = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada");
+      if (!newItem.procedure_type) throw new Error("Selecione um procedimento");
+      const { error } = await supabase.from("treatments").insert({
+        clinic_id: clinicId,
+        patient_id: id!,
+        procedure_type: newItem.procedure_type,
+        tooth_number: newItem.tooth_number || null,
+        region: newItem.region || null,
+        value: newItem.value || 0,
+        status: "planejado",
+        payment_status: "pendente",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Procedimento adicionado");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+      setAddOpen(false);
+      setNewItem({ procedure_type: "", tooth_number: "", region: "", value: 0 });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteTreatment = useMutation({
+    mutationFn: async (tid: string) => {
+      const { error } = await supabase.from("treatments").delete().eq("id", tid);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Procedimento removido");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [discountPct, setDiscountPct] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
+  const [installmentsN, setInstallmentsN] = useState(2);
+
+  const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento");
+  const subtotal = planned.reduce((s: number, t: any) => s + Number(t.value || 0), 0);
+  const discountValue = subtotal * (discountPct / 100);
+  const finalValue = Math.max(0, subtotal - discountValue);
+
+  const installmentSchedule = (() => {
+    if (paymentMethod !== "parcelado" || installmentsN < 1) return [];
+    const per = finalValue / installmentsN;
+    const today = new Date();
+    return Array.from({ length: installmentsN }, (_, i) => {
+      const d = new Date(today);
+      d.setMonth(d.getMonth() + i);
+      return { n: i + 1, date: d.toLocaleDateString("pt-BR"), value: per };
+    });
+  })();
+
+  const generateBudget = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada");
+      if (planned.length === 0) throw new Error("Adicione ao menos um procedimento");
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+
+      const { data: budget, error: bErr } = await supabase.from("budgets").insert({
+        clinic_id: clinicId,
+        patient_id: id!,
+        total_value: subtotal,
+        discount: discountValue,
+        final_value: finalValue,
+        status: "pendente",
+        valid_until: validUntil.toISOString().slice(0, 10),
+        notes: `Forma de pagamento: ${paymentMethod}${paymentMethod === "parcelado" ? ` em ${installmentsN}x` : ""}`,
+      }).select("id, public_token").single();
+      if (bErr) throw bErr;
+
+      const items = planned.map((t: any) => ({
+        budget_id: budget.id,
+        treatment_id: t.id,
+        procedure_name: t.procedure_type,
+        tooth_number: t.tooth_number,
+        region: t.region,
+        value: Number(t.value || 0),
+      }));
+      const { error: iErr } = await supabase.from("budget_items").insert(items);
+      if (iErr) throw iErr;
+
+      return budget;
+    },
+    onSuccess: (budget: any) => {
+      toast.success("Plano aprovado! Abrindo contrato...");
+      window.open(`/orcamento/${budget.public_token}`, "_blank");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   return (
     <AppLayout title={patient?.name || "Paciente"} subtitle="Ficha completa do paciente">
       <div className="max-w-5xl mx-auto space-y-4">
