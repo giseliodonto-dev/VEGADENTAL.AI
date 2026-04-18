@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { ChevronLeft, ChevronRight, CalendarCheck, DollarSign, AlertTriangle, Clock, Plus, User } from "lucide-react";
+import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
 const DAYS_COUNT = 6;
@@ -33,7 +35,7 @@ type Appointment = {
   notes: string | null;
   patient_id: string | null;
   dentist_user_id: string | null;
-  patient?: { name: string } | null;
+  patient?: { name: string; phone: string | null } | null;
 };
 
 type Dentist = { id: string; name: string; role: string };
@@ -98,7 +100,7 @@ const AgendaVega = () => {
       if (!clinicId) return [];
       let q = supabase
         .from("appointments")
-        .select("*, patient:patients(name)")
+        .select("*, patient:patients(name, phone)")
         .eq("clinic_id", clinicId)
         .gte("date", format(weekStart, "yyyy-MM-dd"))
         .lte("date", format(weekEnd, "yyyy-MM-dd"))
