@@ -39,13 +39,11 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await authClient.auth.getClaims(
-      token,
-    );
-    if (claimsErr || !claims?.claims?.sub) {
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
       return json({ error: "Sessão inválida" }, 401);
     }
-    const userId = claims.claims.sub as string;
+    const userId = userData.user.id;
 
     const body = await req.json().catch(() => null);
     if (!body) return json({ error: "Body inválido" }, 400);
