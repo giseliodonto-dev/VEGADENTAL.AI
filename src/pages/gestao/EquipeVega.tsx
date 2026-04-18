@@ -115,56 +115,27 @@ export default function Equipe() {
       if (userErr || !userData?.user?.id) throw new Error("Sessão expirada");
       const userId = userData.user.id;
 
-      // Check if invite already exists for this email + clinic
-      const { data: existing, error: selErr } = await supabase
+      // UPSERT atômico — cria ou reativa convite em uma única operação
+      const { data: upserted, error: upErr } = await supabase
         .from("invites")
-        .select("id, token, status")
-        .eq("clinic_id", clinicId)
-        .eq("email", cleanEmail)
-        .maybeSingle();
-      if (selErr) throw selErr;
-
-      let token: string;
-      let reused = false;
-
-      if (existing) {
-        const { data: upd, error: updErr } = await supabase
-          .from("invites")
-          .update({
-            status: "pending",
-            role,
-            invited_by: userId,
-            accepted_at: null,
-          })
-          .eq("id", existing.id)
-          .select("token")
-          .single();
-        if (updErr) throw updErr;
-        token = upd.token;
-        reused = true;
-      } else {
-        const { data: ins, error: insErr } = await supabase
-          .from("invites")
-          .insert({
-            email: cleanEmail,
+        .upsert(
+          {
             clinic_id: clinicId,
+            email: cleanEmail,
             role,
             invited_by: userId,
             status: "pending",
-          })
-          .select("token")
-          .single();
-        if (insErr) throw insErr;
-        token = ins.token;
-      }
+            accepted_at: null,
+          },
+          { onConflict: "clinic_id,email" },
+        )
+        .select("token")
+        .single();
+      if (upErr) throw upErr;
 
-      const inviteUrl = `${getPublicAppOrigin()}/convite/${token}`;
+      const inviteUrl = `${getPublicAppOrigin()}/convite/${upserted.token}`;
       setGeneratedLink(inviteUrl);
-      toast.success(
-        reused
-          ? "Convite já existia — link recuperado"
-          : "Convite criado com sucesso!",
-      );
+      toast.success("Convite criado com sucesso!");
       qc.invalidateQueries({ queryKey: ["clinic-invites", clinicId] });
     } catch (e: any) {
       toast.error("Erro: " + (e.message ?? "falha ao criar convite"));
