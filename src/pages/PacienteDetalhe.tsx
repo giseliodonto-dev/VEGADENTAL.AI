@@ -187,9 +187,6 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  if (isLoading) {
-    return <AppLayout title="Ficha do Paciente"><div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-[#103444]" /></div></AppLayout>;
-  }
 
   const Tooth = ({ n }: { n: number }) => {
     const st = teeth[n] || "higido";
