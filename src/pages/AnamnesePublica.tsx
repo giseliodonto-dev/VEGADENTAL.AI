@@ -41,11 +41,14 @@ export default function AnamnesePublica() {
   useEffect(() => {
     if (!token) return;
     (async () => {
+      const anamneseClient = (supabase as any).rest
+        ? supabase
+        : supabase;
+      // Pass token via custom header so RLS policy can authorize the SELECT
       const { data: anamneseData, error: anamneseErr } = await (supabase as any)
-        .from("anamneses")
+        .from("anamneses", { headers: { "x-anamnese-token": token } } as any)
         .select("*")
         .eq("public_token", token)
-        .headers({ "x-anamnese-token": token })
         .maybeSingle();
 
       if (anamneseErr || !anamneseData) {

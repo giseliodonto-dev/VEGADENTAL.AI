@@ -7,7 +7,7 @@ const tools = [
     title: "Perguntas de Decisão",
     description: "O oráculo VEGA que transforma objeções em fechamentos com perguntas estratégicas.",
     icon: MessageSquare,
-    url: "/vendas/perguntas-decisao",
+    url: "/vega/perguntas",
   },
   {
     title: "Funil de Vendas",

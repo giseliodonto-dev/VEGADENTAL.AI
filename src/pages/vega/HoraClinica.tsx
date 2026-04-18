@@ -43,7 +43,9 @@ const HoraClinica = () => {
   const totalBruto = totalCustos + proLaboreNum;
   const totalComImpostos = totalBruto * (1 + impostosPercent / 100);
   const horaClinica = totalComImpostos / (diasNum * horasNum);
-  const horaClinicaIdeal = horaClinica * 1.3;
+  // Markup oficial Método VEGA: 2.38 (mínimo de sobrevivência) e 3.30 (lucro ideal)
+  const horaMinima = horaClinica * 2.38;
+  const horaIdeal = horaClinica * 3.30;
 
   const updateCusto = (index: number, valor: string) => {
     const updated = [...custos];
@@ -270,22 +272,33 @@ const HoraClinica = () => {
                 </p>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4 pt-4 border-t border-accent/10">
+              <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-accent/10">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-light">Hora Ideal (×1.3)</p>
-                  <p className="text-lg font-semibold tabular-nums text-success">
-                    R$ {horaClinicaIdeal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-light">Hora Mínima VEGA (×2.38)</p>
+                  <p className="text-lg font-semibold tabular-nums text-warning">
+                    R$ {horaMinima.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
+                  <p className="text-[10px] text-muted-foreground/70 font-light mt-0.5">Ponto de equilíbrio</p>
                 </div>
                 <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-light">Hora Ideal VEGA (×3.30)</p>
+                  <p className="text-lg font-semibold tabular-nums text-success">
+                    R$ {horaIdeal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70 font-light mt-0.5">Lucro saudável</p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-accent/10">
+                <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-light">Faturamento Necessário</p>
-                  <p className="text-lg font-semibold tabular-nums">
+                  <p className="text-base font-semibold tabular-nums">
                     R$ {totalComImpostos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-light">Horas / Mês</p>
-                  <p className="text-lg font-semibold tabular-nums">
+                  <p className="text-base font-semibold tabular-nums">
                     {(diasNum * horasNum).toFixed(0)}h
                   </p>
                 </div>
