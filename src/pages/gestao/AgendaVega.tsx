@@ -69,6 +69,14 @@ function getDentistInitials(dentistId: string | null, dentists: Dentist[]) {
   return d.name.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase();
 }
 
+function buildConfirmationMessage(apt: Appointment) {
+  const firstName = apt.patient?.name?.split(" ")[0] ?? "";
+  const dateLabel = format(new Date(apt.date + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR });
+  const timeLabel = apt.time.substring(0, 5);
+  const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
+  return `${greeting} Tudo bem? Passando para confirmar sua consulta na ${dateLabel} às ${timeLabel}. Podemos contar com sua presença? 😊`;
+}
+
 const AgendaVega = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
