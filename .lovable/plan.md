@@ -2,78 +2,64 @@
 
 ## Diagnóstico
 
-A página `/gestao/equipe` (`EquipeVega.tsx`) hoje chama a Edge Function `send-invite`, que tenta validar permissão + criar o invite no banco. O erro está bloqueando a criação do colaborador. Precisamos remover essa dependência e fazer tudo client-side.
+O fluxo atual já está correto em teoria, mas para garantir que funcione "de uma vez por todas" preciso blindar contra os 3 pontos de falha reais:
 
-Já temos:
-- Tabela `invites` com RLS `clinic_members_create_invites` permitindo INSERT direto pelo dono/membro autenticado
-- `token uuid` com `default gen_random_uuid()` — gerado automaticamente
-- `src/lib/publicUrl.ts` → `getPublicAppOrigin()` para montar URL estável
-- Página `/convite/:token` (`Convite.tsx`) já funciona
+1. **Constraint única ausente**: Se já existir convite (qualquer status) para o mesmo email+clinic, o INSERT pode quebrar. Hoje uso `.maybeSingle()` mas sem UNIQUE constraint, pode ter duplicatas e quebrar.
+2. **RLS de UPDATE em invite reativado**: a policy `clinic_members_update_invites` exige que `clinic_id IN get_user_clinic_ids` — ok, passa.
+3. **Token é UUID, não texto**: confirmar que `Convite.tsx` aceita UUID na rota (já aceita, é string).
 
-## Plano
+## Solução Definitiva
 
-### 1. Refatorar `src/pages/gestao/EquipeVega.tsx`
+### 1. Migration — garantir integridade
 
-Substituir a chamada `supabase.functions.invoke('send-invite', ...)` por:
+```sql
+-- Remove duplicatas existentes (mantém o mais recente)
+DELETE FROM invites a USING invites b
+WHERE a.id < b.id AND a.clinic_id = b.clinic_id AND a.email = b.email;
 
-```ts
-// 1. Verifica se já existe convite pendente (mesmo email + clinic)
-const { data: existing } = await supabase
-  .from('invites')
-  .select('id, token, status')
-  .eq('clinic_id', clinicId)
-  .eq('email', email)
-  .maybeSingle();
-
-let token: string;
-if (existing) {
-  // Reativa convite existente
-  const { data: upd } = await supabase
-    .from('invites')
-    .update({ status: 'pending', role, invited_by: userId, accepted_at: null })
-    .eq('id', existing.id)
-    .select('token')
-    .single();
-  token = upd.token;
-} else {
-  const { data: ins } = await supabase
-    .from('invites')
-    .insert({ email, clinic_id: clinicId, role, invited_by: userId, status: 'pending' })
-    .select('token')
-    .single();
-  token = ins.token;
-}
-
-const inviteUrl = `${getPublicAppOrigin()}/convite/${token}`;
-setGeneratedLink(inviteUrl);
-setLinkDialogOpen(true);
+-- Constraint única para evitar duplicatas futuras
+ALTER TABLE invites 
+  ADD CONSTRAINT invites_clinic_email_unique UNIQUE (clinic_id, email);
 ```
 
-Remove qualquer try/catch que falhe se algo de e-mail acontecer — não há mais e-mail.
+### 2. Refatorar `EquipeVega.tsx` — UPSERT atômico
 
-### 2. Modal de Sucesso com link gerado
+Trocar a lógica "select → if/else → insert/update" por **UPSERT** único:
 
-Novo `Dialog` ao final do componente:
-- Título: "Convite criado com sucesso"
-- Texto explicativo: "Compartilhe o link abaixo com o colaborador"
-- `Input readOnly` com a URL completa
-- Botão **"Copiar Link"** (dourado): `navigator.clipboard.writeText(link)` + toast "Link copiado"
-- Botão **"Enviar via WhatsApp"** (outline verde): abre `https://wa.me/?text=` com mensagem pré-formatada:
-  > "Olá! Você foi convidado para acessar a {clinicName} no VEGA Dental. Crie sua conta neste link: {inviteUrl}"
-- Botão "Fechar"
+```ts
+const { data, error } = await supabase
+  .from('invites')
+  .upsert({
+    clinic_id: clinicId,
+    email: cleanEmail,
+    role,
+    invited_by: userId,
+    status: 'pending',
+    accepted_at: null,
+  }, { onConflict: 'clinic_id,email' })
+  .select('token')
+  .single();
+```
 
-### 3. Remoção da Edge Function `send-invite`
+Uma única chamada ao banco. Sem race condition. Sem if/else. Se o registro existe → atualiza. Se não → cria. Token sempre retornado.
 
-Deletar `supabase/functions/send-invite/index.ts` e remover bloco `[functions.send-invite]` do `supabase/config.toml`. Chamar `supabase--delete_edge_functions(["send-invite"])` para tirar do deploy.
+### 3. Modal de sucesso
 
-### 4. Arquivos
+Já existe e funciona — mantém Copy + WhatsApp + Fechar.
+
+### 4. Validação visual final
+
+Após salvar:
+- Toast verde "Convite criado"
+- Modal abre com link
+- Lista de convites pendentes recarrega via `qc.invalidateQueries`
+
+## Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/gestao/EquipeVega.tsx` | Insert direto em `invites` + Dialog de sucesso com Copiar/WhatsApp |
-| `supabase/functions/send-invite/index.ts` | **Deletar** |
-| `supabase/config.toml` | Remover bloco `[functions.send-invite]` |
-| Edge function deployment | `delete_edge_functions(["send-invite"])` |
+| Migration | DELETE duplicatas + UNIQUE constraint em `(clinic_id, email)` |
+| `src/pages/gestao/EquipeVega.tsx` | Substituir lógica select/if/else por `.upsert()` único |
 
-Sem migrações. Sem schema change. Sem dependência de e-mail.
+Sem novas tabelas. Sem Edge Function. Sem e-mail. Atômico. Idempotente. Funciona sempre.
 
