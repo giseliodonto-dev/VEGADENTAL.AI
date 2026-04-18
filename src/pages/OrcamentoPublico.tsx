@@ -68,7 +68,7 @@ export default function OrcamentoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("name")
+        .select("name, cpf, rg, phone, email, street, number, neighborhood, city, state, postal_code")
         .eq("id", budget.patient_id)
         .maybeSingle();
       if (error) throw error;
@@ -135,10 +135,14 @@ export default function OrcamentoPublico() {
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Clinic header */}
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-1 border-b pb-6">
           <h1 className="text-2xl font-bold text-foreground">{clinic?.name || "Clínica"}</h1>
-          {clinic?.phone && <p className="text-sm text-muted-foreground">{clinic.phone}</p>}
-          {clinic?.address && <p className="text-sm text-muted-foreground">{clinic.address}</p>}
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            {clinic?.address && <p>{clinic.address}</p>}
+            <p>
+              {[clinic?.phone, clinic?.email].filter(Boolean).join(" • ")}
+            </p>
+          </div>
         </div>
 
         <Card>
@@ -146,16 +150,37 @@ export default function OrcamentoPublico() {
             {/* Budget header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Orçamento Odontológico</h2>
-                <p className="text-sm text-muted-foreground">
-                  Paciente: {patient?.name || "—"}
-                </p>
+                <h2 className="text-lg font-semibold text-foreground">Plano de Tratamento Odontológico</h2>
                 <p className="text-xs text-muted-foreground">
-                  Data: {format(new Date(budget.created_at), "dd/MM/yyyy")}
+                  Emitido em: {format(new Date(budget.created_at), "dd/MM/yyyy")}
                   {budget.valid_until && ` • Válido até: ${format(new Date(budget.valid_until), "dd/MM/yyyy")}`}
                 </p>
               </div>
               <Badge className={st.color}>{st.label}</Badge>
+            </div>
+
+            {/* Parties — Contratante / Contratada */}
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="border rounded-lg p-4 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Contratada (Clínica)</p>
+                <p className="font-medium text-foreground">{clinic?.name || "—"}</p>
+                {clinic?.address && <p className="text-xs text-muted-foreground">{clinic.address}</p>}
+                {clinic?.phone && <p className="text-xs text-muted-foreground">Tel: {clinic.phone}</p>}
+                {clinic?.email && <p className="text-xs text-muted-foreground">{clinic.email}</p>}
+              </div>
+              <div className="border rounded-lg p-4 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Contratante (Paciente)</p>
+                <p className="font-medium text-foreground">{patient?.name || "—"}</p>
+                {patient?.cpf && <p className="text-xs text-muted-foreground">CPF: {patient.cpf}</p>}
+                {patient?.rg && <p className="text-xs text-muted-foreground">RG: {patient.rg}</p>}
+                {patient?.phone && <p className="text-xs text-muted-foreground">Tel: {patient.phone}</p>}
+                {patient?.email && <p className="text-xs text-muted-foreground">{patient.email}</p>}
+                {(patient?.street || patient?.city) && (
+                  <p className="text-xs text-muted-foreground">
+                    {[patient.street, patient.number, patient.neighborhood, patient.city, patient.state, patient.postal_code].filter(Boolean).join(", ")}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Items */}
