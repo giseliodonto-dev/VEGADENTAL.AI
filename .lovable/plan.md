@@ -1,23 +1,45 @@
 
 
-## Diagnóstico
+## Plano Aprovado — Ficha de Pacientes em Abas
 
-Erro: `appointments_status_check` rejeita o valor enviado. O default da coluna é `'agendado'`, mas o código provavelmente envia outro (ex: `'scheduled'`).
+### 1. Migração de banco
 
-## Plano
+**Adicionar colunas em `patients`** (todas nullable, sem quebrar nada):
+- `rg text`, `gender text`, `postal_code text`, `street text`, `number text`, `neighborhood text`, `city text`, `state text`
 
-Corrigir `src/pages/gestao/AgendaVega.tsx`:
+**Criar tabela `odontograms`:**
+- `id uuid pk`, `clinic_id uuid not null`, `patient_id uuid not null unique`, `teeth_data jsonb default '{}'`, `updated_at`, `created_at`
+- RLS: members view/insert/update por `clinic_id`; donos delete
 
-1. Localizar o insert em `appointments` no `createMutation`
-2. Garantir que o campo `status` seja `'agendado'` (ou simplesmente omitir para usar o default do banco)
-3. Ajustar também os valores usados ao mudar status no calendário (drag/click) para usar apenas: `'agendado'`, `'confirmado'`, `'realizado'`, `'cancelado'` (em português, minúsculo)
-4. Ignorar campo `estimated_value` conforme solicitado — não bloquear submit por causa dele
+**Reusar `anamneses`** existente (já cobre alergias, medicações, doenças, etc).
 
-### Arquivo
+### 2. Código
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/gestao/AgendaVega.tsx` | Remover/normalizar `status` no insert; padronizar valores de status em PT-BR minúsculo |
+| `src/pages/Pacientes.tsx` | Reescrever: listagem em **cards de luxo** (off-white, Azul Petróleo `#103444`, bordas douradas). Cada card abre `/pacientes/:id`. Mantém modal de cadastro rápido (nome+phone+profissão). |
+| `src/pages/PacienteDetalhe.tsx` | Reescrever com **Tabs** (Cadastro / Anamnese / Odontograma). Botão "Salvar Alterações" fixo no rodapé de cada aba. |
+| `src/App.tsx` | Confirmar rota `/pacientes/:id` (já existe). |
 
-Sem migração de banco.
+### 3. Detalhes das abas
+
+**Aba 1 — Cadastro**
+- Campos: nome, cpf, rg, birthdate, gender (select), phone, email, postal_code (com busca **ViaCEP** automática ao completar 8 dígitos → preenche street/neighborhood/city/state), number
+- `upsert` em `patients` por `id`
+
+**Aba 2 — Anamnese**
+- Reusa tabela `anamneses` (1 registro por paciente)
+- Campos: alergias (textarea destacada **vermelho** se preenchida), medicações, doenças (checkboxes: diabetes, hipertensão, etc — usa array `diseases`), gestante (não existe coluna; mapear via `diseases` array contendo "gestante"), bruxismo, fumante, álcool, sangramento, sensibilidade, dor atual, cirurgias, notas clínicas
+- `upsert` por `patient_id`
+
+**Aba 3 — Odontograma**
+- Grade visual 32 dentes (16 superior + 16 inferior, numeração FDI)
+- Click no dente abre menu: estado (hígido, cariado, restaurado, ausente, coroa, canal) → cor diferente
+- `upsert` em `odontograms.teeth_data` (JSONB tipo `{ "11": "cariado", "12": "restaurado", ... }`)
+
+### 4. Design Quiet Luxury
+- Fundo `bg-slate-50` / branco
+- Texto `text-[#103444]`
+- Bordas douradas `border-amber-400/40` em cards e botão primário com `border-amber-500`
+- Tabs com underline dourado no ativo
 
