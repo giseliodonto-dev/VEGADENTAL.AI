@@ -285,7 +285,7 @@ export default function PacienteDetalhe() {
       if (!clinicId) throw new Error("Clínica não identificada");
       if (planned.length === 0) throw new Error("Adicione ao menos um procedimento");
       const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 30);
+      validUntil.setDate(validUntil.getDate() + 15);
 
       const { data: budget, error: bErr } = await supabase.from("budgets").insert({
         clinic_id: clinicId,
