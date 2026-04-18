@@ -292,7 +292,6 @@ export default function Equipe() {
                         <WhatsAppIcon size={20} /> Enviar via WhatsApp
                       </a>
                     </Button>
-                  </div>
                     <Button variant="outline" onClick={closeDialog}>
                       Fechar
                     </Button>
