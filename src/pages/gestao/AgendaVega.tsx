@@ -157,6 +157,7 @@ const AgendaVega = () => {
         clinic_id: clinicId,
         date: slot.date,
         time: slot.time,
+        status: "confirmado",
         patient_id: newForm.patient_id || null,
         procedure_type: newForm.procedure_type || null,
         estimated_value: newForm.estimated_value ? Number(newForm.estimated_value) : 0,
