@@ -15,16 +15,21 @@ import { cn } from "@/lib/utils";
 
 const CATEGORY_LABELS: Record<string, string> = {
   preventivo: "Preventivos",
-  clinico_geral: "Clínico Geral",
+  clinico_geral: "Clínica Geral / Diagnóstico",
+  dentistica: "Dentística / Estética",
   endodontia: "Endodontia",
   periodontia: "Periodontia",
-  protese: "Prótese",
-  estetica: "Estética",
+  cirurgia: "Cirurgia Oral",
   implantodontia: "Implantodontia",
-  cirurgia: "Cirurgia",
+  protese: "Prótese Dentária",
   ortodontia: "Ortodontia",
+  odontopediatria: "Odontopediatria",
+  estetica: "Estética",
   outros: "Outros",
 };
+
+const formatCurrency = (v: number) =>
+  v ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : "";
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS);
 
