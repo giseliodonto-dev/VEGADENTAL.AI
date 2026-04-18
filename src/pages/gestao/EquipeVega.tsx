@@ -283,16 +283,16 @@ export default function Equipe() {
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button asChild className="flex-1 gap-2">
+                    <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
                       <a
                         href={whatsappUrl(generatedLink)}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <MessageCircle className="h-4 w-4" /> Enviar via
-                        WhatsApp
+                        <WhatsAppIcon size={20} /> Enviar via WhatsApp
                       </a>
                     </Button>
+                  </div>
                     <Button variant="outline" onClick={closeDialog}>
                       Fechar
                     </Button>
@@ -340,13 +340,13 @@ export default function Equipe() {
                     >
                       <Copy className="h-4 w-4 mr-1" /> Copiar link
                     </Button>
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
                       <a
                         href={whatsappUrl(linkFor(inv.token))}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                        <WhatsAppIcon size={16} /> WhatsApp
                       </a>
                     </Button>
                     <Button
