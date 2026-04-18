@@ -1,47 +1,70 @@
 
+## Auditoria VEGA GPS — Plano de correções
 
-## Plano: Adicionar colunas faltantes na tabela patients
+### 1. Cálculos Financeiros (Hora Clínica)
 
-### Analise
+**Arquivo:** `src/pages/vega/HoraClinica.tsx`
 
-O SQL enviado descreve o schema desejado. Comparando com o banco atual:
-
-- **Tabelas**: Todas ja existem (profiles, clinics, clinic_members, patients, appointments, anamneses, invites). Nao precisa recriar.
-- **Enum app_role**: Ja inclui os 7 cargos (dono, recepcao, dentista, crm, sdr, admin, protetico).
-- **RLS policies**: As existentes usam funcoes `SECURITY DEFINER` (get_user_clinic_ids, is_clinic_member, has_clinic_role) que evitam recursao infinita. As policies do SQL enviado usam subqueries diretas em clinic_members que **causariam recursao infinita** — nao devem ser aplicadas.
-- **Trigger handle_new_user**: Ja existe como funcao. O trigger precisa ser verificado/recriado.
-- **Colunas faltantes em patients**: `email`, `birthdate`, `cpf` nao existem no banco atual.
-
-### O que fazer
-
-**1. Migracao — adicionar colunas em patients**
-
-```sql
-ALTER TABLE public.patients
-  ADD COLUMN IF NOT EXISTS email text,
-  ADD COLUMN IF NOT EXISTS birthdate date,
-  ADD COLUMN IF NOT EXISTS cpf text;
+Conferi a fórmula atual:
+```
+totalBruto = totalCustos + proLabore
+totalComImpostos = totalBruto * (1 + impostos%)
+horaClinica = totalComImpostos / (dias × horas)
+horaClinicaIdeal = horaClinica × 1.3
 ```
 
-**2. Migracao — garantir trigger existe**
+**Problemas:**
+- O markup oficial do método (memory `features/finance/profit-logic`) é **2.38 mínimo** e **3.30 ideal**, mas a página usa apenas `× 1.3`. Está inconsistente com a Calculadora de Sobrevivência.
+- O label diz "Hora Ideal (×1.3)" — confuso, pois 1.3 é apenas margem de 30%, não o markup VEGA.
 
-```sql
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+**Correção:** Renomear para "Hora Mínima (×2.38)" e "Hora Ideal (×3.30)" exibindo os dois valores, alinhado ao método.
+
+### 2. Perguntas de Decisão (tom Artesanal)
+
+**Arquivo:** `src/pages/vega/PerguntasDecisao.tsx`
+
+Vou ler o arquivo na execução e:
+- Remover qualquer resposta com tom genérico/robótico ("nosso procedimento é seguro e moderno", "tecnologia de ponta", etc.)
+- Garantir que cada resposta carregue o selo **"Método VEGA: Excelência Artesanal"** e use vocabulário de escultura/lapidação/irrepetibilidade conforme memory `features/vendas-decision-logic`.
+
+### 3. Permissões (Equipe não acessa Finanças/Configurações)
+
+**Estado atual:** `ProtectedRoute` só checa sessão + clínica. Não há gate por role.
+
+**Correção:** Criar `RoleProtectedRoute` que aceita `allowedRoles={['dono','admin']}` e envolver:
+- `/financeiro`, `/gestao/financas`
+- `/configuracoes`
+- `/clinicas`, `/gestao/metas`
+
+Usar `clinic_members.role` via hook `useClinic` (adicionar `role` ao retorno se ainda não existir).
+
+### 4. Bugs de navegação (404)
+
+**Sidebar atual** (`AppSidebar.tsx`) tem 8 links: `/`, `/pacientes`, `/gestao/agenda`, `/gestao/equipe`, `/financeiro`, `/vendas`, `/marketing`, `/gps` + footer `/configuracoes`. Todos existem em `App.tsx` ✅.
+
+**Erro encontrado no console:**
 ```
+404: /vendas/perguntas-decisao
+```
+A rota correta é `/vega/perguntas`. Algum botão dentro de `/vendas` está apontando para o caminho errado. Vou localizar e corrigir o link.
 
-### O que NAO fazer
+**Runtime error adicional:** `.headers is not a function` em uma query Supabase — quebra `AnamnesePublica`. Vou corrigir junto (uso correto: passar token via filtro `.eq('public_token', token)`, não via `.headers()`).
 
-- **Nao recriar tabelas** — todas ja existem com dados
-- **Nao substituir RLS policies** — as atuais usam funcoes SECURITY DEFINER que sao mais seguras e evitam recursao infinita
-- **Nao remover colunas extras** que ja existem (status, origin, treatment_value, responsible_user_id em patients; duration_minutes, estimated_value em appointments, etc.)
+### 5. Bônus de segurança (detectado no scan)
 
-### Arquivos
+A policy `Anon can view anamnese by token` tem `USING true` — expõe TODAS as anamneses. Vou ajustar para filtrar por token. Crítico para LGPD.
 
-| Acao | Detalhe |
-|------|---------|
-| Migracao | ADD COLUMN email, birthdate, cpf em patients |
-| Migracao | Recriar trigger on_auth_user_created (seguranca) |
+### Arquivos afetados
 
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/vega/HoraClinica.tsx` | Markup 2.38 / 3.30 |
+| `src/pages/vega/PerguntasDecisao.tsx` | Reescrita tom Artesanal |
+| `src/components/RoleProtectedRoute.tsx` | Novo — gate por role |
+| `src/hooks/useClinic.tsx` | Expor `role` |
+| `src/App.tsx` | Aplicar RoleProtectedRoute em rotas restritas |
+| `src/pages/Vendas.tsx` ou sub | Corrigir link `/vendas/perguntas-decisao` → `/vega/perguntas` |
+| `src/pages/AnamnesePublica.tsx` | Remover `.headers()` quebrado |
+| Migração SQL | Corrigir RLS de `anamneses` (anon SELECT por token) |
+
+Sem mudanças visuais de design — apenas lógica, textos e segurança.
