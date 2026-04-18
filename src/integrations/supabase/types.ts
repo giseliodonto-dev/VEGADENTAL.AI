@@ -375,31 +375,43 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          cancellation_fee: number | null
           created_at: string
           email: string | null
           id: string
+          logo_url: string | null
           name: string
           phone: string | null
+          responsible_cro: string | null
+          responsible_name: string | null
           slug: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          cancellation_fee?: number | null
           created_at?: string
           email?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           phone?: string | null
+          responsible_cro?: string | null
+          responsible_name?: string | null
           slug: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          cancellation_fee?: number | null
           created_at?: string
           email?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           phone?: string | null
+          responsible_cro?: string | null
+          responsible_name?: string | null
           slug?: string
           updated_at?: string
         }
