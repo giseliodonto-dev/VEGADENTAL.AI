@@ -15,16 +15,21 @@ import { cn } from "@/lib/utils";
 
 const CATEGORY_LABELS: Record<string, string> = {
   preventivo: "Preventivos",
-  clinico_geral: "Clínico Geral",
+  clinico_geral: "Clínica Geral / Diagnóstico",
+  dentistica: "Dentística / Estética",
   endodontia: "Endodontia",
   periodontia: "Periodontia",
-  protese: "Prótese",
-  estetica: "Estética",
+  cirurgia: "Cirurgia Oral",
   implantodontia: "Implantodontia",
-  cirurgia: "Cirurgia",
+  protese: "Prótese Dentária",
   ortodontia: "Ortodontia",
+  odontopediatria: "Odontopediatria",
+  estetica: "Estética",
   outros: "Outros",
 };
+
+const formatCurrency = (v: number) =>
+  v ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : "";
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS);
 
@@ -35,6 +40,8 @@ interface Procedure {
   default_value: number;
   is_favorite: boolean;
   is_custom: boolean;
+  time_minutes: number | null;
+  observations: string | null;
 }
 
 interface ProcedureSelectorProps {
@@ -153,12 +160,22 @@ export function ProcedureSelector({ value, onSelect }: ProcedureSelectorProps) {
                         onSelect({ name: p.name, default_value: p.default_value });
                         setOpen(false);
                       }}
+                      className="items-start"
                     >
-                      <Check className={cn("mr-2 h-4 w-4", value === p.name ? "opacity-100" : "opacity-0")} />
-                      <span className="flex-1">{p.name}</span>
+                      <Check className={cn("mr-2 mt-0.5 h-4 w-4", value === p.name ? "opacity-100" : "opacity-0")} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="truncate">{p.name}</span>
+                          <span className="text-xs font-medium text-foreground/80 shrink-0">{formatCurrency(p.default_value)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          {p.time_minutes && <span>{p.time_minutes}min</span>}
+                          {p.observations && <span className="truncate">· {p.observations}</span>}
+                        </div>
+                      </div>
                       <button
                         type="button"
-                        className="p-0.5"
+                        className="p-0.5 ml-1"
                         onClick={(e) => { e.stopPropagation(); toggleFavorite.mutate({ id: p.id, current: true }); }}
                       >
                         <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
@@ -178,12 +195,22 @@ export function ProcedureSelector({ value, onSelect }: ProcedureSelectorProps) {
                         onSelect({ name: p.name, default_value: p.default_value });
                         setOpen(false);
                       }}
+                      className="items-start"
                     >
-                      <Check className={cn("mr-2 h-4 w-4", value === p.name ? "opacity-100" : "opacity-0")} />
-                      <span className="flex-1">{p.name}</span>
+                      <Check className={cn("mr-2 mt-0.5 h-4 w-4", value === p.name ? "opacity-100" : "opacity-0")} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="truncate">{p.name}</span>
+                          <span className="text-xs font-medium text-foreground/80 shrink-0">{formatCurrency(p.default_value)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          {p.time_minutes && <span>{p.time_minutes}min</span>}
+                          {p.observations && <span className="truncate">· {p.observations}</span>}
+                        </div>
+                      </div>
                       <button
                         type="button"
-                        className="p-0.5"
+                        className="p-0.5 ml-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleFavorite.mutate({ id: p.id, current: p.is_favorite });
