@@ -47,11 +47,41 @@ const GOLD: [number, number, number] = [180, 142, 70];
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export function generateContractPdf(data: ContractPdfData) {
+async function loadImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function generateContractPdf(data: ContractPdfData) {
   const doc = new jsPDF();
   const W = doc.internal.pageSize.getWidth();
   const M = 18;
   let y = 18;
+
+  // ===== Logo (if available)
+  if (data.clinic.logo_url) {
+    const dataUrl = await loadImageAsDataUrl(data.clinic.logo_url);
+    if (dataUrl) {
+      try {
+        const fmt = dataUrl.includes("image/png") ? "PNG" : "JPEG";
+        const logoH = 18;
+        const logoW = 18;
+        doc.addImage(dataUrl, fmt, W / 2 - logoW / 2, y, logoW, logoH, undefined, "FAST");
+        y += logoH + 4;
+      } catch { /* ignore */ }
+    }
+  }
 
   // ===== Header
   doc.setTextColor(...PETROL);
