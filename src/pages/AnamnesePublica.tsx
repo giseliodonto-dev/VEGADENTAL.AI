@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const DISEASE_OPTIONS = [
   { value: "diabetes", label: "Diabetes" },
@@ -38,15 +42,20 @@ export default function AnamnesePublica() {
   const [sensitivity, setSensitivity] = useState(false);
   const [signature, setSignature] = useState("");
 
+  // Cliente dedicado que envia o token via header — exigido pela RLS de leitura/escrita anônima
+  const tokenClient = useMemo(() => {
+    if (!token) return null;
+    return createClient(SUPABASE_URL, SUPABASE_KEY, {
+      global: { headers: { "x-anamnese-token": token } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }, [token]);
+
   useEffect(() => {
-    if (!token) return;
+    if (!token || !tokenClient) return;
     (async () => {
-      const anamneseClient = (supabase as any).rest
-        ? supabase
-        : supabase;
-      // Pass token via custom header so RLS policy can authorize the SELECT
-      const { data: anamneseData, error: anamneseErr } = await (supabase as any)
-        .from("anamneses", { headers: { "x-anamnese-token": token } } as any)
+      const { data: anamneseData, error: anamneseErr } = await (tokenClient as any)
+        .from("anamneses")
         .select("*")
         .eq("public_token", token)
         .maybeSingle();
@@ -97,7 +106,8 @@ export default function AnamnesePublica() {
     }
 
     setSubmitting(true);
-    const { error } = await (supabase as any)
+    if (!tokenClient) return;
+    const { error } = await (tokenClient as any)
       .from("anamneses")
       .update({
         diseases,
@@ -115,8 +125,7 @@ export default function AnamnesePublica() {
         response_date: new Date().toISOString(),
         status: "respondida",
       })
-      .eq("public_token", token!)
-      .headers({ "x-anamnese-token": token! });
+      .eq("public_token", token!);
 
     setSubmitting(false);
     if (error) {

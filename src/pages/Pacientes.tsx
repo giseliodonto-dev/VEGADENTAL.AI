@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useClinic } from "@/hooks/useClinic";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { Search, UserPlus, MessageCircle, UserCircle, Briefcase, Loader2, Phone 
 
 export default function Pacientes() {
   const queryClient = useQueryClient();
+  const { clinicId } = useClinic();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -27,7 +29,7 @@ export default function Pacientes() {
       const { data, error } = await supabase
         .from("patients")
         .select("*")
-        .order("full_name", { ascending: true });
+        .order("name", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -35,20 +37,23 @@ export default function Pacientes() {
 
   // 2. Filtro de busca
   const filtered = useMemo(() => {
-    return patients.filter(p => 
-      (p.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return patients.filter(p =>
+      (p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.phone || "").includes(searchTerm)
     );
   }, [patients, searchTerm]);
 
-  // 3. FUNÇÃO DE SALVAR (CORRIGIDA: Sem travas de Clinic ID)
+  // 3. FUNÇÃO DE SALVAR
   const addMut = useMutation({
     mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada. Recarregue a página.");
       const { error } = await supabase.from("patients").insert({
-        full_name: name.trim(),
+        clinic_id: clinicId,
+        name: name.trim(),
         phone: phone.trim(),
-        occupation: occupation.trim(),
-        status: 'lead' // Começa sempre como Lead
+        // Profissão é guardada em "origin" (campo livre existente)
+        origin: occupation.trim() || null,
+        status: 'lead'
       });
       if (error) throw error;
     },
@@ -124,9 +129,9 @@ export default function Pacientes() {
                       <UserCircle className="h-8 w-8 text-[#103444]/40" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800 text-lg leading-tight">{p.full_name}</p>
+                      <p className="font-bold text-slate-800 text-lg leading-tight">{p.name}</p>
                       <div className="flex gap-4 text-xs text-slate-500 mt-1">
-                        <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> {p.occupation || "N/I"}</span>
+                        <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> {p.origin || "N/I"}</span>
                         <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {p.phone}</span>
                       </div>
                     </div>

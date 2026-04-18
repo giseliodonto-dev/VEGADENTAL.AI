@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 export function useClinic() {
   const { user } = useAuth();
   const [clinicId, setClinicId] = useState<string | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setClinicId(null);
+      setRole(null);
       setLoading(false);
       return;
     }
@@ -18,7 +23,7 @@ export function useClinic() {
 
     supabase
       .from("clinic_members")
-      .select("clinic_id")
+      .select("clinic_id, role")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle()
@@ -26,8 +31,10 @@ export function useClinic() {
         if (error) {
           console.error("Erro ao buscar clínica do usuário:", error);
           setClinicId(null);
+          setRole(null);
         } else {
           setClinicId(data?.clinic_id ?? null);
+          setRole((data?.role as AppRole) ?? null);
         }
         setLoading(false);
       });
@@ -62,8 +69,9 @@ export function useClinic() {
     if (memberError) throw memberError;
 
     setClinicId(clinic.id);
+    setRole("dono");
     return clinic.id;
   };
 
-  return { clinicId, loading, createClinic };
+  return { clinicId, role, loading, createClinic };
 }
