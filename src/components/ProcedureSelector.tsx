@@ -40,6 +40,8 @@ interface Procedure {
   default_value: number;
   is_favorite: boolean;
   is_custom: boolean;
+  time_minutes: number | null;
+  observations: string | null;
 }
 
 interface ProcedureSelectorProps {
