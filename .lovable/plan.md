@@ -2,28 +2,22 @@
 
 ## Diagnóstico
 
-Você (Giseli) é dona da clínica e está em `/gestao/agenda`, mas o select de profissional aparece vazio — então não consegue criar agendamento.
+Erro: `appointments_status_check` rejeita o valor enviado. O default da coluna é `'agendado'`, mas o código provavelmente envia outro (ex: `'scheduled'`).
 
-Causa raiz: `AgendaVega.tsx` busca dentistas com embed PostgREST (`profiles(full_name)` dentro de `clinic_members`), mas **não existe foreign key** entre `clinic_members.user_id` e `profiles.id`. A query retorna 400 e a lista fica vazia. Por isso o sistema "não vê" você como profissional disponível, mesmo sendo dona.
+## Plano
 
-Resposta direta à sua pergunta: **sim, dono pode (e deve) aparecer como profissional na agenda**. O bug é de query, não de permissão.
+Corrigir `src/pages/gestao/AgendaVega.tsx`:
 
-## Solução
-
-Refatorar `AgendaVega.tsx` para buscar em **duas etapas** (mesmo padrão que `EquipeVega.tsx` já usa e funciona):
-
-1. Buscar `clinic_members` da clínica com `role IN ('dono','dentista','admin')` e `is_active = true`
-2. Buscar `profiles` correspondentes via `.in('id', userIds)`
-3. Mesclar no client → lista de profissionais populada
-4. Incluir o próprio dono logado como opção (Giseli aparece no select)
-
-Adicional: se a lista vier vazia, mostrar mensagem clara com botão para `/gestao/equipe`.
+1. Localizar o insert em `appointments` no `createMutation`
+2. Garantir que o campo `status` seja `'agendado'` (ou simplesmente omitir para usar o default do banco)
+3. Ajustar também os valores usados ao mudar status no calendário (drag/click) para usar apenas: `'agendado'`, `'confirmado'`, `'realizado'`, `'cancelado'` (em português, minúsculo)
+4. Ignorar campo `estimated_value` conforme solicitado — não bloquear submit por causa dele
 
 ### Arquivo
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/gestao/AgendaVega.tsx` | Substituir query embed por 2 queries + merge; ajustar `<Select>` de dentista |
+| `src/pages/gestao/AgendaVega.tsx` | Remover/normalizar `status` no insert; padronizar valores de status em PT-BR minúsculo |
 
-Sem migração de banco. Sem mexer em RLS. Sem mexer em outras telas.
+Sem migração de banco.
 
