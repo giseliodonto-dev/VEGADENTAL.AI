@@ -345,7 +345,19 @@ const AgendaVega = () => {
                                         {getDentistInitials(apt.dentist_user_id, dentists)}
                                       </span>
                                     )}
-                                    <p className="font-medium truncate text-[11px]">{apt.patient?.name || "—"}</p>
+                                    <p className="font-medium truncate text-[11px] flex-1">{apt.patient?.name || "—"}</p>
+                                    {formatWhatsAppPhone(apt.patient?.phone) && (
+                                      <a
+                                        href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        title="Confirmar consulta via WhatsApp"
+                                        className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                                      >
+                                        <WhatsAppIcon size={14} />
+                                      </a>
+                                    )}
                                   </div>
                                   <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
                                 </div>
@@ -413,6 +425,18 @@ const AgendaVega = () => {
                           <Badge variant="outline" className={`text-[10px] ${STATUS_CONFIG[apt.status]?.color || ""}`}>
                             {STATUS_CONFIG[apt.status]?.label || apt.status}
                           </Badge>
+                          {formatWhatsAppPhone(apt.patient?.phone) && (
+                            <a
+                              href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Confirmar via WhatsApp"
+                              className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                            >
+                              <WhatsAppIcon size={22} />
+                            </a>
+                          )}
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` })}>
@@ -530,6 +554,20 @@ const AgendaVega = () => {
                   {(selectedAppointment.estimated_value ?? 0) > 0 && <p className="text-sm">Valor: R$ {selectedAppointment.estimated_value?.toLocaleString("pt-BR")}</p>}
                   {selectedAppointment.notes && <p className="text-xs text-muted-foreground">{selectedAppointment.notes}</p>}
                 </div>
+                {formatWhatsAppPhone(selectedAppointment.patient?.phone) && (
+                  <Button asChild className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
+                    <a
+                      href={buildWhatsAppUrl(
+                        selectedAppointment.patient?.phone,
+                        buildConfirmationMessage(selectedAppointment),
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <WhatsAppIcon size={20} /> Confirmar via WhatsApp
+                    </a>
+                  </Button>
+                )}
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
