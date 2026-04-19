@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { ChevronLeft, ChevronRight, CalendarCheck, DollarSign, AlertTriangle, Clock, Plus, User } from "lucide-react";
-import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { formatWhatsAppPhone, openWhatsApp } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
@@ -347,16 +347,17 @@ const AgendaVega = () => {
                                     )}
                                     <p className="font-medium truncate text-[11px] flex-1">{apt.patient?.name || "—"}</p>
                                     {formatWhatsAppPhone(apt.patient?.phone) && (
-                                      <a
-                                        href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
+                                        }}
                                         title="Confirmar consulta via WhatsApp"
                                         className="flex-shrink-0 hover:opacity-80 transition-opacity"
                                       >
                                         <WhatsAppIcon size={14} />
-                                      </a>
+                                      </button>
                                     )}
                                   </div>
                                   <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
@@ -426,16 +427,17 @@ const AgendaVega = () => {
                             {STATUS_CONFIG[apt.status]?.label || apt.status}
                           </Badge>
                           {formatWhatsAppPhone(apt.patient?.phone) && (
-                            <a
-                              href={buildWhatsAppUrl(apt.patient?.phone, buildConfirmationMessage(apt))}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
+                              }}
                               title="Confirmar via WhatsApp"
                               className="flex-shrink-0 hover:opacity-80 transition-opacity"
                             >
                               <WhatsAppIcon size={22} />
-                            </a>
+                            </button>
                           )}
                         </div>
                       ))}
@@ -555,17 +557,17 @@ const AgendaVega = () => {
                   {selectedAppointment.notes && <p className="text-xs text-muted-foreground">{selectedAppointment.notes}</p>}
                 </div>
                 {formatWhatsAppPhone(selectedAppointment.patient?.phone) && (
-                  <Button asChild className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
-                    <a
-                      href={buildWhatsAppUrl(
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      openWhatsApp(
                         selectedAppointment.patient?.phone,
                         buildConfirmationMessage(selectedAppointment),
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <WhatsAppIcon size={20} /> Confirmar via WhatsApp
-                    </a>
+                      )
+                    }
+                    className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white"
+                  >
+                    <WhatsAppIcon size={20} /> Confirmar via WhatsApp
                   </Button>
                 )}
                 <div>
