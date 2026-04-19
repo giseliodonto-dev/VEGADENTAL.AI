@@ -16,20 +16,26 @@ import { toast } from "sonner";
 export function formatWhatsAppPhone(raw?: string | null): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D+/g, "");
-  if (!digits) return null;
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  if (digits.length >= 12 && digits.length <= 15) return digits;
+  if (digits.length >= 8 && digits.length <= 15) return digits;
   return null;
 }
 
 /**
- * Formata para exibição amigável: +55 (11) 98888-7777.
+ * Formata para exibição amigável.
+ * - 10-11 dígitos (BR sem DDI): (11) 98888-7777
+ * - 12-13 dígitos começando com 55 (BR com DDI): +55 (11) 98888-7777
+ * - Outros: +<digits>
  * Retorna o próprio input se não conseguir formatar.
  */
 export function displayWhatsAppPhone(raw?: string | null): string {
   const formatted = formatWhatsAppPhone(raw);
   if (!formatted) return raw ?? "";
-  // BR: 55 + DDD(2) + 8 ou 9 dígitos
+  if (formatted.length === 10 || formatted.length === 11) {
+    const ddd = formatted.slice(0, 2);
+    const rest = formatted.slice(2);
+    if (rest.length === 9) return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+    return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  }
   if (formatted.startsWith("55") && (formatted.length === 12 || formatted.length === 13)) {
     const ddd = formatted.slice(2, 4);
     const rest = formatted.slice(4);
@@ -63,7 +69,7 @@ export function openWhatsApp(phone: string | null | undefined, message: string):
   const phoneWasProvided = phone !== null && phone !== undefined && String(phone).trim() !== "";
   if (phoneWasProvided && !formatWhatsAppPhone(phone)) {
     toast.error("Telefone inválido", {
-      description: "Verifique o cadastro do paciente — precisa de DDD + número (ex: 11988887777).",
+      description: "Verifique o cadastro do paciente — precisa ter entre 8 e 15 dígitos.",
     });
     return;
   }
