@@ -158,7 +158,7 @@ export default function Pacientes() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`https://wa.me/55${p.phone?.replace(/\D/g, '')}`);
+                          openWhatsApp(p.phone, `Olá, ${p.name?.split(' ')[0] || ''}! Tudo bem?`);
                         }}
                         className="text-green-600 hover:scale-110 transition-transform"
                       >
