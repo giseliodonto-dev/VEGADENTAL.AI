@@ -16,7 +16,10 @@ import { toast } from "sonner";
 export function formatWhatsAppPhone(raw?: string | null): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D+/g, "");
-  if (digits.length >= 8 && digits.length <= 15) return digits;
+  // BR sem DDI (10 ou 11 dígitos) → prefixa 55
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  // Já tem DDI internacional (12-15 dígitos) → usa como está
+  if (digits.length >= 12 && digits.length <= 15) return digits;
   return null;
 }
 

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Search, UserPlus, MessageCircle, UserCircle, Briefcase, Loader2, Phone, ChevronRight } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 export default function Pacientes() {
   const queryClient = useQueryClient();
@@ -157,7 +158,7 @@ export default function Pacientes() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`https://wa.me/55${p.phone?.replace(/\D/g, '')}`);
+                          openWhatsApp(p.phone, `Olá, ${p.name?.split(' ')[0] || ''}! Tudo bem?`);
                         }}
                         className="text-green-600 hover:scale-110 transition-transform"
                       >
