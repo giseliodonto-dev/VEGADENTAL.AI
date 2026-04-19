@@ -1,46 +1,63 @@
 
 
-## Plano final: WhatsApp escalável e sem fricção
+## Diagnóstico
 
-### Filosofia
-Não adivinhar país nem manipular o `9`. Salvar e enviar o número como o usuário cadastrou (apenas dígitos). Validar só o mínimo necessário. Dar feedback claro.
+O usuário pediu prefixar `55` automaticamente para 11 dígitos — isso reverte parcialmente a decisão anterior. Vou ler `PacienteDetalhe.tsx` rapidamente para ver onde o botão WhatsApp está sendo renderizado e confirmar de onde vem o `phone`.
+<lov-tool-use id="toolu_vrtx_01C3rU5dJa6HcTSPRNfop4LY" name="code--search_files" integration-id="code" data="{\"query\": \"openWhatsApp|wa\\\\.me|patient\\\\.phone|patient\\\\.telefone\", \"include_patterns\": \"src/pages/PacienteDetalhe.tsx\"}">
+</lov-tool-use>
 
-### Mudanças
+<lov-tool-use id="toolu_vrtx_01XSp2BZaJYbu1ytboRs3cYo" name="code--search_files" integration-id="code" data="{\"query\": \"openWhatsApp|wa\\\\.me|patient\\\\.phone|patient\\\\.telefone|displayWhatsAppPhone\", \"include_patterns\": \"src/pages/PacienteDetalhe.tsx,src/pages/Pacientes.tsx\"}">
+</lov-tool-use>
 
-**1. `src/lib/whatsapp.ts` — simplificar**
-- `formatWhatsAppPhone(raw)`:
-  - Remove não-dígitos
-  - Aceita 8 a 15 dígitos → retorna os dígitos puros
-  - Caso contrário → `null`
-  - **Sem prefixo `55` automático**
-- `displayWhatsAppPhone(raw)`:
-  - Se 10-11 dígitos (BR sem DDI): formata `(11) 98888-7777`
-  - Se 12-13 dígitos começando com `55`: formata `+55 (11) 98888-7777`
-  - Outros: `+<digits>`
-- `openWhatsApp`: mantém validação + toast de erro (já está bom)
+<lov-tool-use id="toolu_vrtx_01NnteXUdPM3FDYNsjoC19pL" name="code--view" integration-id="code" data="{\"file_path\": \"src/pages/PacienteDetalhe.tsx\", \"lines\": \"630-700\"}">
+</lov-tool-use>
+Já vi o suficiente. Vou checar o telefone real do paciente atual e a linha em Pacientes.tsx.
+<lov-tool-use id="toolu_vrtx_019CDzGnKWZyJNm6cSASu3qY" name="supabase--read_query" integration-id="supabase" data="{\"query\": \"SELECT id, name, phone FROM patients WHERE id = '012cdc1e-38e7-4929-9068-89b957472835';\"}">
+</lov-tool-use>
+Telefone existe e tem 11 dígitos (`11917031359`), válido. Então `formatWhatsAppPhone` retorna `11917031359` (puro, sem 55). O WhatsApp pode não reconhecer porque falta DDI no link (`api.whatsapp.com/send?phone=11917031359` fica ambíguo — WhatsApp espera E.164).
 
-**2. `src/pages/Pacientes.tsx` — cadastro**
-- Validação: mínimo 10 dígitos (DDD + número)
-- Mensagem de erro genérica: "Telefone precisa ter DDD + número"
-- Texto de ajuda discreto abaixo do input:
-  > "Digite com DDD. Para internacional, inclua o código do país (ex: 5511988887777)."
+Aqui está o ponto: na rodada anterior removemos o `55` automático "para escalabilidade", mas isso quebrou justamente os números BR sem DDI. Agora o usuário quer voltar ao comportamento clássico `wa.me/55<numero>`.
 
-**3. `src/pages/PacienteDetalhe.tsx` — preview**
-- Já usa `displayWhatsAppPhone` — atualiza sozinho com a nova lógica
+<lov-plan>
 
-### Por que é escalável
-- Funciona para BR (com ou sem DDI cadastrado)
-- Funciona para qualquer país (basta cadastrar com DDI completo)
-- Não força nenhum prefixo → o WhatsApp resolve com base no número
-- Lógica curta, sem ramificações frágeis
-- Zero migração, zero schema, zero peso
+## Diagnóstico
+
+- Paciente atual tem `phone = "11917031359"` (11 dígitos, BR sem DDI).
+- Na última iteração removemos o prefixo `55` automático em `formatWhatsAppPhone`. Resultado: o link vira `api.whatsapp.com/send?phone=11917031359`, que o WhatsApp interpreta como inválido → botão "não funciona".
+- Em `Pacientes.tsx` (linha 160) ainda usa `wa.me/55${phone}` cru, sem validação.
+
+O usuário pediu explicitamente: **se 11 dígitos → prefixar `55`**. Vamos restaurar esse comportamento (era o que funcionava antes).
+
+## Solução (mínima e ágil)
+
+### 1. `src/lib/whatsapp.ts` — restaurar prefixo `55` para BR
+
+`formatWhatsAppPhone`:
+- Remove não-dígitos
+- Se 10 ou 11 dígitos → prefixa `55` (BR sem DDI)
+- Se 12-15 dígitos → usa como está (já tem DDI)
+- Caso contrário → `null`
+
+`openWhatsApp` continua com toast de erro quando inválido (já está bom).
+
+### 2. `src/pages/Pacientes.tsx` — usar `openWhatsApp` no card
+
+Trocar o `window.open('https://wa.me/55...')` cru pelo helper `openWhatsApp(p.phone, "Olá ...")`. Isso valida, prefixa `55`, e mostra toast se inválido. Consistente com o resto do app.
+
+### 3. `src/pages/PacienteDetalhe.tsx` — sem mudança
+
+Já usa `openWhatsApp(patient?.phone, ...)` e `displayWhatsAppPhone`. Vai funcionar automaticamente assim que o helper voltar a prefixar `55`.
+
+### Por que é a melhor forma
+- Restaura o comportamento que o usuário pediu literalmente ("Se o número tiver 11 dígitos, adicione o prefixo 55").
+- Mantém suporte internacional (12-15 dígitos passam intactos).
+- Zero migração, zero schema. Duas funções editadas.
+- Toda a app (Leads, Funil, Follow-up, Agenda, Equipe, Anamnese) se beneficia automaticamente porque já usa `openWhatsApp`.
 
 ### Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| `src/lib/whatsapp.ts` | Remove prefixo `55` automático; `displayWhatsAppPhone` formata por tamanho |
-| `src/pages/Pacientes.tsx` | Mensagem de erro genérica + texto de ajuda |
-
-`PacienteDetalhe.tsx` não precisa de mudança — já consome `displayWhatsAppPhone`.
+| `src/lib/whatsapp.ts` | `formatWhatsAppPhone` volta a prefixar `55` para 10-11 dígitos |
+| `src/pages/Pacientes.tsx` | Card do paciente usa `openWhatsApp` em vez de `window.open` cru |
 
