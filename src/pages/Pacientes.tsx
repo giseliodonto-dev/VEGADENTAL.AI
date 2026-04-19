@@ -47,7 +47,7 @@ export default function Pacientes() {
       if (!clinicId) throw new Error("Clínica não identificada. Recarregue a página.");
       const phoneDigits = phone.replace(/\D+/g, "");
       if (phoneDigits.length < 10) {
-        throw new Error("Telefone precisa ter DDD + número (ex: 11988887777).");
+        throw new Error("Telefone precisa ter DDD + número.");
       }
       const { data, error } = await supabase.from("patients").insert({
         clinic_id: clinicId,
@@ -100,6 +100,9 @@ export default function Pacientes() {
                 <div className="space-y-2">
                   <Label htmlFor="phone">WhatsApp (com DDD)</Label>
                   <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="11988887777" />
+                  <p className="text-xs text-[#103444]/50 leading-snug">
+                    Digite com DDD. Para internacional, inclua o código do país (ex: 5511988887777).
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="occ">Profissão (opcional)</Label>

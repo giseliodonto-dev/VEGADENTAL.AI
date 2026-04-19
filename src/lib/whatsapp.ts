@@ -69,7 +69,7 @@ export function openWhatsApp(phone: string | null | undefined, message: string):
   const phoneWasProvided = phone !== null && phone !== undefined && String(phone).trim() !== "";
   if (phoneWasProvided && !formatWhatsAppPhone(phone)) {
     toast.error("Telefone inválido", {
-      description: "Verifique o cadastro do paciente — precisa de DDD + número (ex: 11988887777).",
+      description: "Verifique o cadastro do paciente — precisa ter entre 8 e 15 dígitos.",
     });
     return;
   }
