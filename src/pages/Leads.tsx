@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Search, UserPlus, MessageCircle, CalendarPlus, ArrowRightCircle,
+  Search, UserPlus, CalendarPlus, ArrowRightCircle,
   Pencil, Loader2, Phone,
 } from "lucide-react";
+import { openWhatsApp as openWA } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -237,8 +239,7 @@ export default function Leads() {
 
   function openWhatsApp(contact: string | null) {
     if (!contact) return toast.error("Lead sem contato cadastrado");
-    const clean = contact.replace(/\D/g, "");
-    window.open(`https://wa.me/55${clean}`, "_blank");
+    openWA(contact, "");
   }
 
   if (clinicLoading) {
@@ -341,7 +342,7 @@ export default function Leads() {
                             onClick={() => openWhatsApp(l.contact)}
                             title="WhatsApp"
                           >
-                            <MessageCircle className="h-4 w-4 text-green-600" />
+                            <WhatsAppIcon size={16} bare bgColor="#16a34a" />
                           </Button>
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"

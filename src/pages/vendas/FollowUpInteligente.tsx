@@ -11,13 +11,14 @@ import {
   ArrowLeft,
   Clock,
   AlertTriangle,
-  MessageCircle,
   Phone,
   CalendarPlus,
   ChevronRight,
   User,
   Zap,
 } from "lucide-react";
+import { openWhatsApp as openWA } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -136,10 +137,9 @@ export default function FollowUpInteligente() {
 
   function openWhatsApp(phone: string | null, name: string) {
     if (!phone) return toast.error("Paciente sem telefone cadastrado");
-    const clean = phone.replace(/\D/g, "");
-    window.open(
-      `https://wa.me/55${clean}?text=Olá ${name}, tudo bem? Estou entrando em contato para dar continuidade ao seu tratamento. Podemos conversar?`,
-      "_blank"
+    openWA(
+      phone,
+      `Olá ${name}, tudo bem? Estou entrando em contato para dar continuidade ao seu tratamento. Podemos conversar?`,
     );
   }
 
@@ -278,7 +278,7 @@ export default function FollowUpInteligente() {
                           className="gap-1.5 text-xs"
                           onClick={() => openWhatsApp(item.patient?.phone || null, item.patient?.name || "")}
                         >
-                          <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                          <WhatsAppIcon size={14} bare bgColor="#16a34a" />
                           WhatsApp
                         </Button>
                         <Button

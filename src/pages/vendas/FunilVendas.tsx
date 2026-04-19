@@ -20,6 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { openWhatsApp as openWA } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -298,27 +300,27 @@ export default function FunilVendas() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-vendas"
-                              title="Follow-up"
+                              title="Follow-up via WhatsApp"
                               onClick={() => {
                                 if (item.patient?.phone) {
-                                  window.open(`https://wa.me/55${item.patient.phone.replace(/\D/g, "")}`, "_blank");
+                                  openWA(item.patient.phone, "");
                                 } else {
                                   toast.info("Paciente sem telefone cadastrado");
                                 }
                               }}
                             >
-                              <Phone className="h-3.5 w-3.5" />
+                              <WhatsAppIcon size={14} bare bgColor="hsl(var(--vendas))" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-vendas"
-                              title="Enviar mensagem"
+                              title="Enviar mensagem via WhatsApp"
                               onClick={() => {
                                 if (item.patient?.phone) {
-                                  window.open(
-                                    `https://wa.me/55${item.patient.phone.replace(/\D/g, "")}?text=Olá ${item.patient.name}, tudo bem?`,
-                                    "_blank"
+                                  openWA(
+                                    item.patient.phone,
+                                    `Olá ${item.patient.name}, tudo bem?`,
                                   );
                                 } else {
                                   toast.info("Paciente sem telefone cadastrado");
