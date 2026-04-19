@@ -327,11 +327,8 @@ export default function PacienteDetalhe() {
   const budgetUrl = lastBudgetToken
     ? `${getPublicAppOrigin()}/orcamento/${lastBudgetToken}`
     : null;
-  const budgetWhatsAppUrl = budgetUrl
-    ? buildWhatsAppUrl(
-        patient?.phone,
-        `Olá${patient?.name ? `, ${patient.name.split(" ")[0]}` : ""}! Segue o seu orçamento de tratamento odontológico no valor de ${fmtBRL(finalValue)}. Acesse e assine pelo link: ${budgetUrl}`,
-      )
+  const budgetMessage = budgetUrl
+    ? `Olá${patient?.name ? `, ${patient.name.split(" ")[0]}` : ""}! Segue o seu orçamento de tratamento odontológico no valor de ${fmtBRL(finalValue)}. Acesse e assine pelo link: ${budgetUrl}`
     : null;
 
   if (isLoading) {
@@ -643,7 +640,7 @@ export default function PacienteDetalhe() {
                       {lastBudgetToken ? "Gerar Novo Orçamento" : "Gerar Aprovação do Plano"}
                     </Button>
 
-                    {budgetUrl && budgetWhatsAppUrl && (
+                    {budgetUrl && budgetMessage && (
                       <div className="rounded-xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 to-white p-4 space-y-3">
                         <div className="flex items-center gap-2">
                           <FileSignature className="h-5 w-5 text-amber-600" />
@@ -664,10 +661,12 @@ export default function PacienteDetalhe() {
                           </Button>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white h-11">
-                            <a href={budgetWhatsAppUrl} target="_blank" rel="noreferrer">
-                              <WhatsAppIcon size={20} /> Enviar Orçamento via WhatsApp
-                            </a>
+                          <Button
+                            type="button"
+                            onClick={() => openWhatsApp(patient?.phone, budgetMessage)}
+                            className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white h-11"
+                          >
+                            <WhatsAppIcon size={20} /> Enviar Orçamento via WhatsApp
                           </Button>
                         </div>
                         {!formatWhatsAppPhone(patient?.phone) && (
