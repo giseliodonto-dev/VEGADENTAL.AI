@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Search, UserPlus, MessageCircle, UserCircle, Briefcase, Loader2, Phone, ChevronRight } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 export default function Pacientes() {
   const queryClient = useQueryClient();
