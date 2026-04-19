@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
-import { formatWhatsAppPhone, openWhatsApp } from "@/lib/whatsapp";
+import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 
@@ -669,9 +669,13 @@ export default function PacienteDetalhe() {
                             <WhatsAppIcon size={20} /> Enviar Orçamento via WhatsApp
                           </Button>
                         </div>
-                        {!formatWhatsAppPhone(patient?.phone) && (
+                        {formatWhatsAppPhone(patient?.phone) ? (
+                          <p className="text-[11px] text-[#103444]/60">
+                            Será enviado para: <span className="font-mono font-semibold text-[#103444]">{displayWhatsAppPhone(patient?.phone)}</span>
+                          </p>
+                        ) : (
                           <p className="text-[11px] text-amber-700 italic">
-                            ⚠️ Paciente sem telefone cadastrado — o WhatsApp abrirá para você escolher o contato.
+                            ⚠️ Telefone do paciente {patient?.phone ? "inválido" : "não cadastrado"} — verifique o cadastro ou o WhatsApp abrirá para escolher o contato.
                           </p>
                         )}
                       </div>
