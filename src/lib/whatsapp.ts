@@ -68,29 +68,41 @@ export function buildWhatsAppUrl(phone: string | null | undefined, message: stri
  * - Fallback para `window.top.location` se pop-up for bloqueado.
  */
 export function openWhatsApp(phone: string | null | undefined, message: string): void {
-  // Se o caller passou um phone (mesmo que vazio string), validar.
-  const phoneWasProvided = phone !== null && phone !== undefined && String(phone).trim() !== "";
-  if (phoneWasProvided && !formatWhatsAppPhone(phone)) {
+  const rawPhone = phone ?? null;
+  const formattedPhone = formatWhatsAppPhone(rawPhone);
+  const phoneWasProvided = rawPhone !== null && rawPhone !== undefined && String(rawPhone).trim() !== "";
+
+  console.log("[WhatsApp] open requested", {
+    rawPhone,
+    formattedPhone,
+    hasMessage: Boolean(message),
+    inIframe: window.top !== window,
+  });
+
+  if (phoneWasProvided && !formattedPhone) {
     toast.error("Telefone inválido", {
-      description: "Verifique o cadastro do paciente — precisa ter entre 8 e 15 dígitos.",
+      description: "Verifique o cadastro do paciente — precisa ter DDD + número ou DDI completo.",
     });
     return;
   }
 
-  const url = buildWhatsAppUrl(phone, message);
+  const url = buildWhatsAppUrl(rawPhone, message);
+
+  try {
+    if (window.top && window.top !== window) {
+      window.top.location.href = url;
+      return;
+    }
+  } catch {
+    // ignored — fallback below
+  }
+
   try {
     const win = window.open(url, "_blank", "noopener,noreferrer");
     if (win) return;
   } catch {
     // ignored — fallback below
   }
-  try {
-    if (window.top) {
-      window.top.location.href = url;
-      return;
-    }
-  } catch {
-    // ignored
-  }
+
   window.location.href = url;
 }
