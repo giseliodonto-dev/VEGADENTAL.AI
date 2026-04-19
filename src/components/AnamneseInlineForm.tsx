@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, ClipboardList, Copy, Send, Save, Plus } from "lucide-react";
+import { Loader2, ClipboardList, Copy, Save, Plus } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -113,8 +115,7 @@ export function AnamneseInlineForm({ patientId, patientPhone, anamnese, isLoadin
   function sendWhatsApp(token: string) {
     if (!patientPhone) return toast.error("Paciente sem telefone");
     const url = `${window.location.origin}/anamnese/${token}`;
-    const msg = encodeURIComponent(`Olá! Por favor, preencha sua anamnese: ${url}`);
-    window.open(`https://wa.me/55${patientPhone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+    openWhatsApp(patientPhone, `Olá! Por favor, preencha sua anamnese: ${url}`);
   }
 
   const statusConfig: Record<string, { label: string; color: string }> = {
@@ -181,7 +182,7 @@ export function AnamneseInlineForm({ patientId, patientPhone, anamnese, isLoadin
             </Button>
             {patientPhone && (
               <Button variant="ghost" size="icon" className="h-8 w-8" title="Enviar WhatsApp" onClick={() => sendWhatsApp(anamnese.public_token)}>
-                <Send className="h-4 w-4" />
+                <WhatsAppIcon size={16} bare bgColor="#16a34a" />
               </Button>
             )}
           </div>

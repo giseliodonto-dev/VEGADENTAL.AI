@@ -20,6 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { openWhatsApp as openWA } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
