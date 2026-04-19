@@ -45,6 +45,10 @@ export default function Pacientes() {
   const addMut = useMutation({
     mutationFn: async () => {
       if (!clinicId) throw new Error("Clínica não identificada. Recarregue a página.");
+      const phoneDigits = phone.replace(/\D+/g, "");
+      if (phoneDigits.length < 10) {
+        throw new Error("Telefone precisa ter DDD + número (ex: 11988887777).");
+      }
       const { data, error } = await supabase.from("patients").insert({
         clinic_id: clinicId,
         name: name.trim(),

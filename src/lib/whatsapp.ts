@@ -3,12 +3,15 @@
  * Usa api.whatsapp.com/send diretamente (em vez de wa.me) para evitar redirects
  * que disparam ERR_BLOCKED_BY_RESPONSE dentro de iframes (preview do Lovable).
  */
+import { toast } from "sonner";
 
 /**
  * Normaliza telefone para o formato aceito pelo WhatsApp.
  * - Remove tudo que não é dígito.
- * - Se tiver 10 ou 11 dígitos (BR sem DDI), prefixa "55".
- * - Retorna null se não for possível formatar.
+ * - 10-11 dígitos (BR sem DDI): prefixa "55".
+ * - 12-13 dígitos começando com "55": usa como está (BR com DDI).
+ * - 12-15 dígitos (DDI internacional): usa como está.
+ * - Caso contrário: retorna null.
  */
 export function formatWhatsAppPhone(raw?: string | null): string | null {
   if (!raw) return null;
@@ -17,6 +20,23 @@ export function formatWhatsAppPhone(raw?: string | null): string | null {
   if (digits.length === 10 || digits.length === 11) return `55${digits}`;
   if (digits.length >= 12 && digits.length <= 15) return digits;
   return null;
+}
+
+/**
+ * Formata para exibição amigável: +55 (11) 98888-7777.
+ * Retorna o próprio input se não conseguir formatar.
+ */
+export function displayWhatsAppPhone(raw?: string | null): string {
+  const formatted = formatWhatsAppPhone(raw);
+  if (!formatted) return raw ?? "";
+  // BR: 55 + DDD(2) + 8 ou 9 dígitos
+  if (formatted.startsWith("55") && (formatted.length === 12 || formatted.length === 13)) {
+    const ddd = formatted.slice(2, 4);
+    const rest = formatted.slice(4);
+    if (rest.length === 9) return `+55 (${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+    return `+55 (${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  }
+  return `+${formatted}`;
 }
 
 /**
@@ -33,10 +53,21 @@ export function buildWhatsAppUrl(phone: string | null | undefined, message: stri
 
 /**
  * Abre o WhatsApp em nova aba/janela de forma programática.
+ * - Se `phone` foi passado mas é inválido, mostra toast de erro e NÃO abre.
+ * - Se `phone` é null/undefined explicitamente, abre WhatsApp genérico.
  * - `window.open(..., "_blank")` força navegação top-level → escapa do iframe e da CSP.
  * - Fallback para `window.top.location` se pop-up for bloqueado.
  */
 export function openWhatsApp(phone: string | null | undefined, message: string): void {
+  // Se o caller passou um phone (mesmo que vazio string), validar.
+  const phoneWasProvided = phone !== null && phone !== undefined && String(phone).trim() !== "";
+  if (phoneWasProvided && !formatWhatsAppPhone(phone)) {
+    toast.error("Telefone inválido", {
+      description: "Verifique o cadastro do paciente — precisa de DDD + número (ex: 11988887777).",
+    });
+    return;
+  }
+
   const url = buildWhatsAppUrl(phone, message);
   try {
     const win = window.open(url, "_blank", "noopener,noreferrer");
