@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
-import { buildWhatsAppUrl, formatWhatsAppPhone } from "@/lib/whatsapp";
+import { formatWhatsAppPhone, openWhatsApp } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 

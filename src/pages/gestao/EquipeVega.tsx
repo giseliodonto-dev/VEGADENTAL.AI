@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -173,8 +173,8 @@ export default function Equipe() {
     toast.success("Link copiado");
   };
 
-  const whatsappUrl = (link: string) =>
-    buildWhatsAppUrl(
+  const sendWhatsApp = (link: string) =>
+    openWhatsApp(
       null,
       `Bem-vindo(a) à equipe da ${clinicName}! Aqui está o seu link de acesso ao Sistema VEGA: ${link}`,
     );
@@ -283,14 +283,12 @@ export default function Equipe() {
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Button asChild className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white">
-                      <a
-                        href={whatsappUrl(generatedLink)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <WhatsAppIcon size={20} /> Enviar via WhatsApp
-                      </a>
+                    <Button
+                      type="button"
+                      onClick={() => sendWhatsApp(generatedLink)}
+                      className="flex-1 gap-2 bg-[#103444] hover:bg-[#0a232d] text-white"
+                    >
+                      <WhatsAppIcon size={20} /> Enviar via WhatsApp
                     </Button>
                     <Button variant="outline" onClick={closeDialog}>
                       Fechar
@@ -339,14 +337,14 @@ export default function Equipe() {
                     >
                       <Copy className="h-4 w-4 mr-1" /> Copiar link
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="gap-1.5">
-                      <a
-                        href={whatsappUrl(linkFor(inv.token))}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <WhatsAppIcon size={16} /> WhatsApp
-                      </a>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() => sendWhatsApp(linkFor(inv.token))}
+                    >
+                      <WhatsAppIcon size={16} /> WhatsApp
                     </Button>
                     <Button
                       size="sm"
