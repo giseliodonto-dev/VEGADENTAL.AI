@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   Clock,
   AlertTriangle,
-  MessageCircle,
   Phone,
   CalendarPlus,
   ChevronRight,
