@@ -21,13 +21,27 @@ export function useClinic() {
 
     setLoading(true);
 
-    supabase
-      .from("clinic_members")
-      .select("clinic_id, role")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        // Auto-accept any pending invites for this user's email BEFORE checking membership
+        if (user.email) {
+          try {
+            await supabase.rpc("accept_pending_invites", {
+              _user_id: user.id,
+              _email: user.email,
+            });
+          } catch (e) {
+            console.warn("accept_pending_invites falhou (ignorado):", e);
+          }
+        }
+
+        const { data, error } = await supabase
+          .from("clinic_members")
+          .select("clinic_id, role")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
         if (error) {
           console.error("Erro ao buscar clínica do usuário:", error);
           setClinicId(null);
@@ -36,9 +50,11 @@ export function useClinic() {
           setClinicId(data?.clinic_id ?? null);
           setRole((data?.role as AppRole) ?? null);
         }
+      } finally {
         setLoading(false);
-      });
-  }, [user?.id]);
+      }
+    })();
+  }, [user?.id, user?.email]);
 
   const createClinic = async (clinicName: string) => {
     if (!user) {
