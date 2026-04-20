@@ -12,6 +12,7 @@ import Marketing from "./pages/Marketing";
 import Financeiro from "./pages/Financeiro";
 import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Convite from "./pages/Convite";
 import NotFound from "./pages/NotFound";
 import VegaGPS from "./pages/VegaGPS";
@@ -59,6 +60,7 @@ const App = () => {
           <Routes>
             {/* Public */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/convite/:token" element={<Convite />} />
             <Route path="/anamnese/:token" element={<AnamnesePublica />} />
             <Route path="/orcamento/:token" element={<OrcamentoPublico />} />

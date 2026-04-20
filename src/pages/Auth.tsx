@@ -16,6 +16,23 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [clinicName, setClinicName] = useState("");
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error("Digite seu e-mail acima para receber o link de redefinição.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Enviamos um link de redefinição para seu e-mail.");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -111,6 +128,15 @@ const Auth = () => {
                 <>{mode === "login" ? "Entrar" : "Criar Conta"}<ArrowRight className="h-4 w-4" /></>
               )}
             </button>
+
+            {mode === "login" && (
+              <div className="text-right">
+                <button type="button" onClick={handleForgotPassword} disabled={loading}
+                  className="text-xs text-slate-500 hover:text-[#103444] font-medium transition-colors disabled:opacity-50">
+                  Esqueci minha senha
+                </button>
+              </div>
+            )}
           </form>
 
           <div className="text-center">
