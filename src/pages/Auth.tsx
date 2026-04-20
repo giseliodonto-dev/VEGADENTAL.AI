@@ -52,15 +52,27 @@ const Auth = () => {
     setLoading(true);
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: fullName } },
+      email,
+      password,
+      options: {
+        data: { full_name: fullName, clinic_name: clinicName.trim() },
+        emailRedirectTo: `${window.location.origin}/`,
+      },
     });
 
-    if (signUpError) { 
-      toast.error(signUpError.message); 
+    if (signUpError) {
+      toast.error(signUpError.message);
     } else {
-      toast.success("Verifique seu e-mail para confirmar o cadastro.");
-      setMode("login");
+      // Persist clinic name so onboarding can auto-create after first login
+      try { localStorage.setItem("pending_clinic_name", clinicName.trim()); } catch {}
+
+      if (signUpData.session) {
+        toast.success("Conta criada! Configurando sua clínica...");
+        navigate("/");
+      } else {
+        toast.success("Verifique seu e-mail para confirmar o cadastro.");
+        setMode("login");
+      }
     }
     setLoading(false);
   };

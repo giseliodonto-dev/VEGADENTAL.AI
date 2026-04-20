@@ -41,14 +41,18 @@ export function useClinic() {
   }, [user?.id]);
 
   const createClinic = async (clinicName: string) => {
-    if (!user) return null;
-    const slug =
+    if (!user) {
+      throw new Error("Sessão não encontrada. Faça login novamente.");
+    }
+    const baseSlug =
       clinicName
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "") || "clinica";
+    // Append short suffix to avoid unique-slug collisions
+    const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
 
     const { data: clinic, error: clinicError } = await supabase
       .from("clinics")
@@ -56,7 +60,10 @@ export function useClinic() {
       .select("id")
       .single();
 
-    if (clinicError) throw clinicError;
+    if (clinicError) {
+      console.error("Falha ao inserir clínica:", clinicError);
+      throw clinicError;
+    }
 
     const { error: memberError } = await supabase
       .from("clinic_members")
@@ -66,7 +73,10 @@ export function useClinic() {
         role: "dono" as const,
       });
 
-    if (memberError) throw memberError;
+    if (memberError) {
+      console.error("Falha ao vincular dono à clínica:", memberError);
+      throw memberError;
+    }
 
     setClinicId(clinic.id);
     setRole("dono");
