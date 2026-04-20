@@ -54,33 +54,19 @@ export function useClinic() {
     // Append short suffix to avoid unique-slug collisions
     const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
 
-    const { data: clinic, error: clinicError } = await supabase
-      .from("clinics")
-      .insert({ name: clinicName.trim(), slug })
-      .select("id")
-      .single();
+    const { data: newClinicId, error: rpcError } = await supabase.rpc(
+      "create_clinic_with_owner",
+      { _name: clinicName.trim(), _slug: slug }
+    );
 
-    if (clinicError) {
-      console.error("Falha ao inserir clínica:", clinicError);
-      throw clinicError;
+    if (rpcError || !newClinicId) {
+      console.error("Falha ao criar clínica:", rpcError);
+      throw rpcError ?? new Error("Não foi possível criar a clínica.");
     }
 
-    const { error: memberError } = await supabase
-      .from("clinic_members")
-      .insert({
-        clinic_id: clinic.id,
-        user_id: user.id,
-        role: "dono" as const,
-      });
-
-    if (memberError) {
-      console.error("Falha ao vincular dono à clínica:", memberError);
-      throw memberError;
-    }
-
-    setClinicId(clinic.id);
+    setClinicId(newClinicId as string);
     setRole("dono");
-    return clinic.id;
+    return newClinicId as string;
   };
 
   return { clinicId, role, loading, createClinic };
