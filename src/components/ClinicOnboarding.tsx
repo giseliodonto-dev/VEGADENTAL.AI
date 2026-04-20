@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -12,21 +12,46 @@ export function ClinicOnboarding() {
   const [clinicName, setClinicName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Pre-fill from signup if available
+  useEffect(() => {
+    try {
+      const pending = localStorage.getItem("pending_clinic_name");
+      if (pending) setClinicName(pending);
+    } catch {}
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!clinicName.trim()) return;
+    const name = clinicName.trim();
+    if (!name) {
+      toast.error("Informe o nome da clínica.");
+      return;
+    }
     setSaving(true);
     try {
-      const newClinicId = await createClinic(clinicName.trim());
-      // Seed default procedures for the new clinic
-      if (newClinicId) {
-        await supabase.rpc("seed_default_procedures", { _clinic_id: newClinicId });
+      const newClinicId = await createClinic(name);
+      if (!newClinicId) {
+        throw new Error("Não foi possível criar a clínica. Tente novamente.");
       }
+      // Seed default procedures (non-blocking)
+      try {
+        await supabase.rpc("seed_default_procedures", { _clinic_id: newClinicId });
+      } catch (seedErr) {
+        console.warn("Seed procedures falhou (não crítico):", seedErr);
+      }
+      try { localStorage.removeItem("pending_clinic_name"); } catch {}
       toast.success("Clínica criada com sucesso!");
-      window.location.reload();
-      window.location.reload();
+      window.location.href = "/";
     } catch (err: any) {
-      toast.error("Erro ao criar clínica: " + (err.message || "Tente novamente"));
+      console.error("Erro ao criar clínica:", err);
+      const msg = err?.message || "";
+      if (msg.includes("row-level security") || msg.includes("policy")) {
+        toast.error("Você já está vinculado a uma clínica. Recarregue a página.");
+      } else if (msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error("Já existe uma clínica com esse nome. Tente outro.");
+      } else {
+        toast.error("Erro ao criar clínica: " + (msg || "Tente novamente"));
+      }
     } finally {
       setSaving(false);
     }
@@ -43,7 +68,7 @@ export function ClinicOnboarding() {
             Bem-vindo ao VEGA
           </h1>
           <p className="text-sm text-muted-foreground">
-            Para começar, cadastre o nome da sua clínica.
+            Para começar, confirme o nome da sua clínica.
           </p>
         </div>
 
