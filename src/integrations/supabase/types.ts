@@ -1043,6 +1043,10 @@ export type Database = {
         Args: { _email: string; _user_id: string }
         Returns: undefined
       }
+      create_clinic_with_owner: {
+        Args: { _name: string; _slug: string }
+        Returns: string
+      }
       get_user_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
       has_clinic_role: {
         Args: {
