@@ -615,12 +615,15 @@ const AgendaVega = () => {
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
-                    {(["confirmado", "faltou", "remarcado", "cancelou"] as const).map((s) => (
+                    {(["confirmado", "faltou", "cancelou"] as const).map((s) => (
                       <Button key={s} variant="outline" size="sm" className="text-xs" disabled={selectedAppointment.status === s}
                         onClick={() => updateStatusMutation.mutate({ id: selectedAppointment.id, status: s })}>
                         {STATUS_CONFIG[s].label}
                       </Button>
                     ))}
+                    <Button variant="outline" size="sm" className="text-xs" onClick={handleReschedule}>
+                      Remarcar
+                    </Button>
                   </div>
                 </div>
               </div>
