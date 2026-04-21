@@ -157,7 +157,7 @@ export default function Pacientes() {
                       <Phone className="h-3 w-3" /> {p.phone || "Sem telefone"}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-3 w-3" /> {p.origin || "Sem profissão"}
+                      <Briefcase className="h-3 w-3" /> Origem: {p.origin || "—"}
                     </div>
                   </div>
                   <div className="mt-4 pt-3 border-t border-[#103444]/5 flex justify-between items-center">
