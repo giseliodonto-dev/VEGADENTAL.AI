@@ -164,17 +164,16 @@ export default function Pacientes() {
                     <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-600">
                       {p.status}
                     </span>
-                    {p.phone && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openWhatsApp(p.phone, `Olá, ${p.name?.split(' ')[0] || ''}! Tudo bem?`);
-                        }}
-                        className="text-green-600 hover:scale-110 transition-transform"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openWhatsApp(p.phone, `Olá, ${p.name?.split(' ')[0] || ''}! Tudo bem?`);
+                      }}
+                      className="text-green-600 hover:scale-110 transition-transform"
+                      title="Enviar WhatsApp"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </button>
                   </div>
                 </CardContent>
               </Card>

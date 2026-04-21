@@ -346,19 +346,17 @@ const AgendaVega = () => {
                                       </span>
                                     )}
                                     <p className="font-medium truncate text-[11px] flex-1">{apt.patient?.name || "—"}</p>
-                                    {formatWhatsAppPhone(apt.patient?.phone) && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
-                                        }}
-                                        title="Confirmar consulta via WhatsApp"
-                                        className="flex-shrink-0 hover:opacity-80 transition-opacity"
-                                      >
-                                        <WhatsAppIcon size={14} />
-                                      </button>
-                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
+                                      }}
+                                      title="Confirmar consulta via WhatsApp"
+                                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                                    >
+                                      <WhatsAppIcon size={14} />
+                                    </button>
                                   </div>
                                   <p className="text-[10px] opacity-70 truncate">{apt.procedure_type || ""}</p>
                                 </div>
@@ -426,19 +424,17 @@ const AgendaVega = () => {
                           <Badge variant="outline" className={`text-[10px] ${STATUS_CONFIG[apt.status]?.color || ""}`}>
                             {STATUS_CONFIG[apt.status]?.label || apt.status}
                           </Badge>
-                          {formatWhatsAppPhone(apt.patient?.phone) && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
-                              }}
-                              title="Confirmar via WhatsApp"
-                              className="flex-shrink-0 hover:opacity-80 transition-opacity"
-                            >
-                              <WhatsAppIcon size={22} />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openWhatsApp(apt.patient?.phone, buildConfirmationMessage(apt));
+                            }}
+                            title="Confirmar via WhatsApp"
+                            className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                          >
+                            <WhatsAppIcon size={22} />
+                          </button>
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => handleOpenNewSlot({ date: dateStr, time: `${hourStr}:00` })}>
@@ -556,20 +552,18 @@ const AgendaVega = () => {
                   {(selectedAppointment.estimated_value ?? 0) > 0 && <p className="text-sm">Valor: R$ {selectedAppointment.estimated_value?.toLocaleString("pt-BR")}</p>}
                   {selectedAppointment.notes && <p className="text-xs text-muted-foreground">{selectedAppointment.notes}</p>}
                 </div>
-                {formatWhatsAppPhone(selectedAppointment.patient?.phone) && (
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      openWhatsApp(
-                        selectedAppointment.patient?.phone,
-                        buildConfirmationMessage(selectedAppointment),
-                      )
-                    }
-                    className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white"
-                  >
-                    <WhatsAppIcon size={20} /> Confirmar via WhatsApp
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  onClick={() =>
+                    openWhatsApp(
+                      selectedAppointment.patient?.phone,
+                      buildConfirmationMessage(selectedAppointment),
+                    )
+                  }
+                  className="w-full gap-2 bg-[#103444] hover:bg-[#0a232d] text-white"
+                >
+                  <WhatsAppIcon size={20} /> Confirmar via WhatsApp
+                </Button>
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
