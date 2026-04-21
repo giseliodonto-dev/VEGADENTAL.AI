@@ -1,108 +1,73 @@
 /**
- * Helpers de integração WhatsApp via api.whatsapp.com (sem dependência de API).
- * Usa api.whatsapp.com/send diretamente (em vez de wa.me) para evitar redirects
- * que disparam ERR_BLOCKED_BY_RESPONSE dentro de iframes (preview do Lovable).
+ * Helper minimalista de WhatsApp via wa.me.
+ * Sem validações bloqueantes — clique sempre abre o WhatsApp do dispositivo
+ * do usuário logado (navegador/celular). O número é normalizado e prefixado
+ * com 55 (Brasil).
  */
-import { toast } from "sonner";
 
-/**
- * Normaliza telefone para o formato aceito pelo WhatsApp.
- * - Remove tudo que não é dígito.
- * - 10-11 dígitos (BR sem DDI): prefixa "55".
- * - 12-13 dígitos começando com "55": usa como está (BR com DDI).
- * - 12-15 dígitos (DDI internacional): usa como está.
- * - Caso contrário: retorna null.
- */
-export function formatWhatsAppPhone(raw?: string | null): string | null {
-  if (!raw) return null;
-  const digits = raw.replace(/\D+/g, "");
-  // BR sem DDI (10 ou 11 dígitos) → prefixa 55
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  // Já tem DDI internacional (12-15 dígitos) → usa como está
-  if (digits.length >= 12 && digits.length <= 15) return digits;
-  return null;
+/** Normaliza telefone removendo tudo que não é dígito. */
+function cleanDigits(raw?: string | null): string {
+  return (raw ?? "").replace(/\D/g, "");
+}
+
+/** Remove prefixo 55 duplicado caso o usuário já tenha cadastrado com DDI. */
+function stripBrazilPrefix(digits: string): string {
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
+    return digits.slice(2);
+  }
+  return digits;
 }
 
 /**
- * Formata para exibição amigável.
- * - 10-11 dígitos (BR sem DDI): (11) 98888-7777
- * - 12-13 dígitos começando com 55 (BR com DDI): +55 (11) 98888-7777
- * - Outros: +<digits>
- * Retorna o próprio input se não conseguir formatar.
+ * Handler puro de WhatsApp. Sempre abre wa.me em nova aba, sem toast de erro
+ * e sem return antecipado. Se o telefone for vazio, abre wa.me sem destino.
  */
-export function displayWhatsAppPhone(raw?: string | null): string {
-  const formatted = formatWhatsAppPhone(raw);
-  if (!formatted) return raw ?? "";
-  if (formatted.length === 10 || formatted.length === 11) {
-    const ddd = formatted.slice(0, 2);
-    const rest = formatted.slice(2);
-    if (rest.length === 9) return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
-    return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
-  }
-  if (formatted.startsWith("55") && (formatted.length === 12 || formatted.length === 13)) {
-    const ddd = formatted.slice(2, 4);
-    const rest = formatted.slice(4);
-    if (rest.length === 9) return `+55 (${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
-    return `+55 (${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
-  }
-  return `+${formatted}`;
+export function handleWhatsapp(phone: string | null | undefined, message: string): void {
+  const digits = stripBrazilPrefix(cleanDigits(phone));
+  const text = encodeURIComponent(message);
+  const url = digits
+    ? `https://wa.me/55${digits}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+  window.open(url, "_blank");
 }
 
+/** Alias para compatibilidade com imports existentes. */
+export const openWhatsApp = handleWhatsapp;
+
 /**
- * Constrói URL canônica do WhatsApp. Se `phone` for null/undefined, gera link
- * genérico (usuário escolhe o contato no WhatsApp).
+ * Constrói URL canônica do WhatsApp (wa.me). Útil para componentes que
+ * precisam do href direto (links, share buttons).
  */
 export function buildWhatsAppUrl(phone: string | null | undefined, message: string): string {
-  const formatted = formatWhatsAppPhone(phone ?? null);
+  const digits = stripBrazilPrefix(cleanDigits(phone));
   const text = encodeURIComponent(message);
-  return formatted
-    ? `https://api.whatsapp.com/send?phone=${formatted}&text=${text}`
-    : `https://api.whatsapp.com/send?text=${text}`;
+  return digits
+    ? `https://wa.me/55${digits}?text=${text}`
+    : `https://wa.me/?text=${text}`;
 }
 
 /**
- * Abre o WhatsApp em nova aba/janela de forma programática.
- * - Se `phone` foi passado mas é inválido, mostra toast de erro e NÃO abre.
- * - Se `phone` é null/undefined explicitamente, abre WhatsApp genérico.
- * - `window.open(..., "_blank")` força navegação top-level → escapa do iframe e da CSP.
- * - Fallback para `window.top.location` se pop-up for bloqueado.
+ * Normaliza telefone para exibição/persistência (apenas dígitos, sem validação).
+ * Mantido para compatibilidade — retorna null se vazio.
  */
-export function openWhatsApp(phone: string | null | undefined, message: string): void {
-  const rawPhone = phone ?? null;
-  const formattedPhone = formatWhatsAppPhone(rawPhone);
-  const phoneWasProvided = rawPhone !== null && rawPhone !== undefined && String(rawPhone).trim() !== "";
+export function formatWhatsAppPhone(raw?: string | null): string | null {
+  const digits = cleanDigits(raw);
+  return digits || null;
+}
 
-  console.log("[WhatsApp] open requested", {
-    rawPhone,
-    formattedPhone,
-    hasMessage: Boolean(message),
-    inIframe: window.top !== window,
-  });
-
-  if (phoneWasProvided && !formattedPhone) {
-    toast.error("Telefone inválido", {
-      description: "Verifique o cadastro do paciente — precisa ter DDD + número ou DDI completo.",
-    });
-    return;
+/**
+ * Formata para exibição amigável (não-bloqueante: nunca falha, sempre devolve
+ * algo legível).
+ */
+export function displayWhatsAppPhone(raw?: string | null): string {
+  const digits = cleanDigits(raw);
+  if (!digits) return raw ?? "";
+  const local = stripBrazilPrefix(digits);
+  if (local.length === 11) {
+    return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
   }
-
-  const url = buildWhatsAppUrl(rawPhone, message);
-
-  try {
-    if (window.top && window.top !== window) {
-      window.top.location.href = url;
-      return;
-    }
-  } catch {
-    // ignored — fallback below
+  if (local.length === 10) {
+    return `(${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`;
   }
-
-  try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (win) return;
-  } catch {
-    // ignored — fallback below
-  }
-
-  window.location.href = url;
+  return `+${digits}`;
 }

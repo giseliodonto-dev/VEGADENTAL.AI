@@ -113,7 +113,6 @@ export function AnamneseInlineForm({ patientId, patientPhone, anamnese, isLoadin
   }
 
   function sendWhatsApp(token: string) {
-    if (!patientPhone) return toast.error("Paciente sem telefone");
     const url = `${window.location.origin}/anamnese/${token}`;
     openWhatsApp(patientPhone, `Olá! Por favor, preencha sua anamnese: ${url}`);
   }
