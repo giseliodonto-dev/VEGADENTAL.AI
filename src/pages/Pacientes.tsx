@@ -47,19 +47,24 @@ export default function Pacientes() {
 
   const addMut = useMutation({
     mutationFn: async () => {
-      if (!clinicId) throw new Error("Clínica não identificada. Recarregue a página.");
+      if (clinicLoading) throw new Error("Aguarde, carregando dados da clínica...");
+      if (!clinicId) throw new Error("Sua conta não está vinculada a nenhuma clínica. Recarregue a página ou contate o suporte.");
       const phoneDigits = phone.replace(/\D+/g, "");
       if (phoneDigits.length < 10) {
         throw new Error("Telefone precisa ter DDD + número.");
       }
-      const { data, error } = await supabase.from("patients").insert({
+      const payload = {
         clinic_id: clinicId,
         name: name.trim(),
         phone: phone.trim(),
         origin: occupation.trim() || null,
         status: 'lead'
-      }).select().single();
-      if (error) throw error;
+      };
+      const { data, error } = await supabase.from("patients").insert(payload).select().single();
+      if (error) {
+        console.error('[Pacientes] insert error', error, { clinicId, payload });
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => {
@@ -69,7 +74,10 @@ export default function Pacientes() {
       setName(""); setPhone(""); setOccupation("");
       if (data?.id) navigate(`/pacientes/${data.id}`);
     },
-    onError: (e: any) => toast.error("Erro ao salvar: " + e.message)
+    onError: (e: any) => {
+      const msg = e?.message || e?.details || e?.hint || 'Erro desconhecido';
+      toast.error("Erro ao salvar: " + msg);
+    }
   });
 
   return (
