@@ -9,10 +9,23 @@ export function useAuth() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Fire-and-forget: aceita convites pendentes em qualquer login
+        if (event === "SIGNED_IN" && session?.user?.email) {
+          const uid = session.user.id;
+          const email = session.user.email;
+          setTimeout(() => {
+            supabase
+              .rpc("accept_pending_invites", { _user_id: uid, _email: email })
+              .then(({ error }) => {
+                if (error) console.warn("accept_pending_invites (auth):", error);
+              });
+          }, 0);
+        }
       }
     );
 

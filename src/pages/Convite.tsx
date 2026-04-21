@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
@@ -27,6 +28,7 @@ const Convite = () => {
   const [clinicName, setClinicName] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [mode, setMode] = useState<"signup" | "signin">("signup");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -52,7 +54,6 @@ const Convite = () => {
       setInvite(data);
       setEmail(data.email);
 
-      // Fetch clinic name
       const { data: clinic } = await supabase
         .from("clinics")
         .select("name")
@@ -65,12 +66,26 @@ const Convite = () => {
     loadInvite();
   }, [token]);
 
+  async function acceptAndGo(userId: string, userEmail: string) {
+    const { error: rpcError } = await supabase.rpc("accept_pending_invites", {
+      _user_id: userId,
+      _email: userEmail,
+    });
+    if (rpcError) {
+      console.error(rpcError);
+      toast.error("Conta criada, mas houve erro ao vincular à clínica. Faça login novamente.");
+      navigate("/auth");
+      return;
+    }
+    toast.success(`Bem-vindo(a) à ${clinicName}!`);
+    window.location.href = "/";
+  }
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invite) return;
     setSubmitting(true);
 
-    // 1. Create account
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: invite.email,
       password,
@@ -81,30 +96,48 @@ const Convite = () => {
     });
 
     if (signUpError) {
+      // Caso já tenha conta, oferecer login
+      if (signUpError.message?.toLowerCase().includes("registered") || signUpError.message?.toLowerCase().includes("already")) {
+        toast.info("Esta conta já existe. Faça login para aceitar o convite.");
+        setMode("signin");
+        setSubmitting(false);
+        return;
+      }
       toast.error(signUpError.message);
       setSubmitting(false);
       return;
     }
 
-    // If email confirmation required
-    if (signUpData.user && !signUpData.session) {
-      toast.success("Verifique seu e-mail para confirmar o cadastro. Após confirmar, faça login normalmente.");
-      setSuccess(true);
+    if (signUpData.user && signUpData.session) {
+      await acceptAndGo(signUpData.user.id, invite.email);
       setSubmitting(false);
       return;
     }
 
-    // 2. If auto-confirmed, accept invite via secure RPC
-    if (signUpData.user && signUpData.session) {
-      await supabase.rpc("accept_pending_invites", {
-        _user_id: signUpData.user.id,
-        _email: invite.email,
-      });
+    // Fallback: confirmação de email ainda ativa
+    if (signUpData.user && !signUpData.session) {
+      setSuccess(true);
+      setSubmitting(false);
+    }
+  };
 
-      toast.success("Conta criada e vinculada à clínica com sucesso!");
-      navigate("/");
+  const handleSignin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invite) return;
+    setSubmitting(true);
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: invite.email,
+      password,
+    });
+
+    if (signInError || !signInData.session) {
+      toast.error(signInError?.message || "Não foi possível entrar.");
+      setSubmitting(false);
+      return;
     }
 
+    await acceptAndGo(signInData.user.id, invite.email);
     setSubmitting(false);
   };
 
@@ -157,58 +190,86 @@ const Convite = () => {
             Convite para {clinicName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Você foi convidado como <strong>{roleLabels[invite?.role] || invite?.role}</strong>. Crie sua conta para acessar o sistema.
+            Você foi convidado como <strong>{roleLabels[invite?.role] || invite?.role}</strong>.
           </p>
         </div>
 
         <div className="card-premium p-8">
-          <form onSubmit={handleSignup} className="space-y-5">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Seu nome completo
-              </Label>
-              <Input
-                type="text"
-                placeholder="Dr. João Silva"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                E-mail
-              </Label>
-              <Input
-                type="email"
-                value={email}
-                disabled
-                className="h-11 bg-muted"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Senha
-              </Label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="h-11"
-              />
-            </div>
-            <Button type="submit" className="w-full h-11 gap-2" disabled={submitting}>
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>Criar Conta e Entrar<ArrowRight className="h-4 w-4" /></>
-              )}
-            </Button>
-          </form>
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "signup" | "signin")}>
+            <TabsList className="grid grid-cols-2 w-full mb-6">
+              <TabsTrigger value="signup">Criar conta</TabsTrigger>
+              <TabsTrigger value="signin">Já tenho conta</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Seu nome completo
+                  </Label>
+                  <Input
+                    type="text"
+                    placeholder="Dr. João Silva"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    E-mail
+                  </Label>
+                  <Input type="email" value={email} disabled className="h-11 bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Senha
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="h-11"
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11 gap-2" disabled={submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Criar Conta e Entrar<ArrowRight className="h-4 w-4" /></>}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signin">
+              <form onSubmit={handleSignin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    E-mail
+                  </Label>
+                  <Input type="email" value={email} disabled className="h-11 bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Senha
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Sua senha atual"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="h-11"
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11 gap-2" disabled={submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Entrar e Aceitar Convite<ArrowRight className="h-4 w-4" /></>}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,39 @@ import { toast } from "sonner";
 
 export function ClinicOnboarding() {
   const { createClinic } = useClinic();
+  const { user } = useAuth();
   const [clinicName, setClinicName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [checkingInvite, setCheckingInvite] = useState(true);
+
+  // Verifica convites pendentes antes de mostrar tela de criação
+  useEffect(() => {
+    (async () => {
+      if (!user?.email) { setCheckingInvite(false); return; }
+      try {
+        const { data: pending } = await supabase
+          .from("invites")
+          .select("id")
+          .eq("email", user.email)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle();
+
+        if (pending) {
+          await supabase.rpc("accept_pending_invites", {
+            _user_id: user.id,
+            _email: user.email,
+          });
+          toast.success("Convite aceito! Entrando na clínica...");
+          window.location.href = "/";
+          return;
+        }
+      } catch (e) {
+        console.warn("Verificação de convite falhou:", e);
+      }
+      setCheckingInvite(false);
+    })();
+  }, [user?.id, user?.email]);
 
   // Pre-fill from signup if available
   useEffect(() => {
@@ -19,6 +51,14 @@ export function ClinicOnboarding() {
       if (pending) setClinicName(pending);
     } catch {}
   }, []);
+
+  if (checkingInvite) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
