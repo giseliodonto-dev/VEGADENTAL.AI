@@ -500,16 +500,30 @@ const AgendaVega = () => {
           </div>
         )}
 
-        {/* Dialog: New Appointment */}
-        <Dialog open={!!selectedSlot} onOpenChange={() => setSelectedSlot(null)}>
+        {/* Dialog: New Appointment / Reschedule */}
+        <Dialog open={!!selectedSlot} onOpenChange={(open) => { if (!open) { setSelectedSlot(null); setIsRescheduling(false); } }}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo Agendamento</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{isRescheduling ? "Remarcar Agendamento" : "Novo Agendamento"}</DialogTitle>
+            </DialogHeader>
             {selectedSlot && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(selectedSlot.date + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR })} às {selectedSlot.time}
-                </p>
+                {isRescheduling && (
+                  <p className="text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded-md p-2">
+                    O agendamento original foi marcado como <b>remarcado</b>. Defina a nova data e horário abaixo.
+                  </p>
+                )}
                 <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Data</Label>
+                      <Input type="date" value={newForm.date} onChange={(e) => setNewForm((f) => ({ ...f, date: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Horário</Label>
+                      <Input type="time" value={newForm.time} onChange={(e) => setNewForm((f) => ({ ...f, time: e.target.value }))} />
+                    </div>
+                  </div>
                   <div>
                     <Label className="text-xs">Paciente</Label>
                     <Select value={newForm.patient_id} onValueChange={(v) => setNewForm((f) => ({ ...f, patient_id: v }))}>
@@ -555,9 +569,9 @@ const AgendaVega = () => {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedSlot(null)}>Cancelar</Button>
-              <Button onClick={() => selectedSlot && createMutation.mutate(selectedSlot)} disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Salvando..." : "Agendar"}
+              <Button variant="outline" onClick={() => { setSelectedSlot(null); setIsRescheduling(false); }}>Cancelar</Button>
+              <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !newForm.date || !newForm.time}>
+                {createMutation.isPending ? "Salvando..." : (isRescheduling ? "Confirmar remarcação" : "Agendar")}
               </Button>
             </DialogFooter>
           </DialogContent>
