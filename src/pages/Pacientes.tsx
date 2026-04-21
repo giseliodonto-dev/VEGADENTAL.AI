@@ -53,11 +53,11 @@ export default function Pacientes() {
         throw new Error("Telefone precisa ter DDD + número.");
       }
       const payload = {
-        clinic_id: clinicId,
         name: name.trim(),
         phone: phone.trim(),
-        origin: occupation.trim() || null,
-        status: 'lead'
+        clinic_id: clinicId,
+        origin: "indicacao",
+        status: "em_avaliacao",
       };
       const { data, error } = await supabase.from("patients").insert(payload).select().single();
       if (error) {
@@ -70,7 +70,7 @@ export default function Pacientes() {
       toast.success("Paciente cadastrado! Abrindo ficha completa...");
       queryClient.invalidateQueries({ queryKey: ["patients-list"] });
       setIsAddOpen(false);
-      setName(""); setPhone(""); setOccupation("");
+      setName(""); setPhone("");
       if (data?.id) navigate(`/pacientes/${data.id}`);
     },
     onError: (e: any) => {
