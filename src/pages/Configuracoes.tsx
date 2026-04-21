@@ -66,17 +66,8 @@ const Configuracoes = () => {
   }
 
   function handleTestWhatsApp() {
-    const digits = normalizedPhone();
-    if (!digits) {
-      toast.error("Cadastre um número antes de testar");
-      return;
-    }
-    if (digits.length < 10) {
-      toast.error("Número inválido", { description: "Inclua DDD + número (ou DDI completo)." });
-      return;
-    }
     toast("Abrindo WhatsApp...");
-    openWhatsApp(digits, "Teste de integração VEGA Dental AI ✅");
+    openWhatsApp(normalizedPhone(), "Teste de integração VEGA Dental AI ✅");
   }
 
   async function handleSave() {

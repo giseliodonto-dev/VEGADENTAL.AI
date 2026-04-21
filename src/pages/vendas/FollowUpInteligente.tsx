@@ -136,7 +136,6 @@ export default function FollowUpInteligente() {
   }
 
   function openWhatsApp(phone: string | null, name: string) {
-    if (!phone) return toast.error("Paciente sem telefone cadastrado");
     openWA(
       phone,
       `Olá ${name}, tudo bem? Estou entrando em contato para dar continuidade ao seu tratamento. Podemos conversar?`,
