@@ -1,78 +1,54 @@
 
-## Resposta direta
 
-Sim, vai dar certo — mas preciso ser honesto sobre o que essa correção entrega e o que ela **não** entrega, para você decidir com clareza.
+## Objetivo
 
-## O que a correção atual resolve
+Liberar visualmente os horários da Agenda quando um agendamento for **cancelado** ou **remarcado**, mantendo os registros no banco para histórico/KPIs. Ajustar o fluxo de "Remarcar" para abrir um novo agendamento na nova data e marcar o antigo como `remarcado`.
 
-O erro `ERR_BLOCKED_BY_RESPONSE` que você viu acontece **só dentro do preview do Lovable** (iframe). No app publicado em `vegadental.com.br` ou no celular do usuário, `wa.me` funciona normal.
+## Diagnóstico
 
-A correção troca `wa.me` por:
-- **Desktop:** `https://web.whatsapp.com/send?phone=...&text=...` → abre WhatsApp Web direto
-- **Celular:** `whatsapp://send?phone=...&text=...` → abre o app nativo
+- Os status reais no código são: `confirmado`, `faltou`, `remarcado`, `cancelou` (a tabela `appointments` aceita texto livre — sem CHECK constraint).
+- Hoje a query da agenda traz **todos** os status, então `cancelou` e `remarcado` ainda aparecem ocupando a célula da grade (com estilo riscado/amarelo).
+- KPIs (`activeAppts`) já filtram `cancelou`, mas **não filtram `remarcado`**. Vou incluir.
+- Não há fluxo dedicado de "Remarcar" — clicar em "Remarcado" hoje só muda o status. Vou transformar em ação composta.
 
-Resultado: clique no botão → WhatsApp abre com mensagem pronta → o **usuário logado aperta enviar manualmente**.
+## Mudanças (apenas em `src/pages/gestao/AgendaVega.tsx`)
 
-## O que NÃO é (importante)
+### 1. Filtro de exibição na query
+Na `useQuery` de `agenda` (linha 109), adicionar:
+```ts
+.not("status", "in", "(cancelou,remarcado)")
+```
+Resultado: cancelados e remarcados deixam de ser carregados na grade. A célula fica visualmente livre e clicável para novo agendamento.
 
-Isso **não é integração de API do WhatsApp**. É um link inteligente. Significa:
+### 2. KPIs e ocupação
+- `activeAppts` (linha 221) passa a filtrar **ambos** `cancelou` e `remarcado` (já que a query agora exclui, o filtro vira redundante mas mantenho como defesa).
+- "Slots Livres" passa a refletir corretamente os horários liberados.
 
-| O que funciona | O que NÃO funciona |
+### 3. Botão "Remarcado" no diálogo de detalhes — vira ação de remarcação
+Substituir o botão simples atual (linha 570-575) por um fluxo:
+1. Atualiza o agendamento atual para `status = 'remarcado'` (preserva histórico).
+2. Fecha o diálogo de detalhes.
+3. Pré-preenche `newForm` com os dados do agendamento original (paciente, dentista, procedimento, valor, duração, observações).
+4. Abre o diálogo de **Novo Agendamento** com `selectedSlot` apontando para a mesma data/hora — o usuário troca para a nova data/hora desejada antes de salvar.
+
+Para permitir trocar data/hora no diálogo de novo agendamento, adicionar dois inputs (`date` e `time`) no formulário quando o slot for de remarcação. Hoje o diálogo só mostra a data/hora como texto fixo — vou permitir edição via dois `<Input type="date">` e `<Input type="time">` dentro do dialog.
+
+### 4. Disponibilidade ao clicar em célula
+Como a query já exclui cancelados/remarcados, `apts.length === 0` voltará `true` nessas células — o clique abre o diálogo de novo agendamento normalmente. Nenhuma checagem extra de disponibilidade é necessária (não existe lock de slot no app hoje).
+
+### 5. Histórico preservado
+Nada é deletado. Os registros com `status = cancelou` e `status = remarcado` continuam no banco e podem ser usados em qualquer relatório/KPI futuro de cancelamento (ex: já dá para query separada por `status` em outras telas como Inteligência ou GPS).
+
+## Arquivo alterado
+
+| Arquivo | Mudança |
 |---|---|
-| Abre WhatsApp com mensagem pronta | Envio automático sem clique humano |
-| Funciona no celular e desktop | Disparo em massa programado |
-| Zero custo, zero configuração | Receber respostas dentro do VEGA |
-| Sem risco de bloqueio de número | Confirmação automática de agendamento |
-| | Bot/IA respondendo sozinho |
+| `src/pages/gestao/AgendaVega.tsx` | Filtrar `cancelou` e `remarcado` da query da grade; transformar botão "Remarcado" em fluxo de remarcação (status antigo → `remarcado` + abre novo agendamento com dados pré-preenchidos e data/hora editáveis) |
 
-Cada mensagem precisa de **um clique humano** para sair. Para 5-50 mensagens/dia isso é ótimo. Para 500+/dia ou automação real, precisa de API oficial (Meta WhatsApp Business API ou Z-API).
+## O que NÃO muda
 
-## Decisão que preciso de você
+- Schema do banco, RLS, outras telas.
+- Status `confirmado` e `faltou` continuam visíveis na grade (faltas precisam ficar visíveis para gestão do dia).
+- Helper `openWhatsApp` e demais botões.
+- Registros no banco — tudo preservado para KPIs futuros.
 
-Qual cenário descreve o que você quer no VEGA?
-
-**Cenário A — Link inteligente (o que vamos fazer agora)**
-Recepção/dentista clica no botão, WhatsApp abre com texto pronto, ela aperta enviar. Funciona hoje, sem custo, sem API.
-
-**Cenário B — Automação real via API oficial**
-VEGA dispara mensagens sozinho (lembrete 24h antes da consulta, follow-up automático, confirmação sem ninguém clicar). Precisa contratar Meta Cloud API ou Z-API (R$ 50-200/mês), configurar webhook, número dedicado, aprovação de templates.
-
-## Plano de execução do Cenário A (agora)
-
-### 1. `src/lib/whatsapp.ts` — substituir motor de URL
-- Detectar mobile vs desktop via `navigator.userAgent`
-- Mobile → `whatsapp://send?phone=55<digits>&text=<encoded>`
-- Desktop → `https://web.whatsapp.com/send?phone=55<digits>&text=<encoded>`
-- **Zero** ocorrência de `wa.me` ou `api.whatsapp.com` no código
-- Sem validação bloqueante, sem toast de erro
-
-### 2. Botões sempre visíveis e como link direto
-
-| Arquivo | Ajuste |
-|---|---|
-| `src/pages/gestao/AgendaVega.tsx` | Botão "Confirmar via WhatsApp" vira `<a href={buildWhatsAppUrl(...)} target="_blank">` nos 3 lugares (card desktop, card mobile, modal). Sem `if (phone)` escondendo. |
-| `src/pages/Pacientes.tsx` | Botão WhatsApp do card sempre visível |
-| `src/pages/Leads.tsx` | Remover `if (!contact) return toast.error(...)` |
-| `src/pages/OrcamentoPublico.tsx` | Trocar `window.open('https://wa.me/...')` por helper novo |
-| `src/pages/PacienteDetalhe.tsx` | Usar helper novo para envio de orçamento |
-| `src/components/AnamneseInlineForm.tsx` | Usar helper novo |
-| `src/pages/vendas/FollowUpInteligente.tsx` | Usar helper novo |
-| `src/pages/Configuracoes.tsx` | Botão "Testar WhatsApp" usa helper novo |
-| `src/pages/gestao/EquipeVega.tsx` | Convites usam helper novo |
-
-### 3. Verificação final
-Após as mudanças, busca global por `wa.me`, `api.whatsapp.com` e `whatsapp.com/send` deve retornar **zero** resultados fora do helper central.
-
-## Resultado esperado
-
-- Você abre o app **publicado** (`vegadental.com.br`) ou em celular
-- Clica em "Confirmar via WhatsApp" na Agenda
-- WhatsApp Web (desktop) ou app nativo (celular) abre com a mensagem pronta endereçada ao paciente
-- Você aperta enviar
-- Mensagem chega normal, sem bloqueio, sem erro
-
-**Importante:** dentro do preview do Lovable o `web.whatsapp.com` também pode tentar bloquear iframe — o teste real deve ser feito no app publicado ou abrindo o link em nova aba.
-
-## Me responde antes de eu executar
-
-Você quer **Cenário A agora** (link inteligente, resolve o erro, sem custo) e depois avaliamos Cenário B se precisar de automação real? Ou já quer pular direto para integração de API oficial?
