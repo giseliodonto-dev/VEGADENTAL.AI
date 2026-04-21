@@ -1,30 +1,111 @@
 
-## Diagnóstico
+## Objetivo
 
-O erro ao cadastrar paciente em `/pacientes` tem causa clara olhando o código atual + RLS:
+Corrigir definitivamente o erro `violates check constraint "patients_origin_check"` no cadastro rápido de pacientes, ajustando o payload enviado para o banco conforme as constraints reais da tabela `patients`.
 
-1. **`useQuery` sem filtro por clínica**: o `select("*")` em `patients` não filtra por `clinic_id` e roda sempre, mesmo sem clínica carregada. Não causa o erro de salvar, mas pode poluir cache.
-2. **Race condition no clinicId**: `useClinic` tem estado `loading`, mas `Pacientes.tsx` não usa. Se o usuário abre o modal antes de `clinicId` estar pronto, o insert dispara com `clinicId = null` → cai na guarda "Clínica não identificada" OU vai pro Supabase e bate na RLS `Members can insert patients` (`clinic_id IN get_user_clinic_ids(auth.uid())`) → erro 403 genérico.
-3. **Mensagem de erro pobre**: `e.message` às vezes vem vazio em erros de RLS, escondendo a causa real.
+## Causa confirmada
 
-## Correções
+No arquivo `src/pages/Pacientes.tsx`, o cadastro rápido está enviando:
 
-### `src/pages/Pacientes.tsx`
-- Importar `loading` do `useClinic` junto com `clinicId`.
-- Filtrar a query de pacientes por `clinic_id` e habilitá-la só quando `clinicId` existir (`enabled: !!clinicId`, queryKey inclui `clinicId`).
-- Desabilitar o botão "Novo Paciente" enquanto `loading` ou `!clinicId`, com tooltip/label adequado ("Carregando clínica..." / "Sem clínica vinculada").
-- No `addMut`:
-  - Guarda dupla: se `loading` → "Aguarde, carregando dados da clínica"; se `!clinicId` → "Sua conta não está vinculada a nenhuma clínica. Recarregue a página ou contate o suporte".
-  - Manter insert mínimo: `{ clinic_id, name, phone, origin, status: 'lead' }` + `.select().single()` + `navigate(/pacientes/${data.id})`.
-  - `onError` mostra `e.message || e.details || e.hint || 'Erro desconhecido'` e loga `console.error('[Pacientes] insert error', e, { clinicId, payload })` para diagnóstico futuro.
-  - Modal permanece aberto em erro (já é o comportamento — confirmar).
-- Desabilitar botão "Cadastrar e abrir ficha" também quando `!clinicId || loading`.
+```ts
+origin: occupation.trim() || null,
+status: 'lead'
+```
 
-## Arquivos
+Isso quebra quando o campo “Profissão” recebe textos como `Advogada`, `Dentista`, etc., porque a coluna `origin` aceita apenas valores padronizados em minúsculo:
 
-| Arquivo | Mudança |
+```text
+instagram, indicacao, google, facebook, whatsapp, site, outros
+```
+
+## Mudanças que serão aplicadas
+
+### 1. Ajustar o payload do cadastro rápido
+
+Em `src/pages/Pacientes.tsx`, trocar o objeto enviado no insert para usar somente os campos essenciais e válidos:
+
+```ts
+const payload = {
+  name: name.trim(),
+  phone: phone.trim(),
+  clinic_id: clinicId,
+  origin: "indicacao",
+  status: "em_avaliacao",
+};
+```
+
+O fluxo continuará sendo:
+
+```ts
+const { data, error } = await supabase
+  .from("patients")
+  .insert(payload)
+  .select()
+  .single();
+
+if (error) throw error;
+
+navigate(`/pacientes/${data.id}`);
+```
+
+### 2. Ignorar “Profissão” no insert
+
+O campo `Profissão` não existe na tabela `patients`.
+
+Por isso, ele não será mais enviado como `origin`.
+
+Para evitar confusão, o cadastro rápido deixará de tratar “Profissão” como origem do paciente. A criação rápida ficará focada em:
+
+- Nome completo
+- WhatsApp
+- Clínica vinculada automaticamente
+- Origem padrão: `indicacao`
+- Status inicial: `em_avaliacao`
+
+### 3. Garantir textos em minúsculo
+
+Os valores fixos enviados serão exatamente:
+
+```ts
+origin: "indicacao"
+status: "em_avaliacao"
+```
+
+Ambos em minúsculo e compatíveis com as constraints do banco.
+
+### 4. Manter tratamento de erro correto
+
+Se o banco rejeitar o cadastro por qualquer outro motivo:
+
+- O modal continuará aberto.
+- O toast exibirá a mensagem real do erro.
+- O console continuará registrando o payload e o erro para diagnóstico.
+
+### 5. Atualizar exibição na lista
+
+Como `origin` representa a origem do paciente, e não profissão, a listagem deixará de sugerir “Profissão”.
+
+A exibição será ajustada para algo como:
+
+```text
+Origem: indicação
+```
+
+em vez de:
+
+```text
+Sem profissão
+```
+
+## Arquivo alterado
+
+| Arquivo | Alteração |
 |---|---|
-| `src/pages/Pacientes.tsx` | Usa `loading` do `useClinic`, query filtrada por `clinicId`, botões bloqueados até clínica carregar, mensagens de erro detalhadas, log do payload no console |
+| `src/pages/Pacientes.tsx` | Corrigir payload do insert, remover uso de profissão como `origin`, usar `origin: "indicacao"` e `status: "em_avaliacao"` |
 
-## O que NÃO muda
-- Banco de dados, RLS, função `create_clinic_with_owner`, `useClinic`, schema da tabela `patients`.
+## O que não será alterado
+
+- Não será feita mudança no banco de dados.
+- Não será alterada a RLS.
+- Não será criado campo novo de profissão.
+- Não será exigido CPF, endereço ou outros campos complexos no cadastro rápido.
