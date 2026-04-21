@@ -15,7 +15,7 @@ import { openWhatsApp } from "@/lib/whatsapp";
 
 export default function Pacientes() {
   const queryClient = useQueryClient();
-  const { clinicId } = useClinic();
+  const { clinicId, loading: clinicLoading } = useClinic();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -25,11 +25,13 @@ export default function Pacientes() {
   const [occupation, setOccupation] = useState("");
 
   const { data: patients = [], isLoading } = useQuery({
-    queryKey: ["patients-list"],
+    queryKey: ["patients-list", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
         .select("*")
+        .eq("clinic_id", clinicId!)
         .order("name", { ascending: true });
       if (error) throw error;
       return data;
@@ -45,19 +47,24 @@ export default function Pacientes() {
 
   const addMut = useMutation({
     mutationFn: async () => {
-      if (!clinicId) throw new Error("Clínica não identificada. Recarregue a página.");
+      if (clinicLoading) throw new Error("Aguarde, carregando dados da clínica...");
+      if (!clinicId) throw new Error("Sua conta não está vinculada a nenhuma clínica. Recarregue a página ou contate o suporte.");
       const phoneDigits = phone.replace(/\D+/g, "");
       if (phoneDigits.length < 10) {
         throw new Error("Telefone precisa ter DDD + número.");
       }
-      const { data, error } = await supabase.from("patients").insert({
+      const payload = {
         clinic_id: clinicId,
         name: name.trim(),
         phone: phone.trim(),
         origin: occupation.trim() || null,
         status: 'lead'
-      }).select().single();
-      if (error) throw error;
+      };
+      const { data, error } = await supabase.from("patients").insert(payload).select().single();
+      if (error) {
+        console.error('[Pacientes] insert error', error, { clinicId, payload });
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => {
@@ -67,7 +74,10 @@ export default function Pacientes() {
       setName(""); setPhone(""); setOccupation("");
       if (data?.id) navigate(`/pacientes/${data.id}`);
     },
-    onError: (e: any) => toast.error("Erro ao salvar: " + e.message)
+    onError: (e: any) => {
+      const msg = e?.message || e?.details || e?.hint || 'Erro desconhecido';
+      toast.error("Erro ao salvar: " + msg);
+    }
   });
 
   return (
@@ -85,8 +95,13 @@ export default function Pacientes() {
           </div>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="h-12 bg-[#103444] hover:bg-[#0a232d] gap-2 px-6 shadow-lg border border-amber-500/60">
-                <UserPlus className="h-5 w-5" /> Novo Paciente
+              <Button
+                className="h-12 bg-[#103444] hover:bg-[#0a232d] gap-2 px-6 shadow-lg border border-amber-500/60"
+                disabled={clinicLoading || !clinicId}
+                title={clinicLoading ? "Carregando clínica..." : !clinicId ? "Sem clínica vinculada" : ""}
+              >
+                <UserPlus className="h-5 w-5" />
+                {clinicLoading ? "Carregando..." : !clinicId ? "Sem clínica" : "Novo Paciente"}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -112,9 +127,9 @@ export default function Pacientes() {
                 <Button
                   className="w-full bg-[#103444] h-12 mt-4 border border-amber-500/60"
                   onClick={() => addMut.mutate()}
-                  disabled={!name || !phone || addMut.isPending}
+                  disabled={!name || !phone || addMut.isPending || clinicLoading || !clinicId}
                 >
-                  {addMut.isPending ? <Loader2 className="animate-spin h-5 w-5" /> : "Cadastrar e abrir ficha"}
+                  {addMut.isPending ? <Loader2 className="animate-spin h-5 w-5" /> : clinicLoading ? "Carregando clínica..." : !clinicId ? "Sem clínica vinculada" : "Cadastrar e abrir ficha"}
                 </Button>
               </div>
             </DialogContent>
