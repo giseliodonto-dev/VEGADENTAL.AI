@@ -22,7 +22,6 @@ export default function Pacientes() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [occupation, setOccupation] = useState("");
 
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients-list", clinicId],
