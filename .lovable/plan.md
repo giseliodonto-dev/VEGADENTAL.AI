@@ -1,63 +1,30 @@
 
-
 ## Diagnóstico
 
-O usuário pediu prefixar `55` automaticamente para 11 dígitos — isso reverte parcialmente a decisão anterior. Vou ler `PacienteDetalhe.tsx` rapidamente para ver onde o botão WhatsApp está sendo renderizado e confirmar de onde vem o `phone`.
-<lov-tool-use id="toolu_vrtx_01C3rU5dJa6HcTSPRNfop4LY" name="code--search_files" integration-id="code" data="{\"query\": \"openWhatsApp|wa\\\\.me|patient\\\\.phone|patient\\\\.telefone\", \"include_patterns\": \"src/pages/PacienteDetalhe.tsx\"}">
-</lov-tool-use>
+O erro ao cadastrar paciente em `/pacientes` tem causa clara olhando o código atual + RLS:
 
-<lov-tool-use id="toolu_vrtx_01XSp2BZaJYbu1ytboRs3cYo" name="code--search_files" integration-id="code" data="{\"query\": \"openWhatsApp|wa\\\\.me|patient\\\\.phone|patient\\\\.telefone|displayWhatsAppPhone\", \"include_patterns\": \"src/pages/PacienteDetalhe.tsx,src/pages/Pacientes.tsx\"}">
-</lov-tool-use>
+1. **`useQuery` sem filtro por clínica**: o `select("*")` em `patients` não filtra por `clinic_id` e roda sempre, mesmo sem clínica carregada. Não causa o erro de salvar, mas pode poluir cache.
+2. **Race condition no clinicId**: `useClinic` tem estado `loading`, mas `Pacientes.tsx` não usa. Se o usuário abre o modal antes de `clinicId` estar pronto, o insert dispara com `clinicId = null` → cai na guarda "Clínica não identificada" OU vai pro Supabase e bate na RLS `Members can insert patients` (`clinic_id IN get_user_clinic_ids(auth.uid())`) → erro 403 genérico.
+3. **Mensagem de erro pobre**: `e.message` às vezes vem vazio em erros de RLS, escondendo a causa real.
 
-<lov-tool-use id="toolu_vrtx_01NnteXUdPM3FDYNsjoC19pL" name="code--view" integration-id="code" data="{\"file_path\": \"src/pages/PacienteDetalhe.tsx\", \"lines\": \"630-700\"}">
-</lov-tool-use>
-Já vi o suficiente. Vou checar o telefone real do paciente atual e a linha em Pacientes.tsx.
-<lov-tool-use id="toolu_vrtx_019CDzGnKWZyJNm6cSASu3qY" name="supabase--read_query" integration-id="supabase" data="{\"query\": \"SELECT id, name, phone FROM patients WHERE id = '012cdc1e-38e7-4929-9068-89b957472835';\"}">
-</lov-tool-use>
-Telefone existe e tem 11 dígitos (`11917031359`), válido. Então `formatWhatsAppPhone` retorna `11917031359` (puro, sem 55). O WhatsApp pode não reconhecer porque falta DDI no link (`api.whatsapp.com/send?phone=11917031359` fica ambíguo — WhatsApp espera E.164).
+## Correções
 
-Aqui está o ponto: na rodada anterior removemos o `55` automático "para escalabilidade", mas isso quebrou justamente os números BR sem DDI. Agora o usuário quer voltar ao comportamento clássico `wa.me/55<numero>`.
+### `src/pages/Pacientes.tsx`
+- Importar `loading` do `useClinic` junto com `clinicId`.
+- Filtrar a query de pacientes por `clinic_id` e habilitá-la só quando `clinicId` existir (`enabled: !!clinicId`, queryKey inclui `clinicId`).
+- Desabilitar o botão "Novo Paciente" enquanto `loading` ou `!clinicId`, com tooltip/label adequado ("Carregando clínica..." / "Sem clínica vinculada").
+- No `addMut`:
+  - Guarda dupla: se `loading` → "Aguarde, carregando dados da clínica"; se `!clinicId` → "Sua conta não está vinculada a nenhuma clínica. Recarregue a página ou contate o suporte".
+  - Manter insert mínimo: `{ clinic_id, name, phone, origin, status: 'lead' }` + `.select().single()` + `navigate(/pacientes/${data.id})`.
+  - `onError` mostra `e.message || e.details || e.hint || 'Erro desconhecido'` e loga `console.error('[Pacientes] insert error', e, { clinicId, payload })` para diagnóstico futuro.
+  - Modal permanece aberto em erro (já é o comportamento — confirmar).
+- Desabilitar botão "Cadastrar e abrir ficha" também quando `!clinicId || loading`.
 
-<lov-plan>
-
-## Diagnóstico
-
-- Paciente atual tem `phone = "11917031359"` (11 dígitos, BR sem DDI).
-- Na última iteração removemos o prefixo `55` automático em `formatWhatsAppPhone`. Resultado: o link vira `api.whatsapp.com/send?phone=11917031359`, que o WhatsApp interpreta como inválido → botão "não funciona".
-- Em `Pacientes.tsx` (linha 160) ainda usa `wa.me/55${phone}` cru, sem validação.
-
-O usuário pediu explicitamente: **se 11 dígitos → prefixar `55`**. Vamos restaurar esse comportamento (era o que funcionava antes).
-
-## Solução (mínima e ágil)
-
-### 1. `src/lib/whatsapp.ts` — restaurar prefixo `55` para BR
-
-`formatWhatsAppPhone`:
-- Remove não-dígitos
-- Se 10 ou 11 dígitos → prefixa `55` (BR sem DDI)
-- Se 12-15 dígitos → usa como está (já tem DDI)
-- Caso contrário → `null`
-
-`openWhatsApp` continua com toast de erro quando inválido (já está bom).
-
-### 2. `src/pages/Pacientes.tsx` — usar `openWhatsApp` no card
-
-Trocar o `window.open('https://wa.me/55...')` cru pelo helper `openWhatsApp(p.phone, "Olá ...")`. Isso valida, prefixa `55`, e mostra toast se inválido. Consistente com o resto do app.
-
-### 3. `src/pages/PacienteDetalhe.tsx` — sem mudança
-
-Já usa `openWhatsApp(patient?.phone, ...)` e `displayWhatsAppPhone`. Vai funcionar automaticamente assim que o helper voltar a prefixar `55`.
-
-### Por que é a melhor forma
-- Restaura o comportamento que o usuário pediu literalmente ("Se o número tiver 11 dígitos, adicione o prefixo 55").
-- Mantém suporte internacional (12-15 dígitos passam intactos).
-- Zero migração, zero schema. Duas funções editadas.
-- Toda a app (Leads, Funil, Follow-up, Agenda, Equipe, Anamnese) se beneficia automaticamente porque já usa `openWhatsApp`.
-
-### Arquivos
+## Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| `src/lib/whatsapp.ts` | `formatWhatsAppPhone` volta a prefixar `55` para 10-11 dígitos |
-| `src/pages/Pacientes.tsx` | Card do paciente usa `openWhatsApp` em vez de `window.open` cru |
+| `src/pages/Pacientes.tsx` | Usa `loading` do `useClinic`, query filtrada por `clinicId`, botões bloqueados até clínica carregar, mensagens de erro detalhadas, log do payload no console |
 
+## O que NÃO muda
+- Banco de dados, RLS, função `create_clinic_with_owner`, `useClinic`, schema da tabela `patients`.
