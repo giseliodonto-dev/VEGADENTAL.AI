@@ -85,7 +85,8 @@ const AgendaVega = () => {
   const [filterDentist, setFilterDentist] = useState<string>("all");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
+  const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [mobileDay, setMobileDay] = useState(0);
 
   // Auto-select logged-in user as dentist when opening new appointment dialog
@@ -95,7 +96,9 @@ const AgendaVega = () => {
       patient_id: "", procedure_type: "", estimated_value: "",
       dentist_user_id: userIsDentist ? user!.id : "",
       duration_minutes: "60", notes: "",
+      date: slot.date, time: slot.time,
     });
+    setIsRescheduling(false);
     setSelectedSlot(slot);
   };
 
@@ -112,6 +115,7 @@ const AgendaVega = () => {
         .eq("clinic_id", clinicId)
         .gte("date", format(weekStart, "yyyy-MM-dd"))
         .lte("date", format(weekEnd, "yyyy-MM-dd"))
+        .not("status", "in", "(cancelou,remarcado)")
         .order("time");
       if (filterDentist !== "all") q = q.eq("dentist_user_id", filterDentist);
       const { data } = await q;
@@ -161,12 +165,15 @@ const AgendaVega = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (slot: { date: string; time: string }) => {
+    mutationFn: async () => {
       if (!clinicId) throw new Error("Sem clínica");
+      const date = newForm.date || selectedSlot?.date;
+      const time = newForm.time || selectedSlot?.time;
+      if (!date || !time) throw new Error("Data e horário obrigatórios");
       const { error } = await supabase.from("appointments").insert({
         clinic_id: clinicId,
-        date: slot.date,
-        time: slot.time,
+        date,
+        time,
         status: "confirmado",
         patient_id: newForm.patient_id || null,
         procedure_type: newForm.procedure_type || null,
@@ -179,9 +186,10 @@ const AgendaVega = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda"] });
-      toast.success("Agendamento criado!");
+      toast.success(isRescheduling ? "Remarcado com sucesso!" : "Agendamento criado!");
       setSelectedSlot(null);
-      setNewForm({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
+      setIsRescheduling(false);
+      setNewForm({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
     },
     onError: (e: any) => {
       console.error("Erro ao criar agendamento:", e);
@@ -201,6 +209,32 @@ const AgendaVega = () => {
     },
   });
 
+  // Reschedule flow: mark old as 'remarcado' + open new appointment dialog pre-filled
+  const handleReschedule = async () => {
+    if (!selectedAppointment) return;
+    const old = selectedAppointment;
+    const { error } = await supabase.from("appointments").update({ status: "remarcado" }).eq("id", old.id);
+    if (error) {
+      toast.error("Erro ao marcar como remarcado: " + error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["agenda"] });
+    toast.info("Agendamento antigo marcado como remarcado. Escolha a nova data/hora.");
+    setNewForm({
+      patient_id: old.patient_id || "",
+      procedure_type: old.procedure_type || "",
+      estimated_value: old.estimated_value != null ? String(old.estimated_value) : "",
+      dentist_user_id: old.dentist_user_id || "",
+      duration_minutes: old.duration_minutes != null ? String(old.duration_minutes) : "60",
+      notes: old.notes || "",
+      date: old.date,
+      time: old.time.substring(0, 5),
+    });
+    setSelectedAppointment(null);
+    setIsRescheduling(true);
+    setSelectedSlot({ date: old.date, time: old.time.substring(0, 5) });
+  };
+
   // Multi-dentist appointment map: key → array
   const appointmentMap = useMemo(() => {
     const map: Record<string, Appointment[]> = {};
@@ -218,7 +252,7 @@ const AgendaVega = () => {
   const totalSlots = filterDentist === "all"
     ? DAYS_COUNT * SLOTS_PER_DAY * numDentists
     : DAYS_COUNT * SLOTS_PER_DAY;
-  const activeAppts = appointments.filter((a) => a.status !== "cancelou");
+  const activeAppts = appointments.filter((a) => a.status !== "cancelou" && a.status !== "remarcado");
   const occupied = activeAppts.length;
   const occupancyRate = totalSlots > 0 ? Math.round((occupied / totalSlots) * 100) : 0;
   const estimatedProduction = activeAppts.reduce((s, a) => s + (a.estimated_value || 0), 0);
@@ -466,16 +500,30 @@ const AgendaVega = () => {
           </div>
         )}
 
-        {/* Dialog: New Appointment */}
-        <Dialog open={!!selectedSlot} onOpenChange={() => setSelectedSlot(null)}>
+        {/* Dialog: New Appointment / Reschedule */}
+        <Dialog open={!!selectedSlot} onOpenChange={(open) => { if (!open) { setSelectedSlot(null); setIsRescheduling(false); } }}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo Agendamento</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{isRescheduling ? "Remarcar Agendamento" : "Novo Agendamento"}</DialogTitle>
+            </DialogHeader>
             {selectedSlot && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(selectedSlot.date + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR })} às {selectedSlot.time}
-                </p>
+                {isRescheduling && (
+                  <p className="text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded-md p-2">
+                    O agendamento original foi marcado como <b>remarcado</b>. Defina a nova data e horário abaixo.
+                  </p>
+                )}
                 <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Data</Label>
+                      <Input type="date" value={newForm.date} onChange={(e) => setNewForm((f) => ({ ...f, date: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Horário</Label>
+                      <Input type="time" value={newForm.time} onChange={(e) => setNewForm((f) => ({ ...f, time: e.target.value }))} />
+                    </div>
+                  </div>
                   <div>
                     <Label className="text-xs">Paciente</Label>
                     <Select value={newForm.patient_id} onValueChange={(v) => setNewForm((f) => ({ ...f, patient_id: v }))}>
@@ -521,9 +569,9 @@ const AgendaVega = () => {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedSlot(null)}>Cancelar</Button>
-              <Button onClick={() => selectedSlot && createMutation.mutate(selectedSlot)} disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Salvando..." : "Agendar"}
+              <Button variant="outline" onClick={() => { setSelectedSlot(null); setIsRescheduling(false); }}>Cancelar</Button>
+              <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !newForm.date || !newForm.time}>
+                {createMutation.isPending ? "Salvando..." : (isRescheduling ? "Confirmar remarcação" : "Agendar")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -567,12 +615,15 @@ const AgendaVega = () => {
                 <div>
                   <p className="text-xs font-medium mb-2">Alterar status:</p>
                   <div className="flex flex-wrap gap-2">
-                    {(["confirmado", "faltou", "remarcado", "cancelou"] as const).map((s) => (
+                    {(["confirmado", "faltou", "cancelou"] as const).map((s) => (
                       <Button key={s} variant="outline" size="sm" className="text-xs" disabled={selectedAppointment.status === s}
                         onClick={() => updateStatusMutation.mutate({ id: selectedAppointment.id, status: s })}>
                         {STATUS_CONFIG[s].label}
                       </Button>
                     ))}
+                    <Button variant="outline" size="sm" className="text-xs" onClick={handleReschedule}>
+                      Remarcar
+                    </Button>
                   </div>
                 </div>
               </div>
