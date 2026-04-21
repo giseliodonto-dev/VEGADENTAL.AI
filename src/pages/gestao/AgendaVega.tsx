@@ -164,12 +164,15 @@ const AgendaVega = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (slot: { date: string; time: string }) => {
+    mutationFn: async () => {
       if (!clinicId) throw new Error("Sem clínica");
+      const date = newForm.date || selectedSlot?.date;
+      const time = newForm.time || selectedSlot?.time;
+      if (!date || !time) throw new Error("Data e horário obrigatórios");
       const { error } = await supabase.from("appointments").insert({
         clinic_id: clinicId,
-        date: slot.date,
-        time: slot.time,
+        date,
+        time,
         status: "confirmado",
         patient_id: newForm.patient_id || null,
         procedure_type: newForm.procedure_type || null,
@@ -182,9 +185,10 @@ const AgendaVega = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda"] });
-      toast.success("Agendamento criado!");
+      toast.success(isRescheduling ? "Remarcado com sucesso!" : "Agendamento criado!");
       setSelectedSlot(null);
-      setNewForm({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
+      setIsRescheduling(false);
+      setNewForm({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
     },
     onError: (e: any) => {
       console.error("Erro ao criar agendamento:", e);
@@ -203,6 +207,32 @@ const AgendaVega = () => {
       setSelectedAppointment(null);
     },
   });
+
+  // Reschedule flow: mark old as 'remarcado' + open new appointment dialog pre-filled
+  const handleReschedule = async () => {
+    if (!selectedAppointment) return;
+    const old = selectedAppointment;
+    const { error } = await supabase.from("appointments").update({ status: "remarcado" }).eq("id", old.id);
+    if (error) {
+      toast.error("Erro ao marcar como remarcado: " + error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["agenda"] });
+    toast.info("Agendamento antigo marcado como remarcado. Escolha a nova data/hora.");
+    setNewForm({
+      patient_id: old.patient_id || "",
+      procedure_type: old.procedure_type || "",
+      estimated_value: old.estimated_value != null ? String(old.estimated_value) : "",
+      dentist_user_id: old.dentist_user_id || "",
+      duration_minutes: old.duration_minutes != null ? String(old.duration_minutes) : "60",
+      notes: old.notes || "",
+      date: old.date,
+      time: old.time.substring(0, 5),
+    });
+    setSelectedAppointment(null);
+    setIsRescheduling(true);
+    setSelectedSlot({ date: old.date, time: old.time.substring(0, 5) });
+  };
 
   // Multi-dentist appointment map: key → array
   const appointmentMap = useMemo(() => {
