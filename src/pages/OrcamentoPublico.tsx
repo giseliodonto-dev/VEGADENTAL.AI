@@ -108,12 +108,8 @@ export default function OrcamentoPublico() {
   };
 
   const handleWhatsApp = () => {
-    if (!patient?.phone) { toast.error("Paciente sem telefone cadastrado"); return; }
-    const phone = patient.phone.replace(/\D/g, "");
-    const msg = encodeURIComponent(
-      `Olá ${patient.name.split(" ")[0]}, segue seu plano de tratamento da ${clinic?.name || "clínica"}:\n\n${window.location.href}\n\nValor: R$ ${Number(budget.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-    );
-    window.open(`https://wa.me/55${phone}?text=${msg}`, "_blank");
+    const message = `Olá ${patient?.name?.split(" ")[0] || ""}, segue seu plano de tratamento da ${clinic?.name || "clínica"}:\n\n${window.location.href}\n\nValor: R$ ${Number(budget.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    openWhatsApp(patient?.phone, message);
   };
 
   if (isLoading) {

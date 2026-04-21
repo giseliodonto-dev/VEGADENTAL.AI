@@ -238,7 +238,6 @@ export default function Leads() {
   }
 
   function openWhatsApp(contact: string | null) {
-    if (!contact) return toast.error("Lead sem contato cadastrado");
     openWA(contact, "");
   }
 
