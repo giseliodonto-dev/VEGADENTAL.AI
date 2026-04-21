@@ -1,7 +1,7 @@
 import {
   Home, TrendingUp, Megaphone, BarChart3, Crown,
   Settings, LogOut, Contact, Compass, Brain,
-  CalendarCheck, GraduationCap, Wallet, Users
+  CalendarCheck, GraduationCap, Wallet, Users, Sparkles
 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
@@ -67,6 +67,7 @@ export function AppSidebar() {
             <SidebarMenuItem><SidebarMenuButton asChild><NavLink to="/vendas"><TrendingUp className="h-4 w-4 text-vendas" />{!collapsed && <span>Vendas</span>}</NavLink></SidebarMenuButton></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuButton asChild><NavLink to="/marketing"><Megaphone className="h-4 w-4 text-marketing" />{!collapsed && <span>Marketing</span>}</NavLink></SidebarMenuButton></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuButton asChild><NavLink to="/gps"><Compass className="h-4 w-4 text-vendas" />{!collapsed && <span>GPS</span>}</NavLink></SidebarMenuButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton asChild><NavLink to="/mentora"><Sparkles className="h-4 w-4 text-gold" />{!collapsed && <span>Mentor de IA</span>}</NavLink></SidebarMenuButton></SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
