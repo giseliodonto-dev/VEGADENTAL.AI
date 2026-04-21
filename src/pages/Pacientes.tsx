@@ -95,8 +95,13 @@ export default function Pacientes() {
           </div>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="h-12 bg-[#103444] hover:bg-[#0a232d] gap-2 px-6 shadow-lg border border-amber-500/60">
-                <UserPlus className="h-5 w-5" /> Novo Paciente
+              <Button
+                className="h-12 bg-[#103444] hover:bg-[#0a232d] gap-2 px-6 shadow-lg border border-amber-500/60"
+                disabled={clinicLoading || !clinicId}
+                title={clinicLoading ? "Carregando clínica..." : !clinicId ? "Sem clínica vinculada" : ""}
+              >
+                <UserPlus className="h-5 w-5" />
+                {clinicLoading ? "Carregando..." : !clinicId ? "Sem clínica" : "Novo Paciente"}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
