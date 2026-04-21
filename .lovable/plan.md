@@ -1,54 +1,100 @@
 
-
 ## Objetivo
 
-Liberar visualmente os horários da Agenda quando um agendamento for **cancelado** ou **remarcado**, mantendo os registros no banco para histórico/KPIs. Ajustar o fluxo de "Remarcar" para abrir um novo agendamento na nova data e marcar o antigo como `remarcado`.
+Criar a página **Mentor de IA** (`/mentora`) como uma biblioteca curada de scripts de alta conversão, organizada em 4 categorias (Vendas, Gestão, Posicionamento, Melhoria), com personalização via IA e disparo direto pelo WhatsApp.
 
-## Diagnóstico
+## Estrutura da página
 
-- Os status reais no código são: `confirmado`, `faltou`, `remarcado`, `cancelou` (a tabela `appointments` aceita texto livre — sem CHECK constraint).
-- Hoje a query da agenda traz **todos** os status, então `cancelou` e `remarcado` ainda aparecem ocupando a célula da grade (com estilo riscado/amarelo).
-- KPIs (`activeAppts`) já filtram `cancelou`, mas **não filtram `remarcado`**. Vou incluir.
-- Não há fluxo dedicado de "Remarcar" — clicar em "Remarcado" hoje só muda o status. Vou transformar em ação composta.
-
-## Mudanças (apenas em `src/pages/gestao/AgendaVega.tsx`)
-
-### 1. Filtro de exibição na query
-Na `useQuery` de `agenda` (linha 109), adicionar:
-```ts
-.not("status", "in", "(cancelou,remarcado)")
+```text
+┌─────────────────────────────────────────────────────────┐
+│ Header: "Mentor de IA"  +  subtítulo Quiet Luxury       │
+├─────────────────────────────────────────────────────────┤
+│ 🔍 Barra: "Qual situação você precisa resolver agora?"  │
+│           [busca semântica via IA + filtro local]       │
+├─────────────────────────────────────────────────────────┤
+│ Tabs: Vendas | Gestão | Posicionamento | Melhoria       │
+├─────────────────────────────────────────────────────────┤
+│ Grid de cards (borda dourada fina):                     │
+│  ┌──────────────────────────┐                           │
+│  │ Título                   │                           │
+│  │ Por que funciona (Neuro) │                           │
+│  │ ───────                  │                           │
+│  │ Texto do script          │                           │
+│  │ [Personalizar com IA]    │                           │
+│  │ [Copiar] [WhatsApp]      │                           │
+│  └──────────────────────────┘                           │
+└─────────────────────────────────────────────────────────┘
 ```
-Resultado: cancelados e remarcados deixam de ser carregados na grade. A célula fica visualmente livre e clicável para novo agendamento.
 
-### 2. KPIs e ocupação
-- `activeAppts` (linha 221) passa a filtrar **ambos** `cancelou` e `remarcado` (já que a query agora exclui, o filtro vira redundante mas mantenho como defesa).
-- "Slots Livres" passa a refletir corretamente os horários liberados.
+## Arquivos a criar/alterar
 
-### 3. Botão "Remarcado" no diálogo de detalhes — vira ação de remarcação
-Substituir o botão simples atual (linha 570-575) por um fluxo:
-1. Atualiza o agendamento atual para `status = 'remarcado'` (preserva histórico).
-2. Fecha o diálogo de detalhes.
-3. Pré-preenche `newForm` com os dados do agendamento original (paciente, dentista, procedimento, valor, duração, observações).
-4. Abre o diálogo de **Novo Agendamento** com `selectedSlot` apontando para a mesma data/hora — o usuário troca para a nova data/hora desejada antes de salvar.
+### 1. `src/pages/MentoraVega.tsx` (novo)
+- 4 tabs (`Tabs` shadcn) — Vendas, Gestão, Posicionamento, Melhoria.
+- Catálogo de scripts hardcoded em `src/data/mentorScripts.ts` (estrutura abaixo).
+- Barra de busca (`Input`) com 2 modos:
+  - **Filtro local** instantâneo por título/texto/tags.
+  - Botão **"Buscar com IA"** → chama edge function que retorna IDs de scripts mais relevantes para a situação descrita ("paciente achou caro" → scripts de objeção de preço).
+- Cada `ScriptCard`:
+  - Título (Plus Jakarta Sans, dourado).
+  - "Por que funciona" em itálico, texto pequeno.
+  - Bloco de script em `<pre>` legível, fundo `bg-muted/30`.
+  - Diálogo **Personalizar com IA**: pede `nome do paciente`, `procedimento`, `valor` (opcional) → chama edge function → substitui placeholders e retorna versão final.
+  - **Copiar** → clipboard + toast.
+  - **WhatsApp** → usa `openWhatsApp(clinicPhone, script)` do `@/lib/whatsapp`.
+- Estilo: card com `border border-gold/30`, hover `border-gold/60` + leve `shadow-md`. Fundo `bg-card`. Radius `rounded-xl`.
 
-Para permitir trocar data/hora no diálogo de novo agendamento, adicionar dois inputs (`date` e `time`) no formulário quando o slot for de remarcação. Hoje o diálogo só mostra a data/hora como texto fixo — vou permitir edição via dois `<Input type="date">` e `<Input type="time">` dentro do dialog.
+### 2. `src/data/mentorScripts.ts` (novo)
+Tipo:
+```ts
+type MentorScript = {
+  id: string;
+  category: "vendas" | "gestao" | "posicionamento" | "melhoria";
+  subcategory: string; // ex: "Quebra de Objeção: Preço"
+  title: string;
+  why: string;        // Neurovendas — por que funciona
+  body: string;       // texto com placeholders {{nome}}, {{procedimento}}, {{valor}}
+  tags: string[];     // para busca local
+};
+```
+Catálogo inicial (~20 scripts), divididos:
+- **Vendas**: Prospecção fria, Reativação de inativo, Quebra de objeção (preço, tempo, marido/esposa, "vou pensar"), Fechamento alto ticket, Resgate de orçamento parado (3, 7, 14 dias).
+- **Gestão**: Alinhamento de meta com secretária, Feedback construtivo, Cobrança elegante de inadimplente, Comunicado interno de mudança, Reunião 1:1.
+- **Posicionamento**: Boas-vindas VIP, Explicação de diferenciais (case "Resort Chic"), Justificativa de valor premium, Apresentação do dentista.
+- **Melhoria**: Pedido de depoimento, Pedido de indicação ativa, Aniversário/fidelização, Follow-up pós-tratamento.
 
-### 4. Disponibilidade ao clicar em célula
-Como a query já exclui cancelados/remarcados, `apts.length === 0` voltará `true` nessas células — o clique abre o diálogo de novo agendamento normalmente. Nenhuma checagem extra de disponibilidade é necessária (não existe lock de slot no app hoje).
+### 3. `supabase/functions/mentor-ai/index.ts` (novo edge function)
+- Verbo único; recebe `{ action: "personalize" | "search", payload }`.
+- `personalize`: recebe script + dados do paciente → chama Lovable AI Gateway (`google/gemini-3-flash-preview`) com system prompt VEGA (tom Quiet Luxury, sem emojis exagerados) → retorna texto final.
+- `search`: recebe situação livre + lista de títulos+tags → IA retorna array de IDs em ordem de relevância (tool calling com schema).
+- CORS, tratamento de 429/402, sem `verify_jwt` adicional (default Lovable).
 
-### 5. Histórico preservado
-Nada é deletado. Os registros com `status = cancelou` e `status = remarcado` continuam no banco e podem ser usados em qualquer relatório/KPI futuro de cancelamento (ex: já dá para query separada por `status` em outras telas como Inteligência ou GPS).
+### 4. Roteamento e navegação
+- `src/App.tsx`: adicionar rota `/mentora` → `<ProtectedRoute><MentoraVega /></ProtectedRoute>`.
+- `src/components/AppSidebar.tsx`: adicionar item de menu "Mentor de IA" com ícone `Sparkles` ou `BookOpenText` (lucide), agrupado com Vega tools.
 
-## Arquivo alterado
+## Dados que a página consome
 
-| Arquivo | Mudança |
+| Origem | Uso |
 |---|---|
-| `src/pages/gestao/AgendaVega.tsx` | Filtrar `cancelou` e `remarcado` da query da grade; transformar botão "Remarcado" em fluxo de remarcação (status antigo → `remarcado` + abre novo agendamento com dados pré-preenchidos e data/hora editáveis) |
+| `useClinic()` | `clinic.phone` para o botão WhatsApp |
+| `mentorScripts.ts` | Catálogo estático (versionado em código, fácil de expandir) |
+| Edge function `mentor-ai` | Personalização e busca semântica |
 
-## O que NÃO muda
+## Estética Quiet Luxury
 
-- Schema do banco, RLS, outras telas.
-- Status `confirmado` e `faltou` continuam visíveis na grade (faltas precisam ficar visíveis para gestão do dia).
-- Helper `openWhatsApp` e demais botões.
-- Registros no banco — tudo preservado para KPIs futuros.
+- Tabs: underline dourado no ativo, hover `text-foreground`.
+- Cards: `border-gold/30 hover:border-gold/60 transition`.
+- Tipografia: títulos `font-plus-jakarta`, corpo `font-inter`.
+- Sem emoji, sem gradientes berrantes. Botão WhatsApp em `variant="outline"` com ícone `WhatsAppIcon` existente, botão "Personalizar com IA" em `variant="gold"`.
+- Spacing generoso (`gap-6`, `p-6`).
 
+## O que NÃO entra
+
+- Marketing (terá página própria, conforme pedido).
+- Persistência de scripts editados (apenas clipboard e WhatsApp).
+- Edição/criação de scripts pelo usuário (V2).
+- Banco de dados — catálogo é estático em código.
+
+## Resultado
+
+Dentista abre `/mentora`, escolhe categoria ou digita "paciente achou caro" → IA filtra os 3 scripts de objeção de preço → clica "Personalizar com IA", informa nome e procedimento → recebe texto pronto → clica WhatsApp → abre conversa no número da clínica com o script completo já colado.
