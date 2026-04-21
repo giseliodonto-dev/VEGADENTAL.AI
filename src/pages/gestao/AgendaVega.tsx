@@ -85,7 +85,8 @@ const AgendaVega = () => {
   const [filterDentist, setFilterDentist] = useState<string>("all");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "" });
+  const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [mobileDay, setMobileDay] = useState(0);
 
   // Auto-select logged-in user as dentist when opening new appointment dialog
@@ -95,7 +96,9 @@ const AgendaVega = () => {
       patient_id: "", procedure_type: "", estimated_value: "",
       dentist_user_id: userIsDentist ? user!.id : "",
       duration_minutes: "60", notes: "",
+      date: slot.date, time: slot.time,
     });
+    setIsRescheduling(false);
     setSelectedSlot(slot);
   };
 
