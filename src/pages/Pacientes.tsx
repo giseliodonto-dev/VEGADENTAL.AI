@@ -119,10 +119,6 @@ export default function Pacientes() {
                     Digite com DDD. Para internacional, inclua o código do país (ex: 5511988887777).
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="occ">Profissão (opcional)</Label>
-                  <Input id="occ" value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="Ex: Advogada" />
-                </div>
                 <Button
                   className="w-full bg-[#103444] h-12 mt-4 border border-amber-500/60"
                   onClick={() => addMut.mutate()}
