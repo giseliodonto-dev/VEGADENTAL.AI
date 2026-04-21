@@ -67,7 +67,7 @@ export default function Equipe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clinics")
-        .select("name")
+        .select("name, phone")
         .eq("id", clinicId!)
         .single();
       if (error) throw error;
@@ -76,6 +76,7 @@ export default function Equipe() {
     enabled: !!clinicId,
   });
   const clinicName = clinic?.name ?? "nossa clínica";
+  const clinicPhone = (clinic?.phone ?? "").replace(/\D+/g, "") || null;
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("dentista");
@@ -173,11 +174,17 @@ export default function Equipe() {
     toast.success("Link copiado");
   };
 
-  const sendWhatsApp = (link: string) =>
+  const sendWhatsApp = (link: string) => {
+    if (!clinicPhone) {
+      toast.message("Telefone da clínica não cadastrado", {
+        description: "Abrindo WhatsApp sem destinatário. Cadastre em Configurações para enviar direto.",
+      });
+    }
     openWhatsApp(
-      null,
+      clinicPhone,
       `Bem-vindo(a) à equipe da ${clinicName}! Aqui está o seu link de acesso ao Sistema VEGA: ${link}`,
     );
+  };
 
   const cancelInvite = async (id: string) => {
     const { error } = await supabase
