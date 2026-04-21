@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Phone, MapPin, Save, Loader2, Award, Image as ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 const Configuracoes = () => {
   const { clinicId } = useClinic();
@@ -59,16 +61,35 @@ const Configuracoes = () => {
     toast.success("Logo enviado! Lembre-se de salvar.");
   }
 
+  function normalizedPhone() {
+    return phone.replace(/\D+/g, "");
+  }
+
+  function handleTestWhatsApp() {
+    const digits = normalizedPhone();
+    if (!digits) {
+      toast.error("Cadastre um número antes de testar");
+      return;
+    }
+    if (digits.length < 10) {
+      toast.error("Número inválido", { description: "Inclua DDD + número (ou DDI completo)." });
+      return;
+    }
+    toast("Abrindo WhatsApp...");
+    openWhatsApp(digits, "Teste de integração VEGA Dental AI ✅");
+  }
+
   async function handleSave() {
     if (!clinicId || !name.trim()) { toast.error("O nome da clínica é obrigatório."); return; }
     setSaving(true);
     const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "clinica";
+    const cleanPhone = normalizedPhone();
 
     const { error } = await supabase
       .from("clinics")
       .update({
         name: name.trim(),
-        phone: phone.trim() || null,
+        phone: cleanPhone || null,
         address: address.trim() || null,
         slug,
         responsible_name: responsibleName.trim() || null,
@@ -103,6 +124,12 @@ const Configuracoes = () => {
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wider"><span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Telefone / WhatsApp</span></Label>
               <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" className="h-11" />
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <p className="text-xs text-muted-foreground">Salvo no banco apenas com dígitos (ex: 5511917031358).</p>
+                <Button type="button" variant="outline" size="sm" onClick={handleTestWhatsApp} className="gap-2">
+                  <WhatsAppIcon size={16} /> Testar WhatsApp da Clínica
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="address" className="text-xs font-medium text-muted-foreground uppercase tracking-wider"><span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Endereço</span></Label>
