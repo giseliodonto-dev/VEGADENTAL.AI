@@ -44,6 +44,7 @@ import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 
 import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
+import MentoraVega from "./pages/MentoraVega";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
@@ -104,6 +105,7 @@ const App = () => {
             {/* Vega tools */}
             <Route path="/vega/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
             <Route path="/vega/perguntas" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
+            <Route path="/mentora" element={<ProtectedRoute><MentoraVega /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
