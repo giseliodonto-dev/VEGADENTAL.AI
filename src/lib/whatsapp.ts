@@ -1,16 +1,16 @@
 /**
- * Helper minimalista de WhatsApp via wa.me.
- * Sem validações bloqueantes — clique sempre abre o WhatsApp do dispositivo
- * do usuário logado (navegador/celular). O número é normalizado e prefixado
- * com 55 (Brasil).
+ * Helper de WhatsApp sem dependência de wa.me ou api.whatsapp.com.
+ * - Mobile  → protocolo nativo `whatsapp://send`
+ * - Desktop → `https://web.whatsapp.com/send`
+ *
+ * Não há validação bloqueante: clique sempre abre o WhatsApp do dispositivo
+ * do usuário logado. Prefixo 55 (Brasil) é adicionado automaticamente.
  */
 
-/** Normaliza telefone removendo tudo que não é dígito. */
 function cleanDigits(raw?: string | null): string {
   return (raw ?? "").replace(/\D/g, "");
 }
 
-/** Remove prefixo 55 duplicado caso o usuário já tenha cadastrado com DDI. */
 function stripBrazilPrefix(digits: string): string {
   if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
     return digits.slice(2);
@@ -18,33 +18,35 @@ function stripBrazilPrefix(digits: string): string {
   return digits;
 }
 
-/**
- * Handler puro de WhatsApp. Sempre abre wa.me em nova aba, sem toast de erro
- * e sem return antecipado. Se o telefone for vazio, abre wa.me sem destino.
- */
-export function handleWhatsapp(phone: string | null | undefined, message: string): void {
-  const digits = stripBrazilPrefix(cleanDigits(phone));
-  const text = encodeURIComponent(message);
-  const url = digits
-    ? `https://wa.me/55${digits}?text=${text}`
-    : `https://wa.me/?text=${text}`;
-  window.open(url, "_blank");
+function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
 }
 
-/** Alias para compatibilidade com imports existentes. */
-export const openWhatsApp = handleWhatsapp;
-
 /**
- * Constrói URL canônica do WhatsApp (wa.me). Útil para componentes que
- * precisam do href direto (links, share buttons).
+ * Constrói URL canônica do WhatsApp evitando `wa.me` (que redireciona para
+ * api.whatsapp.com e é bloqueado em iframes/preview).
  */
 export function buildWhatsAppUrl(phone: string | null | undefined, message: string): string {
   const digits = stripBrazilPrefix(cleanDigits(phone));
   const text = encodeURIComponent(message);
-  return digits
-    ? `https://wa.me/55${digits}?text=${text}`
-    : `https://wa.me/?text=${text}`;
+  const phoneParam = digits ? `phone=55${digits}&` : "";
+  if (isMobileDevice()) {
+    return `whatsapp://send?${phoneParam}text=${text}`;
+  }
+  return `https://web.whatsapp.com/send?${phoneParam}text=${text}`;
 }
+
+/**
+ * Handler puro: abre WhatsApp em nova aba sem qualquer validação.
+ */
+export function handleWhatsapp(phone: string | null | undefined, message: string): void {
+  const url = buildWhatsAppUrl(phone, message);
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/** Alias para compatibilidade com imports existentes. */
+export const openWhatsApp = handleWhatsapp;
 
 /**
  * Normaliza telefone para exibição/persistência (apenas dígitos, sem validação).
