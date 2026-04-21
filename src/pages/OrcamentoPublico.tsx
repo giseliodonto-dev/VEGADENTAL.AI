@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Loader2, FileText, Download, MessageCircle, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { generateContractPdf } from "@/utils/contractPdf";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-amber-100 text-amber-800 border-amber-300" },
