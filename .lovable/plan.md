@@ -1,73 +1,78 @@
 
-## Diagnóstico
+## Resposta direta
 
-Não existe nenhum arquivo `useWhatsapp`, `WhatsappService`, integração Twilio, Z-API ou Meta API no projeto. A busca por esses termos retornou **zero resultados**. Não há `api_status` em nenhum botão.
+Sim, vai dar certo — mas preciso ser honesto sobre o que essa correção entrega e o que ela **não** entrega, para você decidir com clareza.
 
-O que existe é um único helper, `src/lib/whatsapp.ts`, que abre `https://api.whatsapp.com/send?...` e mostra toast `"Telefone inválido"` quando o número não passa na normalização. Esse toast é provavelmente o que o usuário está interpretando como "API BLOQUEADA". Vamos simplificar tudo conforme a ordem.
+## O que a correção atual resolve
 
-## Mudanças
+O erro `ERR_BLOCKED_BY_RESPONSE` que você viu acontece **só dentro do preview do Lovable** (iframe). No app publicado em `vegadental.com.br` ou no celular do usuário, `wa.me` funciona normal.
 
-### 1. `src/lib/whatsapp.ts` — reescrever do zero
-Substituir todo o conteúdo por uma versão minimalista sem validações que bloqueiem clique:
+A correção troca `wa.me` por:
+- **Desktop:** `https://web.whatsapp.com/send?phone=...&text=...` → abre WhatsApp Web direto
+- **Celular:** `whatsapp://send?phone=...&text=...` → abre o app nativo
 
-```ts
-export function handleWhatsapp(phone: string | null | undefined, message: string) {
-  const cleanPhone = (phone ?? "").replace(/\D/g, "");
-  const url = cleanPhone
-    ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`
-    : `https://wa.me/?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank");
-}
+Resultado: clique no botão → WhatsApp abre com mensagem pronta → o **usuário logado aperta enviar manualmente**.
 
-// Aliases mantidos só para não quebrar imports existentes:
-export const openWhatsApp = handleWhatsapp;
+## O que NÃO é (importante)
 
-// Helpers de exibição (não-bloqueantes), mantidos:
-export function formatWhatsAppPhone(raw?: string | null): string | null { /* mantido */ }
-export function displayWhatsAppPhone(raw?: string | null): string { /* mantido */ }
-export function buildWhatsAppUrl(phone: string | null | undefined, message: string): string {
-  const cleanPhone = (phone ?? "").replace(/\D/g, "");
-  return cleanPhone
-    ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`
-    : `https://wa.me/?text=${encodeURIComponent(message)}`;
-}
-```
+Isso **não é integração de API do WhatsApp**. É um link inteligente. Significa:
 
-Resultado:
-- Sem toast de erro, sem `return` antecipado, sem checagem de DDI/DDD.
-- Sempre abre `wa.me` em nova aba — o WhatsApp do navegador/celular do usuário logado é quem envia.
-- Prefixo `55` adicionado conforme ordem do usuário.
-
-### 2. Remover botões desabilitados / verificações
-- `src/pages/vendas/FollowUpInteligente.tsx` linha 138-140: remover o `if (!phone) return toast.error(...)`. Botão sempre clica e abre `wa.me` (sem destinatário se vazio).
-- `src/components/AnamneseInlineForm.tsx` linha 116: idem — remover `if (!patientPhone) return toast.error(...)`.
-- Não há atributos `disabled` nos botões de WhatsApp dependentes de status de API. Confirmado.
-
-### 3. Botão de confirmação da Agenda — `src/pages/gestao/AgendaVega.tsx`
-Os 3 pontos (linhas 352, 432, 561) já chamam `openWhatsApp(...)`. Como `openWhatsApp` agora será o handler puro reescrito acima, fica sem qualquer validação de servidor — clique direto → `window.open(wa.me/...)`.
-
-### 4. `OrcamentoPublico.tsx`
-Já usa `window.open('https://wa.me/55${phone}?text=...')` direto. Nada a mudar.
-
-### 5. Configurações — botão "Testar WhatsApp da Clínica"
-Garantir que ele também usa `handleWhatsapp(phone, "Teste...")` sem validação extra. Hoje ele bloqueia com toast quando phone vazio — substituir por chamada direta ao novo helper.
-
-### 6. Número da clínica como remetente
-Conforme a ordem: o `wa.me` **sempre abre o WhatsApp do usuário logado** (é assim que `wa.me` funciona — o remetente é o aparelho que abre o link). O número `5511917031358` permanece salvo na tabela `clinics` (já gravado anteriormente) apenas como dado da clínica, não é injetado no link.
-
-## Arquivos alterados
-
-| Arquivo | Mudança |
+| O que funciona | O que NÃO funciona |
 |---|---|
-| `src/lib/whatsapp.ts` | Reescrito: handler puro `wa.me/55<digits>`, sem validação bloqueante |
-| `src/pages/vendas/FollowUpInteligente.tsx` | Remover `if (!phone) toast.error` |
-| `src/components/AnamneseInlineForm.tsx` | Remover `if (!patientPhone) toast.error` |
-| `src/pages/Configuracoes.tsx` | Botão "Testar WhatsApp" chama handler direto, sem validação |
+| Abre WhatsApp com mensagem pronta | Envio automático sem clique humano |
+| Funciona no celular e desktop | Disparo em massa programado |
+| Zero custo, zero configuração | Receber respostas dentro do VEGA |
+| Sem risco de bloqueio de número | Confirmação automática de agendamento |
+| | Bot/IA respondendo sozinho |
 
-## O que NÃO existe (e portanto não há o que deletar)
-- `useWhatsapp`, `WhatsappService`, integração Twilio / Z-API / Meta API: **nenhum desses existe no projeto**. A busca confirmou. Nenhum arquivo será deletado porque não há nada do tipo para deletar.
+Cada mensagem precisa de **um clique humano** para sair. Para 5-50 mensagens/dia isso é ótimo. Para 500+/dia ou automação real, precisa de API oficial (Meta WhatsApp Business API ou Z-API).
 
-## O que NÃO muda
-- Banco de dados, RLS, telefone da clínica já salvo (`5511917031358`).
-- Layout dos botões de WhatsApp.
-- Mensagens pré-preenchidas (templates de confirmação, anamnese, orçamento).
+## Decisão que preciso de você
+
+Qual cenário descreve o que você quer no VEGA?
+
+**Cenário A — Link inteligente (o que vamos fazer agora)**
+Recepção/dentista clica no botão, WhatsApp abre com texto pronto, ela aperta enviar. Funciona hoje, sem custo, sem API.
+
+**Cenário B — Automação real via API oficial**
+VEGA dispara mensagens sozinho (lembrete 24h antes da consulta, follow-up automático, confirmação sem ninguém clicar). Precisa contratar Meta Cloud API ou Z-API (R$ 50-200/mês), configurar webhook, número dedicado, aprovação de templates.
+
+## Plano de execução do Cenário A (agora)
+
+### 1. `src/lib/whatsapp.ts` — substituir motor de URL
+- Detectar mobile vs desktop via `navigator.userAgent`
+- Mobile → `whatsapp://send?phone=55<digits>&text=<encoded>`
+- Desktop → `https://web.whatsapp.com/send?phone=55<digits>&text=<encoded>`
+- **Zero** ocorrência de `wa.me` ou `api.whatsapp.com` no código
+- Sem validação bloqueante, sem toast de erro
+
+### 2. Botões sempre visíveis e como link direto
+
+| Arquivo | Ajuste |
+|---|---|
+| `src/pages/gestao/AgendaVega.tsx` | Botão "Confirmar via WhatsApp" vira `<a href={buildWhatsAppUrl(...)} target="_blank">` nos 3 lugares (card desktop, card mobile, modal). Sem `if (phone)` escondendo. |
+| `src/pages/Pacientes.tsx` | Botão WhatsApp do card sempre visível |
+| `src/pages/Leads.tsx` | Remover `if (!contact) return toast.error(...)` |
+| `src/pages/OrcamentoPublico.tsx` | Trocar `window.open('https://wa.me/...')` por helper novo |
+| `src/pages/PacienteDetalhe.tsx` | Usar helper novo para envio de orçamento |
+| `src/components/AnamneseInlineForm.tsx` | Usar helper novo |
+| `src/pages/vendas/FollowUpInteligente.tsx` | Usar helper novo |
+| `src/pages/Configuracoes.tsx` | Botão "Testar WhatsApp" usa helper novo |
+| `src/pages/gestao/EquipeVega.tsx` | Convites usam helper novo |
+
+### 3. Verificação final
+Após as mudanças, busca global por `wa.me`, `api.whatsapp.com` e `whatsapp.com/send` deve retornar **zero** resultados fora do helper central.
+
+## Resultado esperado
+
+- Você abre o app **publicado** (`vegadental.com.br`) ou em celular
+- Clica em "Confirmar via WhatsApp" na Agenda
+- WhatsApp Web (desktop) ou app nativo (celular) abre com a mensagem pronta endereçada ao paciente
+- Você aperta enviar
+- Mensagem chega normal, sem bloqueio, sem erro
+
+**Importante:** dentro do preview do Lovable o `web.whatsapp.com` também pode tentar bloquear iframe — o teste real deve ser feito no app publicado ou abrindo o link em nova aba.
+
+## Me responde antes de eu executar
+
+Você quer **Cenário A agora** (link inteligente, resolve o erro, sem custo) e depois avaliamos Cenário B se precisar de automação real? Ou já quer pular direto para integração de API oficial?
