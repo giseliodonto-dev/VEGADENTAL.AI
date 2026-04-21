@@ -22,7 +22,6 @@ export default function Pacientes() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [occupation, setOccupation] = useState("");
 
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients-list", clinicId],
@@ -54,11 +53,11 @@ export default function Pacientes() {
         throw new Error("Telefone precisa ter DDD + número.");
       }
       const payload = {
-        clinic_id: clinicId,
         name: name.trim(),
         phone: phone.trim(),
-        origin: occupation.trim() || null,
-        status: 'lead'
+        clinic_id: clinicId,
+        origin: "indicacao",
+        status: "em_avaliacao",
       };
       const { data, error } = await supabase.from("patients").insert(payload).select().single();
       if (error) {
@@ -71,7 +70,7 @@ export default function Pacientes() {
       toast.success("Paciente cadastrado! Abrindo ficha completa...");
       queryClient.invalidateQueries({ queryKey: ["patients-list"] });
       setIsAddOpen(false);
-      setName(""); setPhone(""); setOccupation("");
+      setName(""); setPhone("");
       if (data?.id) navigate(`/pacientes/${data.id}`);
     },
     onError: (e: any) => {
@@ -120,10 +119,6 @@ export default function Pacientes() {
                     Digite com DDD. Para internacional, inclua o código do país (ex: 5511988887777).
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="occ">Profissão (opcional)</Label>
-                  <Input id="occ" value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="Ex: Advogada" />
-                </div>
                 <Button
                   className="w-full bg-[#103444] h-12 mt-4 border border-amber-500/60"
                   onClick={() => addMut.mutate()}
@@ -162,7 +157,7 @@ export default function Pacientes() {
                       <Phone className="h-3 w-3" /> {p.phone || "Sem telefone"}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-3 w-3" /> {p.origin || "Sem profissão"}
+                      <Briefcase className="h-3 w-3" /> Origem: {p.origin || "—"}
                     </div>
                   </div>
                   <div className="mt-4 pt-3 border-t border-[#103444]/5 flex justify-between items-center">
