@@ -15,7 +15,7 @@ import { openWhatsApp } from "@/lib/whatsapp";
 
 export default function Pacientes() {
   const queryClient = useQueryClient();
-  const { clinicId } = useClinic();
+  const { clinicId, loading: clinicLoading } = useClinic();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -25,11 +25,13 @@ export default function Pacientes() {
   const [occupation, setOccupation] = useState("");
 
   const { data: patients = [], isLoading } = useQuery({
-    queryKey: ["patients-list"],
+    queryKey: ["patients-list", clinicId],
+    enabled: !!clinicId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
         .select("*")
+        .eq("clinic_id", clinicId!)
         .order("name", { ascending: true });
       if (error) throw error;
       return data;
