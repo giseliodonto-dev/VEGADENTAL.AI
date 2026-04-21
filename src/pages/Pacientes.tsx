@@ -127,9 +127,9 @@ export default function Pacientes() {
                 <Button
                   className="w-full bg-[#103444] h-12 mt-4 border border-amber-500/60"
                   onClick={() => addMut.mutate()}
-                  disabled={!name || !phone || addMut.isPending}
+                  disabled={!name || !phone || addMut.isPending || clinicLoading || !clinicId}
                 >
-                  {addMut.isPending ? <Loader2 className="animate-spin h-5 w-5" /> : "Cadastrar e abrir ficha"}
+                  {addMut.isPending ? <Loader2 className="animate-spin h-5 w-5" /> : clinicLoading ? "Carregando clínica..." : !clinicId ? "Sem clínica vinculada" : "Cadastrar e abrir ficha"}
                 </Button>
               </div>
             </DialogContent>
