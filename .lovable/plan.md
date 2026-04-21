@@ -1,49 +1,73 @@
 
-## Objetivo
-
-Atualizar a comunicação WhatsApp da clínica para usar o número oficial **5511917031358**, normalizar o salvamento e adicionar um botão de teste em Configurações.
-
 ## Diagnóstico
 
-- A tabela `clinics` já tem coluna `phone` (text) — basta gravar `5511917031358` (só dígitos).
-- `src/lib/whatsapp.ts` já existe e provavelmente já gera links `wa.me`. Vou checar se ele aceita um número de origem/destino e se normaliza corretamente. Se não normalizar, ajusto.
-- Convites de equipe (`EquipeVega.tsx`) hoje chamam `openWhatsApp(null, mensagem)` — abrem o WhatsApp **sem destinatário** (o usuário escolhe). A pedido, vamos compor o link **com o número oficial da clínica** como destino, para o dono mandar o link a si mesmo / encaminhar.
-- Páginas de paciente que disparam WhatsApp usam o telefone do paciente (não mexer — o destinatário ali é o paciente).
+Não existe nenhum arquivo `useWhatsapp`, `WhatsappService`, integração Twilio, Z-API ou Meta API no projeto. A busca por esses termos retornou **zero resultados**. Não há `api_status` em nenhum botão.
+
+O que existe é um único helper, `src/lib/whatsapp.ts`, que abre `https://api.whatsapp.com/send?...` e mostra toast `"Telefone inválido"` quando o número não passa na normalização. Esse toast é provavelmente o que o usuário está interpretando como "API BLOQUEADA". Vamos simplificar tudo conforme a ordem.
 
 ## Mudanças
 
-### 1. `src/lib/whatsapp.ts`
-- Garantir função `normalizePhone(raw)` que remove tudo que não é dígito.
-- `openWhatsApp(phone, message)` já existe — confirmar que monta `https://wa.me/<digits>?text=<encoded>` e que aceita `null` (abre wa.me sem destino).
+### 1. `src/lib/whatsapp.ts` — reescrever do zero
+Substituir todo o conteúdo por uma versão minimalista sem validações que bloqueiem clique:
 
-### 2. Salvar número da clínica normalizado — `src/pages/Configuracoes.tsx`
-- No `handleSave`, antes do `update`, normalizar `phone` com `phone.replace(/\D/g, "")` para gravar apenas dígitos (`5511917031358`).
-- Manter o input com máscara visual livre, mas persistir limpo.
+```ts
+export function handleWhatsapp(phone: string | null | undefined, message: string) {
+  const cleanPhone = (phone ?? "").replace(/\D/g, "");
+  const url = cleanPhone
+    ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`
+    : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank");
+}
 
-### 3. Gravar número oficial agora (one-shot)
-- Rodar um `UPDATE` direto na clínica **GC Odontologia** setando `phone = '5511917031358'` (via insert tool, operação de dados).
+// Aliases mantidos só para não quebrar imports existentes:
+export const openWhatsApp = handleWhatsapp;
 
-### 4. Botão "Testar WhatsApp da Clínica" — `src/pages/Configuracoes.tsx`
-- Adicionar botão dentro do card "Identidade da Clínica", abaixo do campo telefone.
-- Ação: usa o `phone` normalizado do estado atual; abre `https://wa.me/<phone>?text=Teste de integração VEGA Dental AI ✅` em nova aba.
-- Validações: se `phone` vazio → toast "Cadastre um número antes de testar"; se menos de 10 dígitos → toast "Número inválido".
-- Mostrar feedback: toast "Abrindo WhatsApp..." ao clicar.
+// Helpers de exibição (não-bloqueantes), mantidos:
+export function formatWhatsAppPhone(raw?: string | null): string | null { /* mantido */ }
+export function displayWhatsAppPhone(raw?: string | null): string { /* mantido */ }
+export function buildWhatsAppUrl(phone: string | null | undefined, message: string): string {
+  const cleanPhone = (phone ?? "").replace(/\D/g, "");
+  return cleanPhone
+    ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`
+    : `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+```
 
-### 5. Convites de equipe — `src/pages/gestao/EquipeVega.tsx`
-- Buscar `phone` da clínica (junto com `name`) no `useQuery` `clinic-name`.
-- `sendWhatsApp(link)` passa a usar `openWhatsApp(clinicPhone, mensagem)` em vez de `null`, compondo o link já endereçado ao número oficial da clínica. Se a clínica ainda não tiver telefone, mantém o comportamento atual (sem destino) com toast informativo.
+Resultado:
+- Sem toast de erro, sem `return` antecipado, sem checagem de DDI/DDD.
+- Sempre abre `wa.me` em nova aba — o WhatsApp do navegador/celular do usuário logado é quem envia.
+- Prefixo `55` adicionado conforme ordem do usuário.
 
-## Arquivos
+### 2. Remover botões desabilitados / verificações
+- `src/pages/vendas/FollowUpInteligente.tsx` linha 138-140: remover o `if (!phone) return toast.error(...)`. Botão sempre clica e abre `wa.me` (sem destinatário se vazio).
+- `src/components/AnamneseInlineForm.tsx` linha 116: idem — remover `if (!patientPhone) return toast.error(...)`.
+- Não há atributos `disabled` nos botões de WhatsApp dependentes de status de API. Confirmado.
+
+### 3. Botão de confirmação da Agenda — `src/pages/gestao/AgendaVega.tsx`
+Os 3 pontos (linhas 352, 432, 561) já chamam `openWhatsApp(...)`. Como `openWhatsApp` agora será o handler puro reescrito acima, fica sem qualquer validação de servidor — clique direto → `window.open(wa.me/...)`.
+
+### 4. `OrcamentoPublico.tsx`
+Já usa `window.open('https://wa.me/55${phone}?text=...')` direto. Nada a mudar.
+
+### 5. Configurações — botão "Testar WhatsApp da Clínica"
+Garantir que ele também usa `handleWhatsapp(phone, "Teste...")` sem validação extra. Hoje ele bloqueia com toast quando phone vazio — substituir por chamada direta ao novo helper.
+
+### 6. Número da clínica como remetente
+Conforme a ordem: o `wa.me` **sempre abre o WhatsApp do usuário logado** (é assim que `wa.me` funciona — o remetente é o aparelho que abre o link). O número `5511917031358` permanece salvo na tabela `clinics` (já gravado anteriormente) apenas como dado da clínica, não é injetado no link.
+
+## Arquivos alterados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/lib/whatsapp.ts` | Confirmar/garantir normalização de dígitos no link `wa.me` |
-| `src/pages/Configuracoes.tsx` | Normalizar `phone` no save + botão "Testar WhatsApp da Clínica" |
-| `src/pages/gestao/EquipeVega.tsx` | Buscar `phone` da clínica e usar como destino nos convites |
-| **DB (insert tool)** | `UPDATE clinics SET phone='5511917031358' WHERE name ILIKE 'GC Odontologia'` |
+| `src/lib/whatsapp.ts` | Reescrito: handler puro `wa.me/55<digits>`, sem validação bloqueante |
+| `src/pages/vendas/FollowUpInteligente.tsx` | Remover `if (!phone) toast.error` |
+| `src/components/AnamneseInlineForm.tsx` | Remover `if (!patientPhone) toast.error` |
+| `src/pages/Configuracoes.tsx` | Botão "Testar WhatsApp" chama handler direto, sem validação |
+
+## O que NÃO existe (e portanto não há o que deletar)
+- `useWhatsapp`, `WhatsappService`, integração Twilio / Z-API / Meta API: **nenhum desses existe no projeto**. A busca confirmou. Nenhum arquivo será deletado porque não há nada do tipo para deletar.
 
 ## O que NÃO muda
-- Schema do banco (coluna `phone` já existe).
-- RLS.
-- WhatsApp para pacientes (continua usando o telefone do paciente como destino).
-- Máscara de exibição do telefone no input (usuário pode digitar com formatação).
+- Banco de dados, RLS, telefone da clínica já salvo (`5511917031358`).
+- Layout dos botões de WhatsApp.
+- Mensagens pré-preenchidas (templates de confirmação, anamnese, orçamento).
