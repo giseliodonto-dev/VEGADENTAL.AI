@@ -115,6 +115,7 @@ const AgendaVega = () => {
         .eq("clinic_id", clinicId)
         .gte("date", format(weekStart, "yyyy-MM-dd"))
         .lte("date", format(weekEnd, "yyyy-MM-dd"))
+        .not("status", "in", "(cancelou,remarcado)")
         .order("time");
       if (filterDentist !== "all") q = q.eq("dentist_user_id", filterDentist);
       const { data } = await q;
