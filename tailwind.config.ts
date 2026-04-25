@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', 'sans-serif'],
+        bagel: ['"Bagel Fat One"', 'system-ui', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

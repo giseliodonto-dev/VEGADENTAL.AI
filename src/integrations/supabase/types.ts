@@ -461,6 +461,36 @@ export type Database = {
           },
         ]
       }
+      evolution_waitlist: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          source: string | null
+          user_agent: string | null
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          source?: string | null
+          user_agent?: string | null
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          source?: string | null
+          user_agent?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       financials: {
         Row: {
           category: string | null

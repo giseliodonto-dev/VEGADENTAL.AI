@@ -46,6 +46,7 @@ import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import MentoraVega from "./pages/MentoraVega";
 import Documentos from "./pages/Documentos";
+import SaltoEvolutivo from "./pages/SaltoEvolutivo";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
@@ -66,6 +67,7 @@ const App = () => {
             <Route path="/convite/:token" element={<Convite />} />
             <Route path="/anamnese/:token" element={<AnamnesePublica />} />
             <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
+            <Route path="/evolucao" element={<SaltoEvolutivo />} />
 
             {/* Protected */}
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
