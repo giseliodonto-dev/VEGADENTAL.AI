@@ -45,6 +45,7 @@ import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import MentoraVega from "./pages/MentoraVega";
+import Documentos from "./pages/Documentos";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
@@ -106,6 +107,7 @@ const App = () => {
             <Route path="/vega/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
             <Route path="/vega/perguntas" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
             <Route path="/mentora" element={<ProtectedRoute><MentoraVega /></ProtectedRoute>} />
+            <Route path="/documentos" element={<ProtectedRoute><Documentos /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,7 +1,7 @@
 import {
   Home, TrendingUp, Megaphone, BarChart3, Crown,
   Settings, LogOut, Contact, Compass, Brain,
-  CalendarCheck, GraduationCap, Wallet, Users, Sparkles
+  CalendarCheck, GraduationCap, Wallet, Users, Sparkles, FileText
 } from "lucide-react";
 import vegaLogo from "@/assets/vega-logo.svg";
 import { NavLink } from "@/components/NavLink";
@@ -54,6 +54,11 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <NavLink to="/financeiro"><Wallet className="h-4 w-4 text-gestao" />{!collapsed && <span>Financeiro</span>}</NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/documentos"><FileText className="h-4 w-4 text-primary" />{!collapsed && <span>Documentos</span>}</NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
