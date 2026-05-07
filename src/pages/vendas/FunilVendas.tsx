@@ -194,23 +194,24 @@ export default function FunilVendas() {
           </div>
         )}
 
-        {/* Kanban board */}
+        {/* Kanban board com Drag & Drop */}
+        <DndContext
+          sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
+          onDragEnd={(e: DragEndEvent) => {
+            const itemId = e.active.id as string;
+            const newStage = e.over?.id as StageName | undefined;
+            if (!newStage) return;
+            const item = items.find((i) => i.id === itemId);
+            if (item && item.stage !== newStage) moveItem(itemId, newStage);
+          }}
+        >
         <div
           className="animate-fade-up overflow-x-auto pb-4"
           style={{ animationDelay: "160ms", opacity: 0, animationFillMode: "forwards" }}
         >
           <div className="flex gap-4 min-w-[900px]">
             {STAGES.map((stage) => (
-              <div key={stage.key} className="flex-1 min-w-[200px]">
-                {/* Column header */}
-                <div className={`rounded-t-xl border px-4 py-3 ${stage.color}`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold font-display">{stage.label}</h3>
-                    <Badge variant="secondary" className="text-[10px] h-5">
-                      {grouped[stage.key]?.length || 0}
-                    </Badge>
-                  </div>
-                </div>
+              <DroppableColumn key={stage.key} stage={stage} count={grouped[stage.key]?.length || 0}>
 
                 {/* Column body */}
                 <div className="space-y-2 border border-t-0 rounded-b-xl bg-muted/30 p-2 min-h-[200px]">
