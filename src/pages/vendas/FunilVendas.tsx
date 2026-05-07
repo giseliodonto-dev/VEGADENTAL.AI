@@ -212,8 +212,7 @@ export default function FunilVendas() {
           <div className="flex gap-4 min-w-[900px]">
             {STAGES.map((stage) => (
               <DroppableColumn key={stage.key} stage={stage} count={grouped[stage.key]?.length || 0}>
-                <></>
-                  {(grouped[stage.key] || []).map((item) => {
+                {(grouped[stage.key] || []).map((item) => {
                     const isStale =
                       item.stage !== "fechado" &&
                       item.stage !== "perdido" &&
