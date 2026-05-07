@@ -25,8 +25,7 @@ const tools = [
     title: "Taxa de Conversão",
     description: "Acompanhe quantos orçamentos se transformam em tratamentos fechados.",
     icon: Handshake,
-    url: "#",
-    soon: true,
+    url: "/vendas/conversao",
   },
   {
     title: "Follow-up Inteligente",

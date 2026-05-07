@@ -1,8 +1,14 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
-import { CalendarDays, MapPin, Megaphone, Lightbulb, ArrowRight } from "lucide-react";
+import { CalendarDays, MapPin, Megaphone, Lightbulb, ArrowRight, Sparkles } from "lucide-react";
 
 const tools = [
+  {
+    title: "Mentor de IA",
+    description: "Conselheiro estratégico com IA pra criar conteúdo, campanhas e copy de alta conversão.",
+    icon: Sparkles,
+    url: "/mentora",
+  },
   {
     title: "Planejamento de Conteúdo",
     description: "Calendário estratégico de posts, stories e reels para atrair pacientes qualificados.",
