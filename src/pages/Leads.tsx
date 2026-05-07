@@ -139,7 +139,9 @@ export default function Leads() {
     if (!newContact.trim()) return toast.error("Contato é obrigatório");
 
     setCreating(true);
-    const { error } = await supabase.from("leads").insert({
+
+    // 1. Cria o lead
+    const { data: leadData, error } = await supabase.from("leads").insert({
       clinic_id: clinicId,
       name: newName.trim(),
       contact: newContact.trim(),
@@ -147,15 +149,39 @@ export default function Leads() {
       notes: newNotes.trim() || null,
       responsible_user_id: user.id,
       status: "novo",
-    });
+    }).select("id").single();
 
-    if (error) {
+    if (error || !leadData) {
       toast.error("Erro ao criar lead");
       setCreating(false);
       return;
     }
 
-    toast.success("Lead cadastrado!");
+    // 2. Cria paciente "lead" + entrada automática no funil de vendas
+    const { data: patient } = await supabase
+      .from("patients")
+      .insert({
+        clinic_id: clinicId,
+        name: newName.trim(),
+        phone: newContact.trim(),
+        origin: newOrigin.trim() || null,
+        status: "lead",
+        responsible_user_id: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (patient) {
+      await supabase.from("sales_funnel").insert({
+        clinic_id: clinicId,
+        patient_id: patient.id,
+        stage: "lead",
+        responsible_user_id: user.id,
+        value: 0,
+      });
+    }
+
+    toast.success("Lead cadastrado e enviado ao funil!");
     setCreating(false);
     setShowNew(false);
     setNewName("");
@@ -345,7 +371,7 @@ export default function Leads() {
                           </Button>
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => toast.info("Agenda em breve")}
+                            onClick={() => navigate(`/gestao/agenda?lead=${encodeURIComponent(l.name)}&phone=${encodeURIComponent(l.contact || "")}`)}
                             title="Agendar avaliação"
                           >
                             <CalendarPlus className="h-4 w-4" />
