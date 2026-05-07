@@ -8,23 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  Loader2,
-  User,
-  Clock,
-  AlertTriangle,
-  MessageSquare,
-  CalendarPlus,
-  Phone,
-  ArrowLeft,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
+  Loader2, User, Clock, AlertTriangle, MessageSquare, CalendarPlus,
+  ArrowLeft, TrendingUp, ChevronLeft, ChevronRight, GripVertical,
 } from "lucide-react";
 import { openWhatsApp as openWA } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  DndContext, DragEndEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
+} from "@dnd-kit/core";
 
 const STAGES = [
   { key: "lead", label: "Lead", color: "bg-info/10 text-info border-info/20" },
