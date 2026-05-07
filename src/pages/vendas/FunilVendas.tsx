@@ -8,23 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  Loader2,
-  User,
-  Clock,
-  AlertTriangle,
-  MessageSquare,
-  CalendarPlus,
-  Phone,
-  ArrowLeft,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
+  Loader2, User, Clock, AlertTriangle, MessageSquare, CalendarPlus,
+  ArrowLeft, TrendingUp, ChevronLeft, ChevronRight, GripVertical,
 } from "lucide-react";
 import { openWhatsApp as openWA } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  DndContext, DragEndEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
+} from "@dnd-kit/core";
 
 const STAGES = [
   { key: "lead", label: "Lead", color: "bg-info/10 text-info border-info/20" },
@@ -200,27 +194,25 @@ export default function FunilVendas() {
           </div>
         )}
 
-        {/* Kanban board */}
+        {/* Kanban board com Drag & Drop */}
+        <DndContext
+          sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
+          onDragEnd={(e: DragEndEvent) => {
+            const itemId = e.active.id as string;
+            const newStage = e.over?.id as StageName | undefined;
+            if (!newStage) return;
+            const item = items.find((i) => i.id === itemId);
+            if (item && item.stage !== newStage) moveItem(itemId, newStage);
+          }}
+        >
         <div
           className="animate-fade-up overflow-x-auto pb-4"
           style={{ animationDelay: "160ms", opacity: 0, animationFillMode: "forwards" }}
         >
           <div className="flex gap-4 min-w-[900px]">
             {STAGES.map((stage) => (
-              <div key={stage.key} className="flex-1 min-w-[200px]">
-                {/* Column header */}
-                <div className={`rounded-t-xl border px-4 py-3 ${stage.color}`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold font-display">{stage.label}</h3>
-                    <Badge variant="secondary" className="text-[10px] h-5">
-                      {grouped[stage.key]?.length || 0}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Column body */}
-                <div className="space-y-2 border border-t-0 rounded-b-xl bg-muted/30 p-2 min-h-[200px]">
-                  {(grouped[stage.key] || []).map((item) => {
+              <DroppableColumn key={stage.key} stage={stage} count={grouped[stage.key]?.length || 0}>
+                {(grouped[stage.key] || []).map((item) => {
                     const isStale =
                       item.stage !== "fechado" &&
                       item.stage !== "perdido" &&
@@ -231,29 +223,24 @@ export default function FunilVendas() {
                     const canMoveRight = stageIdx < STAGES.length - 1;
 
                     return (
+                      <DraggableCard key={item.id} id={item.id}>
                       <Card
-                        key={item.id}
                         className={`transition-all duration-200 ${isStale ? "ring-1 ring-warning/50" : ""}`}
                       >
                         <CardContent className="p-3 space-y-2">
-                          {/* Patient name */}
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-semibold truncate">
                               {item.patient?.name || "Sem paciente"}
                             </p>
-                            {isStale && (
-                              <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-                            )}
+                            {isStale && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
                           </div>
 
-                          {/* Value */}
                           {item.value != null && item.value > 0 && (
                             <p className="text-xs font-medium text-vendas">
                               R$ {item.value.toLocaleString("pt-BR")}
                             </p>
                           )}
 
-                          {/* Responsible */}
                           {item.responsible?.full_name && (
                             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <User className="h-3 w-3" />
@@ -261,100 +248,86 @@ export default function FunilVendas() {
                             </div>
                           )}
 
-                          {/* Time in stage */}
                           <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             <span>
-                              {formatDistanceToNow(new Date(item.updated_at), {
-                                addSuffix: true,
-                                locale: ptBR,
-                              })}
+                              {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true, locale: ptBR })}
                             </span>
                           </div>
 
-                          {/* Move buttons */}
                           <div className="flex items-center gap-1 pt-1 border-t">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
                               disabled={!canMoveLeft || movingId === item.id}
-                              onClick={() => moveItem(item.id, STAGES[stageIdx - 1].key)}
-                            >
+                              onClick={() => moveItem(item.id, STAGES[stageIdx - 1].key)}>
                               <ChevronLeft className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
                               disabled={!canMoveRight || movingId === item.id}
-                              onClick={() => moveItem(item.id, STAGES[stageIdx + 1].key)}
-                            >
+                              onClick={() => moveItem(item.id, STAGES[stageIdx + 1].key)}>
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
-
                             <div className="flex-1" />
-
-                            {/* Quick actions */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-vendas"
-                              title="Follow-up via WhatsApp"
-                              onClick={() => {
-                                if (item.patient?.phone) {
-                                  openWA(item.patient.phone, "");
-                                } else {
-                                  toast.info("Paciente sem telefone cadastrado");
-                                }
-                              }}
-                            >
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-vendas"
+                              title="WhatsApp"
+                              onClick={() => item.patient?.phone ? openWA(item.patient.phone, "") : toast.info("Sem telefone")}>
                               <WhatsAppIcon size={14} bare bgColor="hsl(var(--vendas))" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-vendas"
-                              title="Enviar mensagem via WhatsApp"
-                              onClick={() => {
-                                if (item.patient?.phone) {
-                                  openWA(
-                                    item.patient.phone,
-                                    `Olá ${item.patient.name}, tudo bem?`,
-                                  );
-                                } else {
-                                  toast.info("Paciente sem telefone cadastrado");
-                                }
-                              }}
-                            >
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-vendas"
+                              title="Mensagem"
+                              onClick={() => item.patient?.phone ? openWA(item.patient.phone, `Olá ${item.patient.name}, tudo bem?`) : toast.info("Sem telefone")}>
                               <MessageSquare className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-vendas"
-                              title="Agendar avaliação"
-                              onClick={() => toast.info("Agenda em desenvolvimento")}
-                            >
-                              <CalendarPlus className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </CardContent>
                       </Card>
+                      </DraggableCard>
                     );
                   })}
 
                   {(grouped[stage.key] || []).length === 0 && (
                     <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
-                      Nenhum paciente
+                      Arraste cards aqui
                     </div>
                   )}
-                </div>
-              </div>
+              </DroppableColumn>
             ))}
           </div>
         </div>
+        </DndContext>
       </div>
     </AppLayout>
   );
 }
+
+function DraggableCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1, cursor: "grab" as const }
+    : { cursor: "grab" as const };
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {children}
+    </div>
+  );
+}
+
+function DroppableColumn({ stage, count, children }: { stage: typeof STAGES[number]; count: number; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.key });
+  return (
+    <div className="flex-1 min-w-[200px]">
+      <div className={`rounded-t-xl border px-4 py-3 ${stage.color}`}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold font-display">{stage.label}</h3>
+          <Badge variant="secondary" className="text-[10px] h-5">{count}</Badge>
+        </div>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`space-y-2 border border-t-0 rounded-b-xl p-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/10" : "bg-muted/30"}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+

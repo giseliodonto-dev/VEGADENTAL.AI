@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,9 @@ import { CheckCircle2, Loader2, FileText, Download, MessageCircle, Printer } fro
 import { format } from "date-fns";
 import { generateContractPdf } from "@/utils/contractPdf";
 import { openWhatsApp } from "@/lib/whatsapp";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-amber-100 text-amber-800 border-amber-300" },
@@ -24,24 +28,34 @@ export default function OrcamentoPublico() {
   const { token } = useParams<{ token: string }>();
   const [signature, setSignature] = useState("");
 
+  const tokenClient = useMemo(() => {
+    if (!token) return null;
+    return createClient(SUPABASE_URL, SUPABASE_KEY, {
+      global: { headers: { "x-orcamento-token": token } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }, [token]);
+
   const { data: budget, isLoading, refetch } = useQuery({
     queryKey: ["public-budget", token],
     queryFn: async () => {
-      const { data, error } = await supabase.from("budgets" as any).select("*").eq("public_token", token!).maybeSingle();
+      if (!tokenClient) return null;
+      const { data, error } = await (tokenClient as any).from("budgets").select("*").eq("public_token", token!).maybeSingle();
       if (error) throw error;
       return data as any;
     },
-    enabled: !!token,
+    enabled: !!token && !!tokenClient,
   });
 
   const { data: items = [] } = useQuery({
     queryKey: ["public-budget-items", budget?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("budget_items" as any).select("*").eq("budget_id", budget.id);
+      if (!tokenClient) return [];
+      const { data, error } = await (tokenClient as any).from("budget_items").select("*").eq("budget_id", budget.id);
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: !!budget?.id,
+    enabled: !!budget?.id && !!tokenClient,
   });
 
   const { data: clinic } = useQuery({
@@ -75,15 +89,12 @@ export default function OrcamentoPublico() {
   const acceptMutation = useMutation({
     mutationFn: async () => {
       if (!signature.trim()) throw new Error("Digite seu nome completo");
-      const { error } = await supabase
-        .from("budgets" as any)
-        .update({ status: "aceito", accepted_signature: signature.trim(), accepted_at: new Date().toISOString() } as any)
+      if (!tokenClient) throw new Error("Token inválido");
+      const { error } = await (tokenClient as any)
+        .from("budgets")
+        .update({ status: "aceito", accepted_signature: signature.trim(), accepted_at: new Date().toISOString() })
         .eq("id", budget.id);
       if (error) throw error;
-      const treatmentIds = items.filter((i: any) => i.treatment_id).map((i: any) => i.treatment_id);
-      if (treatmentIds.length > 0) {
-        await supabase.from("treatments" as any).update({ status: "em_andamento" } as any).in("id", treatmentIds);
-      }
     },
     onSuccess: () => { toast.success("Plano de tratamento aceito!"); refetch(); },
     onError: (e: any) => toast.error(e.message || "Erro ao aceitar"),
