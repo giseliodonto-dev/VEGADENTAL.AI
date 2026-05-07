@@ -1,0 +1,19 @@
+{
+  "name": "VEGA Dental AI",
+  "short_name": "VEGA",
+  "description": "Gestão Odontológica Inteligente",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d2436",
+  "theme_color": "#0d2436",
+  "icons": [
+    {
+      "src": "/vega-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
