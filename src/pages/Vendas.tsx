@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Link } from "react-router-dom";
 import { MessageSquare, ArrowRight, Filter, Users, Handshake, Bell } from "lucide-react";
 
-const tools = [
+const tools: { title: string; description: string; icon: typeof MessageSquare; url: string; soon?: boolean }[] = [
   {
     title: "Perguntas de Decisão",
     description: "O oráculo VEGA que transforma objeções em fechamentos com perguntas estratégicas.",
