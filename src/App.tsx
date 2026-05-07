@@ -36,6 +36,7 @@ import MetasMensais from "./pages/gestao/MetasMensais";
 
 import FunilVendas from "./pages/vendas/FunilVendas";
 import FollowUpInteligente from "./pages/vendas/FollowUpInteligente";
+import TaxaConversao from "./pages/vendas/TaxaConversao";
 
 import Campanhas from "./pages/marketing/Campanhas";
 import LeadsOrigem from "./pages/marketing/LeadsOrigem";
@@ -46,8 +47,7 @@ import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import MentoraVega from "./pages/MentoraVega";
 import Documentos from "./pages/Documentos";
-import SaltoEvolutivo from "./pages/SaltoEvolutivo";
-import WaitlistAdmin from "./pages/admin/WaitlistAdmin";
+import InstalarApp from "./pages/InstalarApp";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
@@ -68,7 +68,7 @@ const App = () => {
             <Route path="/convite/:token" element={<Convite />} />
             <Route path="/anamnese/:token" element={<AnamnesePublica />} />
             <Route path="/orcamento/:token" element={<OrcamentoPublico />} />
-            <Route path="/evolucao" element={<SaltoEvolutivo />} />
+            
 
             {/* Protected */}
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
@@ -99,6 +99,7 @@ const App = () => {
             {/* Vendas sub */}
             <Route path="/vendas/funil" element={<ProtectedRoute><FunilVendas /></ProtectedRoute>} />
             <Route path="/vendas/follow-up" element={<ProtectedRoute><FollowUpInteligente /></ProtectedRoute>} />
+            <Route path="/vendas/conversao" element={<ProtectedRoute><TaxaConversao /></ProtectedRoute>} />
 
             {/* Marketing sub */}
             <Route path="/marketing/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
@@ -111,7 +112,7 @@ const App = () => {
             <Route path="/vega/perguntas" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
             <Route path="/mentora" element={<ProtectedRoute><MentoraVega /></ProtectedRoute>} />
             <Route path="/documentos" element={<ProtectedRoute><Documentos /></ProtectedRoute>} />
-            <Route path="/admin/waitlist" element={<RoleProtectedRoute allowedRoles={["dono","admin"]}><WaitlistAdmin /></RoleProtectedRoute>} />
+            <Route path="/instalar" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
