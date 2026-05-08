@@ -148,14 +148,14 @@ export default function Financeiro() {
     },
   });
 
-  // Inadimplência: tratamentos com pagamento pendente ou parcial
+  // Inadimplência: tratamentos com pagamento pendente
   const { data: pendentes = [] } = useQuery({
     queryKey: ["financeiro", "inadimplencia", clinicId],
     enabled: !!clinicId,
     queryFn: async () => {
       const { data } = await supabase
         .from("treatments")
-        .select("id, value, amount_paid, payment_status, procedure_type, patient_id, patients:patient_id(name, phone)")
+        .select("id, value, amount_paid, payment_status")
         .eq("clinic_id", clinicId!)
         .in("payment_status", ["pendente", "parcial"])
         .gt("value", 0);
