@@ -470,6 +470,19 @@ export default function Financeiro() {
 
           {/* ===== RECEITAS ===== */}
           <TabsContent value="receitas" className="space-y-4 mt-4">
+            {pendentes.length > 0 && (
+              <Card className="border-l-4 border-l-amber-500 bg-amber-50/40">
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-amber-700 font-semibold">Inadimplência</p>
+                    <p className="text-sm text-[#103444]/80">
+                      {pendentes.length} procedimento(s) com pagamento pendente
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-amber-700">{fmt(inadimplenciaTotal)}</p>
+                </CardContent>
+              </Card>
+            )}
             <div className="flex flex-wrap items-center gap-3">
               <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className="w-40" />
               <span className="text-xs text-muted-foreground">até</span>
