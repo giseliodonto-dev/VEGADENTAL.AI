@@ -1,131 +1,71 @@
-## Visão geral
+## Refactoring da Sidebar — Painel de Controle Ativo
 
-Landing pública em `/evolucao` ("O Salto Evolutivo"), narrativa em 4 atos. Visitante preenche nome + WhatsApp + e-mail → grava na lista de espera (banco) → redireciona pro seu WhatsApp com mensagem pré-pronta. App em `/` continua intacto.
+Transformar a `AppSidebar` num painel minimalista, hierárquico e com indicadores dinâmicos em tempo real.
 
-## Pendência (assumido por padrão — me avise se quiser mudar)
+### 1. Nova hierarquia (única seção, sem divisores intermediários)
 
-- **Verde esmeralda**: profundo `#047857` com glow `#10B981` (alinha com Quiet Luxury, evita parecer neon).
-- **Fonte display**: Bagel Fat One via Google Fonts, escopada só nesta landing (`.font-bagel`) — não polui o resto.
-- **Número de WhatsApp pra redirect**: vou usar placeholder `5511999999999`. **Me passa o seu** ou eu deixo configurável depois.
+1. Início → `/`
+2. Agenda → `/gestao/agenda` · badge dinâmico (confirmados hoje)
+3. GPS → `/gps` · indicador de alerta pulsante
+4. Vendas → `/vendas` · badge dinâmico (leads novos não atendidos)
+5. Pacientes → `/pacientes` · sub-item: Documentos → `/documentos`
+6. Financeiro → `/financeiro`
+7. Configurações → `/configuracoes` (movido do footer para o final do menu principal)
 
-## 1. Banco — tabela `evolution_waitlist`
+Footer mantém apenas o botão **Sair**. "Equipe", "Marketing", "Instalar App" saem da sidebar (continuam acessíveis via rotas/Home cards) para reduzir poluição.
 
-Migração SQL:
+### 2. Indicadores dinâmicos (badges) — novo hook `useSidebarCounters`
 
-```sql
-create table public.evolution_waitlist (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  whatsapp text not null,
-  email text,
-  source text default 'landing_evolucao',
-  user_agent text,
-  created_at timestamptz default now()
-);
+Hook único, com cache (React Query, `staleTime: 60s`), filtrando por `clinic_id` ativo:
 
-alter table public.evolution_waitlist enable row level security;
+- **Agenda**: `appointments` onde `date = hoje` e `status = 'confirmado'` → número.
+- **Vendas**: `leads` onde `status` ∈ estágios iniciais ("novo"/"sem contato") e sem follow-up registrado → número.
+- **GPS**: chama a mesma fonte usada em VegaGPS (alertas críticos: margem < 30%, metas em risco). Se `count > 0`, mostra ponto pulsante dourado; opcionalmente número.
 
--- Insert público (qualquer visitante pode entrar na lista)
-create policy "anyone can join waitlist"
-  on public.evolution_waitlist for insert
-  to anon, authenticated
-  with check (true);
+Badges renderizados à direita do label, escondidos quando sidebar colapsada (apenas o ponto pulsante do GPS permanece como mini-dot sobre o ícone).
 
--- Leitura: só dono/admin de qualquer clínica (você)
-create policy "owners can read waitlist"
-  on public.evolution_waitlist for select
-  to authenticated
-  using (
-    exists (
-      select 1 from clinic_members
-      where user_id = auth.uid() and role in ('dono','admin')
-    )
-  );
+### 3. Estética & branding
+
+Tokens novos em `src/index.css` (HSL, no `:root`) — sem cores hardcoded:
+
+```css
+--sidebar-background: 220 25% 6%;        /* quase preto, leve viés azul */
+--sidebar-foreground: 220 12% 70%;        /* cinza claro */
+--sidebar-accent: 200 65% 28%;            /* Azul Petróleo (hover) */
+--sidebar-accent-foreground: 0 0% 100%;
+--sidebar-active-indicator: var(--gold);  /* barra lateral dourada */
+--sidebar-border: 220 20% 12%;
 ```
 
-## 2. Página `src/pages/SaltoEvolutivo.tsx`
-
-Estrutura (full-bleed, sem `AppLayout`, sem sidebar — é landing pública):
+Item de menu (estado ativo):
 
 ```text
-[Hero / Logo Vega no topo, fixo translúcido]
-
-ATO I — A Dor (h-screen, fundo preto/azul-aço gradient)
-  Imagem IA #1 (consultório caótico, tons frios)
-  Headline gigante Bagel Fat: "O caos não é o preço do sucesso."
-  Copy: "O consultório que você sonhou se tornou a prisão que você habita?..."
-
-ATO II — A Ascensão (h-screen, transição luz esmeralda)
-  Imagem IA #2 (explosão de luz esmeralda, nave entrando no software)
-  Headline: "Conheça o Vega."
-  Copy do roteiro
-  Grid 8 módulos (Pacientes, Funil, Financeiro, Marketing, GPS, Inteligência, 
-    Equipe, Autoridade) em cards com hover lift + glow esmeralda
-
-ATO III — A Nova Realidade (h-screen, Quiet Luxury)
-  Imagem IA #3 (dentista em paz com família, consultório iluminado)
-  Headline: "Onde a inteligência assume o controle."
-  Copy do roteiro
-
-ATO IV — O Chamado (h-screen, preto absoluto)
-  Imagem IA #4 (logo Vega brilhando esmeralda em fundo preto)
-  Headline: "O mundo evoluiu, Doutor. E você?"
-  Form de captura (nome, WhatsApp, email opcional)
-  Botão Bagel Fat: "QUERO MINHA EVOLUÇÃO AGORA"
-
-[Footer minimalista: © Vega Dental AI · Política · Contato]
+┌─────────────────────────────┐
+│▌ [icon]  Agenda        [8] │   ▌ = barra vertical 2px dourada
+└─────────────────────────────┘
 ```
 
-Animações: `IntersectionObserver` + classes `animate-fade-up`/`animate-glow` que disparam ao entrar no viewport. Scroll suave entre atos.
+- Ícones `lucide-react` com `strokeWidth={1.5}` (traço fino).
+- Hover: `bg-sidebar-accent/15`, transição 200ms.
+- Ativo: `bg-sidebar-accent/20`, texto branco, barra `::before` dourada de 2px à esquerda (negativa via `inset-y-1 left-0`).
+- Padding generoso: `py-2.5 px-3`, gap `gap-3` entre itens (`space-y-1.5`), altura mínima `h-10`.
 
-## 3. Geração das 4 imagens IA
+### 4. Componente `SidebarCountBadge`
 
-Usando o skill `ai-gateway` com `google/gemini-3-pro-image-preview` (qualidade cinematográfica). Imagens salvas em `public/landing/ato-{1..4}.webp` e referenciadas por `<img src="/landing/ato-1.webp">`.
+Pequeno componente reutilizável:
+- Variant `count`: pill `bg-gold/15 text-gold` com número.
+- Variant `alert`: ponto 8px com `animate-pulse` em dourado + halo.
+- Esconde-se quando `collapsed` (exceto `alert`, que vira mini-dot absoluto sobre o ícone).
 
-Prompts (em inglês, técnica fotográfica/cinema):
-1. **Caos**: "Cinematic dark moody dental clinic, exhausted dentist hunched over desk buried in paperwork, cold blue-grey lighting, depth of field, photorealistic, anamorphic"
-2. **Ascensão**: "Cinematic emerald green light explosion entering a futuristic dental software interface, holographic UI panels floating, dark space background, sci-fi, dramatic lighting"
-3. **Nova Realidade**: "Quiet luxury — well-dressed dentist smiling peacefully with family at golden hour, modern minimalist clinic in soft focus background, warm cinematic lighting, premium lifestyle photography"
-4. **Logo**: "Glowing emerald green letter 'V' monogram suspended in absolute black void, lens flare, premium luxury brand identity, cinematic"
+### 5. Sub-item Pacientes → Documentos
 
-## 4. Captura de leads
+Usar `Collapsible` do shadcn dentro do `SidebarMenuItem`. Auto-expande quando rota atual é `/pacientes*` ou `/documentos`. Quando colapsada (icon mode), Documentos aparece via tooltip flutuante padrão do shadcn.
 
-Componente `WaitlistForm` no Ato IV:
-- Validação Zod (nome 2-100 chars, WhatsApp 10-15 dígitos, email opcional)
-- `supabase.from("evolution_waitlist").insert(...)` (anônimo, RLS permite)
-- Salva user_agent automaticamente
-- Em sucesso: toast "Você está dentro." → `window.location.href = "https://wa.me/55XXX?text=Olá%20Dra...%20acabei%20de%20entrar%20na%20lista%20de%20espera%20do%20Vega"`
-- Tratamento de erro com toast amigável
+### Arquivos afetados
 
-## 5. Rota e fonte
+- `src/components/AppSidebar.tsx` — reestruturação completa.
+- `src/components/SidebarCountBadge.tsx` — novo.
+- `src/hooks/useSidebarCounters.tsx` — novo (React Query + supabase).
+- `src/index.css` — ajustar tokens `--sidebar-*` e adicionar `--sidebar-active-indicator`.
 
-**`src/App.tsx`** — adicionar em "Public":
-```tsx
-<Route path="/evolucao" element={<SaltoEvolutivo />} />
-```
-
-**`index.html`** — adicionar Google Font Bagel Fat One com `<link rel="preconnect">` e usar em CSS apenas dentro de `.font-bagel` (escopo local, não vira default global).
-
-**`tailwind.config.ts`** — adicionar `bagel: ['"Bagel Fat One"', 'cursive']` em `fontFamily` extend.
-
-## O que NÃO muda
-
-- App principal (`/`, `/auth`, todas rotas protegidas) — zero impacto.
-- Sidebar, design system existente, demais páginas.
-- Schema de pacientes/clínicas/etc.
-
-## Detalhes técnicos
-
-- Verde esmeralda como CSS custom properties locais à landing (não toca em `index.css` global).
-- Imagens em `/public/landing/` para CDN cache automático.
-- Lazy load das imagens dos atos II/III/IV (`loading="lazy"`).
-- Meta tags Open Graph/Twitter cards na landing pra preview bonito quando compartilhado.
-- Mobile-first: atos viram stack vertical, fonte Bagel reduz pra `clamp(2.5rem, 8vw, 6rem)`.
-
-## Resultado
-
-Você divulga `vegadental.com.br/evolucao` em campanhas → visitante rola pelos 4 atos cinematográficos com narrativa visual forte → preenche o form → cai no seu WhatsApp já aquecido pela narrativa, e fica salvo no banco pra você acompanhar conversão.
-
-## Pra eu começar com tudo certo, confirma:
-1. **Número de WhatsApp** pro redirect (formato `5511999999999`).
-2. **OK no esmeralda `#047857` + glow `#10B981`?** Ou prefere o neon `#10B981` puro mais vibrante?
+Sem mudanças em rotas (`App.tsx`), business logic ou backend.

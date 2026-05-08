@@ -40,14 +40,14 @@
     --gold: 42 78% 55%;
     --gold-foreground: 42 20% 14%;
 
-    /* Sidebar — deep navy */
-    --sidebar-background: 210 40% 8%;
-    --sidebar-foreground: 220 14% 75%;
+    /* Sidebar — quase preto, viés azul */
+    --sidebar-background: 220 25% 6%;
+    --sidebar-foreground: 220 12% 70%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 210 40% 8%;
-    --sidebar-accent: 210 35% 14%;
-    --sidebar-accent-foreground: 220 14% 95%;
-    --sidebar-border: 210 30% 14%;
+    --sidebar-primary-foreground: 220 25% 6%;
+    --sidebar-accent: 200 65% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 20% 12%;
     --sidebar-ring: 200 65% 45%;
 
     /* Pillar colors */
