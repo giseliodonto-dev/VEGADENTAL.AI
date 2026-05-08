@@ -419,9 +419,18 @@ export default function PacienteDetalhe() {
   return (
     <AppLayout title={patient?.name || "Paciente"} subtitle="Ficha completa do paciente">
       <div className="max-w-5xl mx-auto space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/pacientes")} className="text-[#103444] -ml-2">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="ghost" onClick={() => navigate("/pacientes")} className="text-[#103444] -ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
+          </Button>
+          <Button
+            onClick={() => setWaOpen(true)}
+            variant="outline"
+            className="border-emerald-500/50 text-emerald-700 hover:bg-emerald-50 gap-2"
+          >
+            <MessageSquare className="h-4 w-4" /> Mensagens WhatsApp
+          </Button>
+        </div>
 
         <Tabs defaultValue="cadastro">
           <TabsList className="bg-white border border-amber-400/30 h-auto p-1">
