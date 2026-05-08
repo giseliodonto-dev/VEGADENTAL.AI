@@ -15,8 +15,48 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, CalendarIcon, ChevronLeft, ChevronRight, Film, Image, MessageSquare, Video } from "lucide-react";
+import { Plus, CalendarIcon, ChevronLeft, ChevronRight, Film, Image, MessageSquare, Video, Sparkles, ExternalLink, Copy, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface PostIdea {
+  titulo: string;
+  formato: string;
+  ideia_imagem: string;
+  legenda: string;
+  hashtags: string[];
+  cta: string;
+}
+interface ArtigoRef {
+  titulo: string;
+  fonte: string;
+  search_query: string;
+  resumo: string;
+}
+interface PesquisaRef {
+  titulo: string;
+  descricao: string;
+  search_query: string;
+}
+interface Sugestoes {
+  tema: string;
+  resumo: string;
+  posts: PostIdea[];
+  artigos: ArtigoRef[];
+  pesquisas: PesquisaRef[];
+}
+
+const TEMAS_SUGERIDOS = [
+  "Clareamento dental",
+  "Aparelho ortodôntico",
+  "Medo de dentista",
+  "Implantes",
+  "Lentes de contato",
+  "Limpeza e prevenção",
+  "Saúde bucal infantil",
+  "Bruxismo",
+];
 
 const contentTypes = [
   { value: "reels", label: "Reels", icon: Film },
