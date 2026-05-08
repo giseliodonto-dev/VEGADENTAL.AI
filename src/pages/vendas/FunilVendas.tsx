@@ -49,6 +49,7 @@ export default function FunilVendas() {
   const [items, setItems] = useState<FunnelItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (!clinicId) return;
@@ -196,7 +197,7 @@ export default function FunilVendas() {
 
         {/* Kanban board com Drag & Drop */}
         <DndContext
-          sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
+          sensors={sensors}
           onDragEnd={(e: DragEndEvent) => {
             const itemId = e.active.id as string;
             const newStage = e.over?.id as StageName | undefined;
