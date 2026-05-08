@@ -507,6 +507,13 @@ export default function Leads() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <WhatsAppTemplatesDialog
+        open={!!waLead}
+        onOpenChange={(o) => !o && setWaLead(null)}
+        phone={waLead?.contact}
+        vars={{ nome: waLead?.name?.split(" ")[0] || "" }}
+      />
     </AppLayout>
   );
 }
