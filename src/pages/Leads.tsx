@@ -264,8 +264,9 @@ export default function Leads() {
     fetchLeads();
   }
 
-  function openWhatsApp(contact: string | null) {
-    openWA(contact, "");
+  const [waLead, setWaLead] = useState<{ name: string; contact: string | null } | null>(null);
+  function openWhatsApp(lead: { name: string; contact: string | null }) {
+    setWaLead(lead);
   }
 
   if (clinicLoading) {
