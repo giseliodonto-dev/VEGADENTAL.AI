@@ -830,6 +830,94 @@ export default function PacienteDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: gerenciar pagamento de procedimento */}
+      <Dialog open={!!payDialogTreatment} onOpenChange={(o) => !o && setPayDialogTreatment(null)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#103444] flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-amber-600" /> Gerenciar Pagamento
+            </DialogTitle>
+          </DialogHeader>
+          {payDialogTreatment && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-slate-50 border p-3 text-sm">
+                <div className="font-semibold text-[#103444]">{payDialogTreatment.procedure_type}</div>
+                <div className="text-[#103444]/70">Valor: {fmtBRL(Number(payDialogTreatment.value))}</div>
+              </div>
+              <div>
+                <Label className="text-[#103444]">Método de pagamento</Label>
+                <Select value={payMethod} onValueChange={setPayMethod}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cartao_credito">Cartão de Crédito (à vista)</SelectItem>
+                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                    <SelectItem value="cartao_parcelado">Cartão Parcelado</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {payMethod === "cartao_parcelado" && (
+                <div>
+                  <Label className="text-[#103444]">Número de parcelas</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={24}
+                    value={payInstallments}
+                    onChange={e => setPayInstallments(Math.max(2, Number(e.target.value) || 2))}
+                  />
+                </div>
+              )}
+              <div>
+                <Label className="text-[#103444]">Status do pagamento</Label>
+                <Select value={payStatus} onValueChange={setPayStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="parcial">Pagamento Parcial</SelectItem>
+                    <SelectItem value="pago">Pagamento Confirmado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(payStatus === "pago" || payStatus === "parcial") && (
+                <div>
+                  <Label className="text-[#103444]">Valor recebido (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={payAmount}
+                    onChange={e => setPayAmount(Number(e.target.value) || 0)}
+                  />
+                  <p className="text-[11px] text-[#103444]/60 mt-1">
+                    Ao confirmar como Pago, é criada automaticamente uma Receita na aba Financeiro.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayDialogTreatment(null)}>Cancelar</Button>
+            <Button
+              onClick={() => savePayment.mutate()}
+              disabled={savePayment.isPending}
+              className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2"
+            >
+              {savePayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <WhatsAppTemplatesDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        phone={patient?.phone}
+        vars={{ nome: patient?.name?.split(" ")[0] || "" }}
+      />
     </AppLayout>
   );
 }
