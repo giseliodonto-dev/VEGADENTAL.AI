@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { openWhatsApp as openWA } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -263,8 +264,9 @@ export default function Leads() {
     fetchLeads();
   }
 
-  function openWhatsApp(contact: string | null) {
-    openWA(contact, "");
+  const [waLead, setWaLead] = useState<{ name: string; contact: string | null } | null>(null);
+  function openWhatsApp(lead: { name: string; contact: string | null }) {
+    setWaLead(lead);
   }
 
   if (clinicLoading) {
@@ -364,7 +366,7 @@ export default function Leads() {
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => openWhatsApp(l.contact)}
+                            onClick={() => openWhatsApp({ name: l.name, contact: l.contact })}
                             title="WhatsApp"
                           >
                             <WhatsAppIcon size={16} bare bgColor="#16a34a" />
@@ -505,6 +507,13 @@ export default function Leads() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <WhatsAppTemplatesDialog
+        open={!!waLead}
+        onOpenChange={(o) => !o && setWaLead(null)}
+        phone={waLead?.contact}
+        vars={{ nome: waLead?.name?.split(" ")[0] || "" }}
+      />
     </AppLayout>
   );
 }

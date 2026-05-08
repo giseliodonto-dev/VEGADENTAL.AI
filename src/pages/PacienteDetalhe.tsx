@@ -17,9 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare } from "lucide-react";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -263,6 +264,86 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // ===== PAGAMENTO POR PROCEDIMENTO =====
+  const [payDialogTreatment, setPayDialogTreatment] = useState<any>(null);
+  const [payMethod, setPayMethod] = useState<string>("pix");
+  const [payInstallments, setPayInstallments] = useState<number>(1);
+  const [payStatus, setPayStatus] = useState<string>("pendente");
+  const [payAmount, setPayAmount] = useState<number>(0);
+
+  const openPayDialog = (t: any) => {
+    setPayDialogTreatment(t);
+    setPayMethod((t.payment_type as string) || "pix");
+    setPayInstallments(Number(t.installments) || 1);
+    setPayStatus(t.payment_status || "pendente");
+    setPayAmount(Number(t.amount_paid) || Number(t.value) || 0);
+  };
+
+  const savePayment = useMutation({
+    mutationFn: async () => {
+      if (!payDialogTreatment || !clinicId) throw new Error("Sem dados");
+      const t = payDialogTreatment;
+      const newStatus = payStatus;
+      const isNowPaid = newStatus === "pago";
+      const wasPaid = t.payment_status === "pago";
+
+      // 1) Atualiza tratamento
+      const { error: uErr } = await supabase
+        .from("treatments")
+        .update({
+          payment_type: payMethod,
+          installments: payMethod === "cartao_parcelado" ? payInstallments : 1,
+          payment_status: newStatus,
+          amount_paid: isNowPaid ? (payAmount || Number(t.value)) : Number(t.amount_paid) || 0,
+        })
+        .eq("id", t.id);
+      if (uErr) throw uErr;
+
+      // 2) Marca financeiro: cria 1 entrada vinculada (idempotente via tag na description)
+      const tag = `[treatment:${t.id}]`;
+      if (isNowPaid && !wasPaid) {
+        const { data: existing } = await supabase
+          .from("financials")
+          .select("id")
+          .eq("clinic_id", clinicId)
+          .ilike("description", `%${tag}%`)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          const { error: fErr } = await supabase.from("financials").insert({
+            clinic_id: clinicId,
+            patient_id: id!,
+            type: "entrada",
+            category: "recebimento",
+            value: payAmount || Number(t.value) || 0,
+            payment_method: payMethod,
+            status: "pago",
+            date: new Date().toISOString().slice(0, 10),
+            description: `${t.procedure_type}${t.tooth_number ? ` (dente ${t.tooth_number})` : ""} ${tag}`,
+          });
+          if (fErr) throw fErr;
+        }
+      }
+      // Se mudou para pendente após estar pago, remove a entrada vinculada
+      if (!isNowPaid && wasPaid) {
+        await supabase
+          .from("financials")
+          .delete()
+          .eq("clinic_id", clinicId)
+          .ilike("description", `%${tag}%`);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pagamento atualizado");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      setPayDialogTreatment(null);
+    },
+    onError: (e: any) => toast.error("Erro: " + (e.message || e)),
+  });
+
+  // ===== WhatsApp templates =====
+  const [waOpen, setWaOpen] = useState(false);
+
   const [discountPct, setDiscountPct] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
   const [installmentsN, setInstallmentsN] = useState(2);
@@ -338,9 +419,18 @@ export default function PacienteDetalhe() {
   return (
     <AppLayout title={patient?.name || "Paciente"} subtitle="Ficha completa do paciente">
       <div className="max-w-5xl mx-auto space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/pacientes")} className="text-[#103444] -ml-2">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="ghost" onClick={() => navigate("/pacientes")} className="text-[#103444] -ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
+          </Button>
+          <Button
+            onClick={() => setWaOpen(true)}
+            variant="outline"
+            className="border-emerald-500/50 text-emerald-700 hover:bg-emerald-50 gap-2"
+          >
+            <MessageSquare className="h-4 w-4" /> Mensagens WhatsApp
+          </Button>
+        </div>
 
         <Tabs defaultValue="cadastro">
           <TabsList className="bg-white border border-amber-400/30 h-auto p-1">
@@ -565,7 +655,16 @@ export default function PacienteDetalhe() {
                           <TableCell className="text-[#103444]/80">{[t.tooth_number, t.region].filter(Boolean).join(" · ") || "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-[#103444]">{fmtBRL(Number(t.value))}</TableCell>
                           <TableCell><Badge variant="outline" className="text-[#103444] border-[#103444]/30">{STATUS_LABELS[t.status] || t.status}</Badge></TableCell>
-                          <TableCell><Badge className={`${PAY_STATUS_COLORS[t.payment_status] || ""} border`}>{t.payment_status}</Badge></TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => openPayDialog(t)}
+                              className={`text-xs px-2 py-1 rounded border ${PAY_STATUS_COLORS[t.payment_status] || ""} hover:ring-2 hover:ring-amber-400 transition`}
+                              title="Gerenciar pagamento"
+                            >
+                              {t.payment_status === "pago" ? "Pago" : t.payment_status === "parcial" ? "Parcial" : "Pendente"}
+                              {t.payment_type ? ` · ${String(t.payment_type).replace("_", " ")}` : ""}
+                            </button>
+                          </TableCell>
                           <TableCell>
                             <Button size="sm" variant="ghost" onClick={() => deleteTreatment.mutate(t.id)} className="text-red-600 hover:bg-red-50 h-8 w-8 p-0">
                               <Trash2 className="h-4 w-4" />
@@ -740,6 +839,94 @@ export default function PacienteDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: gerenciar pagamento de procedimento */}
+      <Dialog open={!!payDialogTreatment} onOpenChange={(o) => !o && setPayDialogTreatment(null)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#103444] flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-amber-600" /> Gerenciar Pagamento
+            </DialogTitle>
+          </DialogHeader>
+          {payDialogTreatment && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-slate-50 border p-3 text-sm">
+                <div className="font-semibold text-[#103444]">{payDialogTreatment.procedure_type}</div>
+                <div className="text-[#103444]/70">Valor: {fmtBRL(Number(payDialogTreatment.value))}</div>
+              </div>
+              <div>
+                <Label className="text-[#103444]">Método de pagamento</Label>
+                <Select value={payMethod} onValueChange={setPayMethod}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cartao_credito">Cartão de Crédito (à vista)</SelectItem>
+                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                    <SelectItem value="cartao_parcelado">Cartão Parcelado</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {payMethod === "cartao_parcelado" && (
+                <div>
+                  <Label className="text-[#103444]">Número de parcelas</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={24}
+                    value={payInstallments}
+                    onChange={e => setPayInstallments(Math.max(2, Number(e.target.value) || 2))}
+                  />
+                </div>
+              )}
+              <div>
+                <Label className="text-[#103444]">Status do pagamento</Label>
+                <Select value={payStatus} onValueChange={setPayStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="parcial">Pagamento Parcial</SelectItem>
+                    <SelectItem value="pago">Pagamento Confirmado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(payStatus === "pago" || payStatus === "parcial") && (
+                <div>
+                  <Label className="text-[#103444]">Valor recebido (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={payAmount}
+                    onChange={e => setPayAmount(Number(e.target.value) || 0)}
+                  />
+                  <p className="text-[11px] text-[#103444]/60 mt-1">
+                    Ao confirmar como Pago, é criada automaticamente uma Receita na aba Financeiro.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayDialogTreatment(null)}>Cancelar</Button>
+            <Button
+              onClick={() => savePayment.mutate()}
+              disabled={savePayment.isPending}
+              className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2"
+            >
+              {savePayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <WhatsAppTemplatesDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        phone={patient?.phone}
+        vars={{ nome: patient?.name?.split(" ")[0] || "" }}
+      />
     </AppLayout>
   );
 }
