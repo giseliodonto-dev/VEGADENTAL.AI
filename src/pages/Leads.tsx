@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { openWhatsApp as openWA } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
