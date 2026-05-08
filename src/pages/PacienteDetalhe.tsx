@@ -17,9 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare } from "lucide-react";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
