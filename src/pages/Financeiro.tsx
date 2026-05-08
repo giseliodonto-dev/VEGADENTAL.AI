@@ -148,6 +148,25 @@ export default function Financeiro() {
     },
   });
 
+  // Inadimplência: tratamentos com pagamento pendente ou parcial
+  const { data: pendentes = [] } = useQuery({
+    queryKey: ["financeiro", "inadimplencia", clinicId],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("treatments")
+        .select("id, value, amount_paid, payment_status, procedure_type, patient_id, patients:patient_id(name, phone)")
+        .eq("clinic_id", clinicId!)
+        .in("payment_status", ["pendente", "parcial"])
+        .gt("value", 0);
+      return data || [];
+    },
+  });
+  const inadimplenciaTotal = pendentes.reduce(
+    (s: number, t: any) => s + Math.max(0, Number(t.value || 0) - Number(t.amount_paid || 0)),
+    0
+  );
+
   // Commission payments already made
   const commissionPayments = periodRecords.filter(
     r => r.type === "saida" && (r.category || "").toLowerCase() === "comissao"
