@@ -167,7 +167,62 @@ const AgendaVega = () => {
     enabled: !!clinicId,
   });
 
-  const createMutation = useMutation({
+  // Pré-preenchimento via ?lead=Nome&phone=...
+  useEffect(() => {
+    const leadName = searchParams.get("lead");
+    const leadPhone = searchParams.get("phone") || "";
+    if (!leadName || !clinicId || pendingLead) return;
+    setPendingLead({ name: leadName, phone: leadPhone });
+    (async () => {
+      // procura paciente existente por nome+telefone
+      let patientId: string | null = null;
+      const { data: existing } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("clinic_id", clinicId)
+        .eq("name", leadName)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        patientId = existing.id;
+      } else {
+        const { data: created } = await supabase
+          .from("patients")
+          .insert({
+            clinic_id: clinicId,
+            name: leadName,
+            phone: leadPhone || null,
+            status: "lead",
+            responsible_user_id: user?.id ?? null,
+          })
+          .select("id")
+          .single();
+        patientId = created?.id ?? null;
+        queryClient.invalidateQueries({ queryKey: ["patients-select"] });
+      }
+
+      const userIsDentist = dentists.some((d) => d.id === user?.id);
+      setNewForm({
+        patient_id: patientId || "",
+        procedure_type: "Avaliação inicial",
+        estimated_value: "",
+        dentist_user_id: userIsDentist ? user!.id : "",
+        duration_minutes: "60",
+        notes: `Vindo do funil de Leads`,
+        date: format(new Date(), "yyyy-MM-dd"),
+        time: "",
+      });
+      setSelectedSlot({ date: format(new Date(), "yyyy-MM-dd"), time: "" });
+      toast.info(`Selecione um horário para agendar ${leadName}`);
+      // limpa params
+      const next = new URLSearchParams(searchParams);
+      next.delete("lead");
+      next.delete("phone");
+      setSearchParams(next, { replace: true });
+    })();
+  }, [searchParams, clinicId, dentists, user, pendingLead, queryClient, setSearchParams]);
+
+
     mutationFn: async () => {
       if (!clinicId) throw new Error("Sem clínica");
       const date = newForm.date || selectedSlot?.date;
