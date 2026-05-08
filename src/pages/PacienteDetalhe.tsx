@@ -646,7 +646,16 @@ export default function PacienteDetalhe() {
                           <TableCell className="text-[#103444]/80">{[t.tooth_number, t.region].filter(Boolean).join(" · ") || "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-[#103444]">{fmtBRL(Number(t.value))}</TableCell>
                           <TableCell><Badge variant="outline" className="text-[#103444] border-[#103444]/30">{STATUS_LABELS[t.status] || t.status}</Badge></TableCell>
-                          <TableCell><Badge className={`${PAY_STATUS_COLORS[t.payment_status] || ""} border`}>{t.payment_status}</Badge></TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => openPayDialog(t)}
+                              className={`text-xs px-2 py-1 rounded border ${PAY_STATUS_COLORS[t.payment_status] || ""} hover:ring-2 hover:ring-amber-400 transition`}
+                              title="Gerenciar pagamento"
+                            >
+                              {t.payment_status === "pago" ? "Pago" : t.payment_status === "parcial" ? "Parcial" : "Pendente"}
+                              {t.payment_type ? ` · ${String(t.payment_type).replace("_", " ")}` : ""}
+                            </button>
+                          </TableCell>
                           <TableCell>
                             <Button size="sm" variant="ghost" onClick={() => deleteTreatment.mutate(t.id)} className="text-red-600 hover:bg-red-50 h-8 w-8 p-0">
                               <Trash2 className="h-4 w-4" />
