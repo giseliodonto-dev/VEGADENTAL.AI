@@ -264,6 +264,86 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // ===== PAGAMENTO POR PROCEDIMENTO =====
+  const [payDialogTreatment, setPayDialogTreatment] = useState<any>(null);
+  const [payMethod, setPayMethod] = useState<string>("pix");
+  const [payInstallments, setPayInstallments] = useState<number>(1);
+  const [payStatus, setPayStatus] = useState<string>("pendente");
+  const [payAmount, setPayAmount] = useState<number>(0);
+
+  const openPayDialog = (t: any) => {
+    setPayDialogTreatment(t);
+    setPayMethod((t.payment_type as string) || "pix");
+    setPayInstallments(Number(t.installments) || 1);
+    setPayStatus(t.payment_status || "pendente");
+    setPayAmount(Number(t.amount_paid) || Number(t.value) || 0);
+  };
+
+  const savePayment = useMutation({
+    mutationFn: async () => {
+      if (!payDialogTreatment || !clinicId) throw new Error("Sem dados");
+      const t = payDialogTreatment;
+      const newStatus = payStatus;
+      const isNowPaid = newStatus === "pago";
+      const wasPaid = t.payment_status === "pago";
+
+      // 1) Atualiza tratamento
+      const { error: uErr } = await supabase
+        .from("treatments")
+        .update({
+          payment_type: payMethod,
+          installments: payMethod === "cartao_parcelado" ? payInstallments : 1,
+          payment_status: newStatus,
+          amount_paid: isNowPaid ? (payAmount || Number(t.value)) : Number(t.amount_paid) || 0,
+        })
+        .eq("id", t.id);
+      if (uErr) throw uErr;
+
+      // 2) Marca financeiro: cria 1 entrada vinculada (idempotente via tag na description)
+      const tag = `[treatment:${t.id}]`;
+      if (isNowPaid && !wasPaid) {
+        const { data: existing } = await supabase
+          .from("financials")
+          .select("id")
+          .eq("clinic_id", clinicId)
+          .ilike("description", `%${tag}%`)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          const { error: fErr } = await supabase.from("financials").insert({
+            clinic_id: clinicId,
+            patient_id: id!,
+            type: "entrada",
+            category: "recebimento",
+            value: payAmount || Number(t.value) || 0,
+            payment_method: payMethod,
+            status: "pago",
+            date: new Date().toISOString().slice(0, 10),
+            description: `${t.procedure_type}${t.tooth_number ? ` (dente ${t.tooth_number})` : ""} ${tag}`,
+          });
+          if (fErr) throw fErr;
+        }
+      }
+      // Se mudou para pendente após estar pago, remove a entrada vinculada
+      if (!isNowPaid && wasPaid) {
+        await supabase
+          .from("financials")
+          .delete()
+          .eq("clinic_id", clinicId)
+          .ilike("description", `%${tag}%`);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pagamento atualizado");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      setPayDialogTreatment(null);
+    },
+    onError: (e: any) => toast.error("Erro: " + (e.message || e)),
+  });
+
+  // ===== WhatsApp templates =====
+  const [waOpen, setWaOpen] = useState(false);
+
   const [discountPct, setDiscountPct] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "parcelado" | "boleto">("pix");
   const [installmentsN, setInstallmentsN] = useState(2);
