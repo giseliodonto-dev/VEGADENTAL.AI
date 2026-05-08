@@ -83,6 +83,50 @@ const PlanejamentoConteudo = () => {
   const [status, setStatus] = useState("planejado");
   const [notes, setNotes] = useState("");
 
+  // IA: sugestões por tema
+  const [iaTema, setIaTema] = useState("");
+  const [iaLoading, setIaLoading] = useState(false);
+  const [sugestoes, setSugestoes] = useState<Sugestoes | null>(null);
+
+  const gerarSugestoes = async (tema: string) => {
+    const t = tema.trim();
+    if (!t) {
+      toast.error("Digite um tema");
+      return;
+    }
+    setIaLoading(true);
+    setSugestoes(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("content-suggestions", {
+        body: { tema: t },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setSugestoes(data as Sugestoes);
+      toast.success("Sugestões geradas!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar sugestões");
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const copiar = (texto: string) => {
+    navigator.clipboard.writeText(texto);
+    toast.success("Copiado!");
+  };
+
+  const usarComoConteudo = (post: PostIdea) => {
+    setTitle(post.titulo);
+    setContentType(["reels", "story", "post", "video"].includes(post.formato) ? post.formato : "post");
+    setTheme(sugestoes?.tema || iaTema);
+    setStatus("planejado");
+    setNotes(`${post.legenda}\n\nImagem: ${post.ideia_imagem}\nCTA: ${post.cta}\nHashtags: ${post.hashtags.join(" ")}`);
+    setSelectedDate(new Date());
+    setDialogOpen(true);
+  };
+
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
 
