@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,6 +82,7 @@ const AgendaVega = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [filterDentist, setFilterDentist] = useState<string>("all");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
@@ -88,6 +90,7 @@ const AgendaVega = () => {
   const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [mobileDay, setMobileDay] = useState(0);
+  const [pendingLead, setPendingLead] = useState<{ name: string; phone: string } | null>(null);
 
   // Auto-select logged-in user as dentist when opening new appointment dialog
   const handleOpenNewSlot = (slot: { date: string; time: string }) => {
@@ -163,6 +166,61 @@ const AgendaVega = () => {
     },
     enabled: !!clinicId,
   });
+
+  // Pré-preenchimento via ?lead=Nome&phone=...
+  useEffect(() => {
+    const leadName = searchParams.get("lead");
+    const leadPhone = searchParams.get("phone") || "";
+    if (!leadName || !clinicId || pendingLead) return;
+    setPendingLead({ name: leadName, phone: leadPhone });
+    (async () => {
+      // procura paciente existente por nome+telefone
+      let patientId: string | null = null;
+      const { data: existing } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("clinic_id", clinicId)
+        .eq("name", leadName)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        patientId = existing.id;
+      } else {
+        const { data: created } = await supabase
+          .from("patients")
+          .insert({
+            clinic_id: clinicId,
+            name: leadName,
+            phone: leadPhone || null,
+            status: "lead",
+            responsible_user_id: user?.id ?? null,
+          })
+          .select("id")
+          .single();
+        patientId = created?.id ?? null;
+        queryClient.invalidateQueries({ queryKey: ["patients-select"] });
+      }
+
+      const userIsDentist = dentists.some((d) => d.id === user?.id);
+      setNewForm({
+        patient_id: patientId || "",
+        procedure_type: "Avaliação inicial",
+        estimated_value: "",
+        dentist_user_id: userIsDentist ? user!.id : "",
+        duration_minutes: "60",
+        notes: `Vindo do funil de Leads`,
+        date: format(new Date(), "yyyy-MM-dd"),
+        time: "",
+      });
+      setSelectedSlot({ date: format(new Date(), "yyyy-MM-dd"), time: "" });
+      toast.info(`Selecione um horário para agendar ${leadName}`);
+      // limpa params
+      const next = new URLSearchParams(searchParams);
+      next.delete("lead");
+      next.delete("phone");
+      setSearchParams(next, { replace: true });
+    })();
+  }, [searchParams, clinicId, dentists, user, pendingLead, queryClient, setSearchParams]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
