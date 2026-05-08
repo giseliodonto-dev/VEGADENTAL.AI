@@ -82,6 +82,7 @@ const AgendaVega = () => {
   const { clinicId } = useClinic();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [filterDentist, setFilterDentist] = useState<string>("all");
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
@@ -89,6 +90,7 @@ const AgendaVega = () => {
   const [newForm, setNewForm] = useState({ patient_id: "", procedure_type: "", estimated_value: "", dentist_user_id: "", duration_minutes: "60", notes: "", date: "", time: "" });
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [mobileDay, setMobileDay] = useState(0);
+  const [pendingLead, setPendingLead] = useState<{ name: string; phone: string } | null>(null);
 
   // Auto-select logged-in user as dentist when opening new appointment dialog
   const handleOpenNewSlot = (slot: { date: string; time: string }) => {
