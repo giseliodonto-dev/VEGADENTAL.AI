@@ -222,7 +222,7 @@ const AgendaVega = () => {
     })();
   }, [searchParams, clinicId, dentists, user, pendingLead, queryClient, setSearchParams]);
 
-
+  const createMutation = useMutation({
     mutationFn: async () => {
       if (!clinicId) throw new Error("Sem clínica");
       const date = newForm.date || selectedSlot?.date;
