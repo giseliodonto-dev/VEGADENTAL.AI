@@ -366,7 +366,7 @@ export default function Leads() {
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => openWhatsApp(l.contact)}
+                            onClick={() => openWhatsApp({ name: l.name, contact: l.contact })}
                             title="WhatsApp"
                           >
                             <WhatsAppIcon size={16} bare bgColor="#16a34a" />
