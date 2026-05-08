@@ -304,6 +304,138 @@ const PlanejamentoConteudo = () => {
           </div>
         </div>
 
+        {/* IA: Inspiração por tema */}
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Inspiração por tema
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Escolha um tema e a IA gera ideias de posts, fontes confiáveis e linhas de pesquisa.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                value={iaTema}
+                onChange={(e) => setIaTema(e.target.value)}
+                placeholder="Ex: clareamento, medo de dentista, aparelho..."
+                onKeyDown={(e) => e.key === "Enter" && gerarSugestoes(iaTema)}
+              />
+              <Button onClick={() => gerarSugestoes(iaTema)} disabled={iaLoading} className="shrink-0">
+                <Wand2 className="h-4 w-4 mr-1" />
+                {iaLoading ? "Gerando..." : "Gerar ideias"}
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {TEMAS_SUGERIDOS.map((t) => (
+                <Badge
+                  key={t}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-primary/10"
+                  onClick={() => {
+                    setIaTema(t);
+                    gerarSugestoes(t);
+                  }}
+                >
+                  {t}
+                </Badge>
+              ))}
+            </div>
+
+            {sugestoes && (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Tema</p>
+                  <p className="text-sm font-medium">{sugestoes.tema}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{sugestoes.resumo}</p>
+                </div>
+
+                <Tabs defaultValue="posts">
+                  <TabsList>
+                    <TabsTrigger value="posts">Posts ({sugestoes.posts.length})</TabsTrigger>
+                    <TabsTrigger value="artigos">Artigos ({sugestoes.artigos.length})</TabsTrigger>
+                    <TabsTrigger value="pesquisas">Pesquisas ({sugestoes.pesquisas.length})</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="posts" className="space-y-3 mt-3">
+                    {sugestoes.posts.map((p, i) => (
+                      <div key={i} className="border rounded-lg p-3 space-y-2 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <Badge variant="secondary" className="text-[10px] mb-1">{p.formato}</Badge>
+                            <p className="font-semibold text-sm">{p.titulo}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="sm" variant="ghost" onClick={() => copiar(`${p.legenda}\n\n${p.hashtags.join(" ")}`)}>
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => usarComoConteudo(p)}>
+                              <Plus className="h-3 w-3 mr-1" /> Agendar
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-xs whitespace-pre-wrap text-muted-foreground">{p.legenda}</p>
+                        <div className="text-[11px] text-muted-foreground border-t pt-2">
+                          <p><strong>Imagem:</strong> {p.ideia_imagem}</p>
+                          <p><strong>CTA:</strong> {p.cta}</p>
+                          <p className="mt-1 text-primary">{p.hashtags.join(" ")}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="artigos" className="space-y-2 mt-3">
+                    {sugestoes.artigos.map((a, i) => (
+                      <div key={i} className="border rounded-lg p-3 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{a.titulo}</p>
+                            <Badge variant="outline" className="text-[10px] mt-1">{a.fonte}</Badge>
+                            <p className="text-xs text-muted-foreground mt-2">{a.resumo}</p>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a
+                              href={`https://www.google.com/search?q=${encodeURIComponent(a.search_query)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" /> Buscar
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="pesquisas" className="space-y-2 mt-3">
+                    {sugestoes.pesquisas.map((r, i) => (
+                      <div key={i} className="border rounded-lg p-3 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{r.titulo}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{r.descricao}</p>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a
+                              href={`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(r.search_query)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" /> PubMed
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Calendar Grid */}
         <div className="border rounded-xl overflow-hidden">
           <div className="grid grid-cols-7 bg-muted">
