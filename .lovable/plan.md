@@ -1,37 +1,58 @@
-### 1. Refatoração do Status do Orçamento (Tratamento)
-- **Local:** `src/pages/PacienteDetalhe.tsx` (na aba "Plano de Tratamento").
-- **Mudança:** A tabela de procedimentos passará a ter um seletor (dropdown) para o `status` do tratamento, com as opções:
-  - **Em Análise** (`em_analise`)
-  - **Aprovado** (`aprovado`)
-  - **Recusado** (`recusado`)
-- Somente os procedimentos marcados como **Aprovados** serão contabilizados no débito total do paciente. (As opções antigas como `planejado`, `em_andamento` etc. continuarão sendo exibidas caso existam, mas a edição focará no novo fluxo de aprovação).
+## Aprovação Interna do Orçamento na Ficha do Paciente
 
-### 2. Nova Aba "Financeiro do Paciente"
-- **Local:** `src/pages/PacienteDetalhe.tsx`.
-- **Mudança:** Criação de uma nova aba chamada **Financeiro do Paciente**.
+### Visão Geral
+Adicionar um botão "Aprovar Tratamento Agora" na aba **Plano de Tratamento** do PacienteDetalhe. O botão aprova o orçamento mais recente, registra auditoria, atualiza os procedimentos vinculados e lança uma **Receita Prevista** no Financeiro Geral.
 
-#### A. Painel de Resumo
-- **Valor Total Aprovado:** Soma de todos os procedimentos (`treatments`) do paciente com status igual a `aprovado`.
-- **Valor Já Pago:** Soma de todos os pagamentos confirmados registrados no módulo Financeiro (`financials`) vinculados a este paciente (tipo `entrada` e status `pago`).
-- **Saldo Devedor:** A diferença entre o *Valor Total Aprovado* e o *Valor Já Pago*. Se o valor for maior que zero, será destacado em **vermelho**, para alertar o dentista antes do atendimento.
+### Técnico
 
-#### B. Botão "Registrar Recebimento"
-- Um botão que abre um modal para registrar o pagamento diretamente na ficha do paciente.
-- **Campos:** 
-  - Valor (pré-preenchido com o saldo devedor, mas editável)
-  - Data (padrão: hoje)
-  - Forma de Pagamento (Pix, Cartão de Crédito, Cartão de Débito, Dinheiro, Boleto, etc.)
-  - Descrição / Procedimento Pago
-  - Número de Parcelas (caso seja cartão parcelado)
-- **Integração Geral:** Ao salvar, o sistema insere o registro na tabela `financials` (categoria `recebimento`, tipo `entrada`), incluindo o ID do paciente e a descrição preenchida. Isso reflete de forma automática e imediata na página de **Financeiro Geral** da clínica.
+#### 1. Migration no banco de dados
 
-#### C. Extrato de Pagamentos
-- Tabela de extrato financeiro na mesma aba, buscando diretamente os registros da tabela `financials` para este paciente.
-- **Colunas:** Data, Descrição, Forma de Pagamento, Status e Valor.
-- Os pagamentos serão exibidos em ordem cronológica (mais recentes primeiro).
+```sql
+-- Adiciona coluna de auditoria no orçamento
+ALTER TABLE public.budgets ADD COLUMN IF NOT EXISTS approved_at timestamp with time zone;
+```
 
-### 3. Design & UX
-- Utilização da mesma padronização visual da plataforma: fontes Inter/Montserrat, cores da marca (Azul Petróleo e Dourado) e ícones da biblioteca `lucide-react`.
-- O saldo devedor receberá um destaque específico (`text-red-600` ou similar) garantindo que a inadimplência seja visível logo que a aba for acessada.
+#### 2. RPC `approve_budget_manually` (SECURITY DEFINER)
 
-Este plano engloba todas as alterações necessárias para o módulo Financeiro Individual do paciente, utilizando as tabelas já existentes no banco de dados (`treatments` e `financials`) sem a necessidade de migrações complexas.
+Criar função que recebe `budget_id` e executa com privilégios elevados (bypass RLS):
+- Atualiza `budgets.status` para `'aprovado'` e `approved_at = now()`.
+- Atualiza todos os `treatments` vinculados aos `budget_items` deste orçamento: `status = 'aprovado'`.
+- Insere um registro na tabela `financials`:
+  - `type = 'entrada'`
+  - `category = 'receita_prevista'`
+  - `status = 'pendente'`
+  - `value = budget.final_value`
+  - `patient_id = budget.patient_id`
+  - `clinic_id = budget.clinic_id`
+  - `description = 'Receita Prevista — Orçamento aprovado internamente'`
+  - `date = CURRENT_DATE`
+
+Isso resolve a restrição RLS do Financeiro sem expor dados a roles não-autorizadas.
+
+#### 3. Frontend (`src/pages/PacienteDetalhe.tsx`)
+
+**Nova query**: buscar orçamentos (`budgets`) do paciente, ordenados por `created_at DESC`.
+
+**Botão "Aprovar Tratamento Agora"**:
+- Condição de exibição: usuário tem role `dono`, `admin` ou `dentista` (via `useClinic`) **E** existe um orçamento recente com status `pendente` ou `enviado`.
+- Estilo: fundo `#103444` (Azul Petróleo), texto dourado/branco, borda sutil dourada.
+- Clique abre **AlertDialog** de confirmação: "Ao aprovar, o orçamento será formalizado, todos os procedimentos vinculados serão marcados como Aprovados e uma Receita Prevista será lançada no Financeiro Geral. Deseja continuar?"
+
+**Mutation `approveBudget`**:
+- Chama `supabase.rpc('approve_budget_manually', { _budget_id })`.
+- `onSuccess`: invalida queries de `budgets`, `treatments`, `patient-financials`, `financeiro`, e exibe toast "Orçamento aprovado com sucesso! Receita Prevista lançada."
+
+#### 4. Reflexos automáticos
+
+- Como os `treatments` vinculados terão `status = 'aprovado'`, o **Painel Financeiro do Paciente** já recalculará automaticamente:
+  - `Total Aprovado` (aumenta)
+  - `Saldo Devedor` (aumenta em vermelho)
+- Como o registro `financials` tem `category = 'receita_prevista'`, ele aparecerá na aba **Financeiro Geral** com status `pendente` e pode ser filtrado/identificado como receita futura.
+
+### Design
+- Botão com gradiente sutil Azul Petróleo + ícone `CheckCircle` do lucide-react.
+- Badge dourado "Orçamento Pendente" quando houver budget aguardando aprovação.
+- No extrato de pagamentos do paciente, mostrar também as "Receitas Previstas" com badge amarelo/dourado diferenciado.
+
+### Nota de segurança
+A RPC é `SECURITY DEFINER`, ou seja, executa com os privilégios do owner no banco. Isso permite que Dentistas aprovem orçamentos e lancem no caixa sem precisar ser Donos, mas a função é controlada e audita a data exata da aprovação.
