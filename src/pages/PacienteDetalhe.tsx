@@ -17,14 +17,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign } from "lucide-react";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído" };
+const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado" };
 const PAY_STATUS_COLORS: Record<string, string> = {
   pendente: "bg-amber-100 text-amber-800 border-amber-300",
   parcial: "bg-blue-100 text-blue-800 border-blue-300",
@@ -207,6 +207,35 @@ export default function PacienteDetalhe() {
   };
 
   // ===== PLANO DE TRATAMENTO =====
+
+  const { data: patientFinancials = [], isLoading: loadingFinancials } = useQuery({
+    queryKey: ["patient-financials", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financials")
+        .select("*")
+        .eq("patient_id", id!)
+        .eq("type", "entrada")
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  const updateTreatmentStatus = useMutation({
+    mutationFn: async ({ id: tid, status }: { id: string, status: string }) => {
+      const { error } = await supabase.from("treatments").update({ status }).eq("id", tid);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Status atualizado");
+      queryClient.invalidateQueries({ queryKey: ["treatments", id] });
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   const { data: treatments = [] } = useQuery({
     queryKey: ["treatments", id],
     queryFn: async () => {
@@ -238,7 +267,7 @@ export default function PacienteDetalhe() {
         tooth_number: newItem.tooth_number || null,
         region: newItem.region || null,
         value: newItem.value || 0,
-        status: "planejado",
+        status: "em_analise",
         payment_status: "pendente",
       });
       if (error) throw error;
@@ -341,6 +370,56 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + (e.message || e)),
   });
 
+
+  // ===== FINANCEIRO DO PACIENTE =====
+  const [finOpen, setFinOpen] = useState(false);
+  const [finAmount, setFinAmount] = useState(0);
+  const [finDate, setFinDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [finMethod, setFinMethod] = useState("pix");
+  const [finDesc, setFinDesc] = useState("");
+  const [finInstallments, setFinInstallments] = useState(1);
+
+  const totalAprovado = treatments.filter((t: any) => t.status === "aprovado").reduce((acc: number, t: any) => acc + Number(t.value || 0), 0);
+  const totalPago = patientFinancials.filter((f: any) => f.status === "pago").reduce((acc: number, f: any) => acc + Number(f.value || 0), 0);
+  const saldoDevedor = Math.max(0, totalAprovado - totalPago);
+
+  const savePatientPayment = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) throw new Error("Clínica não identificada");
+      if (finAmount <= 0) throw new Error("Valor deve ser maior que zero");
+      
+      const { error } = await supabase.from("financials").insert({
+        clinic_id: clinicId,
+        patient_id: id!,
+        type: "entrada",
+        category: "recebimento",
+        value: finAmount,
+        payment_method: finMethod === "cartao_parcelado" ? "cartão_crédito" : finMethod,
+        status: "pago",
+        date: finDate,
+        description: finDesc || "Recebimento Paciente",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Recebimento registrado");
+      queryClient.invalidateQueries({ queryKey: ["patient-financials", id] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      setFinOpen(false);
+      setFinDesc("");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const openFinanceDialog = () => {
+    setFinAmount(saldoDevedor > 0 ? saldoDevedor : 0);
+    setFinDate(new Date().toISOString().slice(0, 10));
+    setFinMethod("pix");
+    setFinDesc("");
+    setFinInstallments(1);
+    setFinOpen(true);
+  };
+
   // ===== WhatsApp templates =====
   const [waOpen, setWaOpen] = useState(false);
 
@@ -349,7 +428,7 @@ export default function PacienteDetalhe() {
   const [installmentsN, setInstallmentsN] = useState(2);
   const [lastBudgetToken, setLastBudgetToken] = useState<string | null>(null);
 
-  const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento");
+  const planned = treatments.filter((t: any) => t.status === "planejado" || t.status === "em_andamento" || t.status === "em_analise" || t.status === "aprovado");
   const subtotal = planned.reduce((s: number, t: any) => s + Number(t.value || 0), 0);
   const discountValue = subtotal * (discountPct / 100);
   const finalValue = Math.max(0, subtotal - discountValue);
@@ -445,6 +524,9 @@ export default function PacienteDetalhe() {
             </TabsTrigger>
             <TabsTrigger value="plano" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <ClipboardList className="h-4 w-4" /> Plano de Tratamento
+            </TabsTrigger>
+            <TabsTrigger value="financeiro" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <DollarSign className="h-4 w-4" /> Financeiro do Paciente
             </TabsTrigger>
           </TabsList>
 
@@ -654,7 +736,26 @@ export default function PacienteDetalhe() {
                           <TableCell className="font-medium text-[#103444]">{t.procedure_type}</TableCell>
                           <TableCell className="text-[#103444]/80">{[t.tooth_number, t.region].filter(Boolean).join(" · ") || "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-[#103444]">{fmtBRL(Number(t.value))}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-[#103444] border-[#103444]/30">{STATUS_LABELS[t.status] || t.status}</Badge></TableCell>
+                          
+                          <TableCell>
+                            <Select 
+                              value={t.status} 
+                              onValueChange={(v) => updateTreatmentStatus.mutate({ id: t.id, status: v })}
+                            >
+                              <SelectTrigger className="h-8 text-xs border-[#103444]/30 w-[130px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="em_analise">Em Análise</SelectItem>
+                                <SelectItem value="aprovado">Aprovado</SelectItem>
+                                <SelectItem value="recusado">Recusado</SelectItem>
+                                <SelectItem value="planejado">Planejado</SelectItem>
+                                <SelectItem value="em_andamento">Em andamento</SelectItem>
+                                <SelectItem value="concluido">Concluído</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+
                           <TableCell>
                             <button
                               onClick={() => openPayDialog(t)}
@@ -781,6 +882,71 @@ export default function PacienteDetalhe() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="financeiro">
+            <Card className="bg-white border-amber-400/30">
+              <CardContent className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#103444] uppercase tracking-wider">Painel Financeiro</h3>
+                    <p className="text-xs text-[#103444]/60 mt-1">Resumo de débitos e recebimentos do paciente.</p>
+                  </div>
+                  <Button onClick={openFinanceDialog} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                    <DollarSign className="h-4 w-4" /> Registrar Recebimento
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border border-slate-200 shadow-sm">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-[11px] text-[#103444]/70 uppercase font-semibold">Total Aprovado</p>
+                      <p className="text-xl font-bold text-[#103444] mt-1">{fmtBRL(totalAprovado)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-slate-200 shadow-sm">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-[11px] text-[#103444]/70 uppercase font-semibold">Valor Já Pago</p>
+                      <p className="text-xl font-bold text-emerald-600 mt-1">{fmtBRL(totalPago)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className={`border shadow-sm ${saldoDevedor > 0 ? 'border-red-200 bg-red-50' : 'border-slate-200'}`}>
+                    <CardContent className="p-4 text-center">
+                      <p className={`text-[11px] uppercase font-semibold ${saldoDevedor > 0 ? 'text-red-700' : 'text-[#103444]/70'}`}>Saldo Devedor</p>
+                      <p className={`text-xl font-bold mt-1 ${saldoDevedor > 0 ? 'text-red-600' : 'text-[#103444]'}`}>{fmtBRL(saldoDevedor)}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="mt-8">
+                  <h4 className="text-xs font-bold text-[#103444] uppercase tracking-wider mb-4">Extrato de Pagamentos</h4>
+                  <div className="rounded-lg border border-slate-200 overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50">
+                          <TableHead className="text-[#103444] font-semibold">Data</TableHead>
+                          <TableHead className="text-[#103444] font-semibold">Descrição</TableHead>
+                          <TableHead className="text-[#103444] font-semibold">Forma de Pagamento</TableHead>
+                          <TableHead className="text-[#103444] font-semibold text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {patientFinancials.length === 0 && (
+                          <TableRow><TableCell colSpan={4} className="text-center text-[#103444]/50 py-8">Nenhum pagamento registrado.</TableCell></TableRow>
+                        )}
+                        {patientFinancials.map((f: any) => (
+                          <TableRow key={f.id}>
+                            <TableCell className="text-[#103444]">{new Date(f.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                            <TableCell className="text-[#103444]/80">{f.description || "Recebimento Paciente"}</TableCell>
+                            <TableCell className="text-[#103444]/80 capitalize">{(f.payment_method || "").replace("_", " ")}</TableCell>
+                            <TableCell className="text-right font-semibold text-emerald-600">{fmtBRL(Number(f.value))}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -916,6 +1082,77 @@ export default function PacienteDetalhe() {
             >
               {savePayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Save className="h-4 w-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={finOpen} onOpenChange={setFinOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#103444] flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-emerald-600" /> Registrar Recebimento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-[#103444]">Valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={finAmount}
+                onChange={e => setFinAmount(Number(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label className="text-[#103444]">Data</Label>
+              <Input type="date" value={finDate} onChange={e => setFinDate(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-[#103444]">Método de pagamento</Label>
+              <Select value={finMethod} onValueChange={setFinMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="cartão_crédito">Cartão de Crédito</SelectItem>
+                  <SelectItem value="cartão_débito">Cartão de Débito</SelectItem>
+                  <SelectItem value="cartao_parcelado">Cartão Parcelado</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferência">Transferência Bancária</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {finMethod === "cartao_parcelado" && (
+              <div>
+                <Label className="text-[#103444]">Número de parcelas</Label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={36}
+                  value={finInstallments}
+                  onChange={e => setFinInstallments(Math.max(2, Number(e.target.value) || 2))}
+                />
+              </div>
+            )}
+            <div>
+              <Label className="text-[#103444]">Descrição / Procedimento</Label>
+              <Input
+                value={finDesc}
+                onChange={e => setFinDesc(e.target.value)}
+                placeholder="Ex: Entrada tratamento ortodôntico"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFinOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => savePatientPayment.mutate()}
+              disabled={savePatientPayment.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            >
+              {savePatientPayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" /> Registrar
             </Button>
           </DialogFooter>
         </DialogContent>
