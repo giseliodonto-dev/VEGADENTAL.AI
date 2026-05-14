@@ -4,7 +4,8 @@ import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { startOfMonth, endOfMonth, format as formatDate, differenceInDays } from "date-fns";
+import { startOfMonth, endOfMonth, format, differenceInDays } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import { InsightPremium } from "@/components/InsightPremium";
 import {
   Brain,
