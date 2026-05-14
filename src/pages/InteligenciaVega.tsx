@@ -153,6 +153,14 @@ const InteligenciaVega = () => {
           </Button>
         </div>
 
+        {/* Insight Premium */}
+        <InsightPremium
+          revenue={revenue}
+          expenses={expenses}
+          conversionRate={conversionRate}
+          stagnantFunnelCount={stagnantFunnelCount}
+        />
+
         {/* Last analysis */}
         {lastAnalysis && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
