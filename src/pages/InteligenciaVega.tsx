@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { startOfMonth, endOfMonth, format, differenceInDays } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
 import { InsightPremium } from "@/components/InsightPremium";
 import {
   Brain,
@@ -18,7 +17,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 
 interface Recommendation {
   priority: "Alta" | "Media" | "Baixa";
