@@ -3,6 +3,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { startOfMonth, endOfMonth, format, differenceInDays } from "date-fns";
+import { InsightPremium } from "@/components/InsightPremium";
 import {
   Brain,
   Loader2,
@@ -14,7 +17,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 
 interface Recommendation {
   priority: "Alta" | "Media" | "Baixa";
@@ -36,6 +38,63 @@ const InteligenciaVega = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastAnalysis, setLastAnalysis] = useState<Date | null>(null);
+
+  const now = new Date();
+  const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
+  const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
+
+  const { data: revenue = 0 } = useQuery({
+    queryKey: ["intel-revenue", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "entrada")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  const { data: expenses = 0 } = useQuery({
+    queryKey: ["intel-expenses", clinicId, monthStart],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("financials")
+        .select("value")
+        .eq("clinic_id", clinicId!)
+        .eq("type", "saida")
+        .eq("status", "pago")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      return (data ?? []).reduce((s, r) => s + Number(r.value), 0);
+    },
+  });
+
+  const { data: funnelData = [] } = useQuery({
+    queryKey: ["intel-funnel", clinicId],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sales_funnel")
+        .select("stage, updated_at")
+        .eq("clinic_id", clinicId!);
+      return data ?? [];
+    },
+  });
+
+  const totalFunnel = funnelData.length;
+  const closedCount = funnelData.filter((f) => f.stage === "fechado").length;
+  const conversionRate = totalFunnel > 0 ? Math.round((closedCount / totalFunnel) * 100) : 0;
+  const stagnantFunnelCount = funnelData.filter(
+    (f) =>
+      !["fechado", "perdido"].includes(f.stage) &&
+      differenceInDays(now, new Date(f.updated_at)) > 7
+  ).length;
 
   const generateAnalysis = async () => {
     if (!clinicId) return;
@@ -93,6 +152,14 @@ const InteligenciaVega = () => {
             )}
           </Button>
         </div>
+
+        {/* Insight Premium */}
+        <InsightPremium
+          revenue={revenue}
+          expenses={expenses}
+          conversionRate={conversionRate}
+          stagnantFunnelCount={stagnantFunnelCount}
+        />
 
         {/* Last analysis */}
         {lastAnalysis && (

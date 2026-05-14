@@ -1,59 +1,53 @@
-## Integração Claude AI (Anthropic) no Vega Dental
+## Insight Premium com Claude na página /inteligencia
 
-### Visão geral
-Criar uma Edge Function `claude-ai-service` que conversa com a API da Anthropic usando o modelo `claude-3-5-sonnet-latest`, e uma página `/mentora-claude` (ou aba na MentoraVega existente) com interface de chat para testar a IA.
+Adicionar um novo bloco "Insight de Gestão Premium" no topo da página `InteligenciaVega.tsx` que coleta os KPIs vivos da clínica (mesmos do VegaGPS) e envia para a Edge Function `claude-ai-service` para gerar 3 ações prioritárias da semana.
 
-### Backend — Edge Function
+### 1. Nova Edge Function helper — reaproveitar `claude-ai-service`
 
-**Arquivo:** `supabase/functions/claude-ai-service/index.ts`
+Nenhuma alteração na função. Ela já aceita `messages: [{role, content}]` e usa o system prompt do Vega. Vamos enviar a pergunta como mensagem do usuário (com os dados embutidos), mantendo o contrato atual.
 
-- Importa o SDK oficial via `npm:@anthropic-ai/sdk@latest`.
-- CORS habilitado (`npm:@supabase/supabase-js@2/cors`) com tratamento de OPTIONS.
-- Validação de input com Zod:
-  - `messages`: array `{ role: "user" | "assistant", content: string }` (mínimo 1).
-- Lê `ANTHROPIC_API_KEY` de `Deno.env`.
-- Chama `anthropic.messages.create`:
-  - `model: "claude-3-5-sonnet-latest"`
-  - `max_tokens: 1024`
-  - `system: "Você é a inteligência central do Vega Dental, uma assistente de gestão odontológica de luxo, técnica, empática e eficiente."`
-  - `messages` recebidos do cliente.
-- Retorna `{ reply: string }` em JSON.
-- Tratamento de erros:
-  - `401/403` da Anthropic → 502 com mensagem "Falha de autenticação com Claude".
-  - `429` → 429 "Limite de requisições atingido, tente novamente em instantes".
-  - Genérico → 500 "Erro interno ao consultar a IA".
-- Logs com `console.error` para diagnóstico via `edge_function_logs`.
+### 2. Novo componente `src/components/InsightPremium.tsx`
 
-**Config:** sem alterações em `supabase/config.toml` (deploy padrão com `verify_jwt = false` é suficiente para o teste; a função apenas repassa mensagens).
+Responsável por:
 
-### Frontend — Página de chat
+- Receber props: `revenue`, `expenses`, `profit`, `conversionRate`, `stagnantFunnelCount`, `clinicaName` (opcional, "Dra. Giseli" como default).
+- Botão "Gerar Insight Premium" (estilo Azul Petróleo + dourado, ícone `Sparkles`).
+- Ao clicar, monta o prompt:
+  > "Com base nestes dados da clínica (Faturamento: R$ X, Lucro: R$ Y, Conversão: Z%, Pacientes parados no funil: N), quais são as 3 ações prioritárias para a Dra. Giseli aumentar a lucratividade esta semana? Responda em português, formato lista numerada, tom premium e direto."
+- Chama `supabase.functions.invoke("claude-ai-service", { body: { messages: [{ role: "user", content: prompt }] } })`.
+- Estados: `loading`, `error`, `insight` (string markdown), `generatedAt`.
+- Loading: skeleton com `Loader2` + texto "Vega está analisando seus números…".
+- Erro: banner com botão "Tentar novamente".
+- Resposta: renderizada com `react-markdown` (já usado em `MentoraClaude`), dentro de um Card com:
+  - borda `border-autoridade/30`, fundo sutil com gradiente Azul Petróleo → transparente
+  - tipografia: título `font-display` em dourado (`text-gold` ou `text-autoridade`), corpo em `prose prose-sm` com leading relaxado e itálico nos destaques
+  - rodapé pequeno: "Gerado em {hh:mm} • Inteligência Vega · Claude 3.5".
+  - quais são as **3 ações prioritárias** para a Dra. Giseli aumentar a **lucratividade** esta semana? **Priorize ações que melhorem a margem de contribuição e o ticket médio, não apenas o volume de vendas**. **Considere que o lucro é a prioridade sobre o faturamento.**"
 
-**Arquivo novo:** `src/pages/MentoraClaude.tsx`  
-**Rota:** `/mentora-claude` adicionada em `src/App.tsx` (protegida por `ProtectedRoute`).
+### 3. Integração em `src/pages/InteligenciaVega.tsx`
 
-Componentes e UX:
-- Layout dentro de `<AppLayout>` com header "Mentora Vega — Claude AI" e ícone `Sparkles`.
-- Lista de mensagens com bolhas estilizadas (usuário em Azul Petróleo, IA em fundo claro com borda dourada sutil).
-- Render de markdown com `react-markdown` (já no padrão do projeto se disponível; senão texto puro com `whitespace-pre-wrap`).
-- Input multilinha (`Textarea`) + botão "Enviar" (variant `default` em Azul Petróleo).
-- Estado local: `messages`, `input`, `isLoading`, `error`.
-- Ao enviar:
-  1. Acrescenta mensagem do usuário no estado.
-  2. Chama `supabase.functions.invoke("claude-ai-service", { body: { messages } })` enviando histórico completo.
-  3. Mostra spinner (`Loader2` animado) e desabilita o input enquanto `isLoading`.
-  4. Em sucesso, adiciona resposta da IA.
-  5. Em erro, mostra `toast.error()` e banner inline em vermelho com botão "Tentar novamente".
-- Auto-scroll para o final a cada nova mensagem.
+- Adicionar queries (mesmo padrão do `VegaGPS.tsx`) para buscar do mês atual:
+  - `revenue`: financials `entrada` `pago`
+  - `expenses`: financials `saida` `pago`
+  - `funnelData` → derivar `conversionRate` e `stagnantFunnel.length` (>7 dias)
+- Renderizar `<InsightPremium>` logo abaixo do header e acima do botão "Gerar Análise" existente.
+- Manter intacto o fluxo da `vega-intelligence` já existente.
 
-### Feedback visual
-- Botão "Enviar" troca para `<Loader2 className="animate-spin" />` durante a chamada.
-- Skeleton de bolha "Vega está pensando…" enquanto aguarda resposta.
-- Toast (`sonner`) para sucesso/erro de conexão.
+### 4. Estilo "Quiet Luxury"
 
-### Acesso
-- Adicionar item opcional "Mentora Claude" no `AppSidebar` sob o grupo já existente da Mentora (decisão deixada para implementação; rota direta funciona de qualquer forma).
+- Card com `rounded-xl`, `shadow-sm`, padding generoso (`p-6`), sem cores berrantes.
+- Heading: `font-display text-lg tracking-tight text-autoridade`.
+- Lista numerada destacada com numerais dourados grandes (`text-gold/60 font-display text-2xl`).
+- Botão CTA: `bg-primary text-gold hover:bg-primary/90` com ícone `Sparkles` (mantém padrão dos botões premium do projeto).
 
-### Observações de segurança
-- A `ANTHROPIC_API_KEY` permanece exclusivamente no servidor (Edge Function).
-- Nenhum dado do paciente é enviado no teste — apenas o conteúdo digitado pelo usuário no chat.
-- Mensagens não são persistidas no banco neste momento (escopo de teste).
+### Detalhes técnicos
+
+- Reaproveita `react-markdown` (já no projeto via `MentoraClaude.tsx`).
+- Sem mudanças no banco nem na Edge Function.
+- Sem persistência: o insight é gerado sob demanda (pode ser regenerado quantas vezes o usuário quiser).
+- Tratamento de erro idêntico ao padrão do `MentoraClaude` (toast `sonner` + retry).
+
+### Arquivos
+
+- **Novo:** `src/components/InsightPremium.tsx`
+- **Editado:** `src/pages/InteligenciaVega.tsx` (queries de KPI + render do componente)
