@@ -46,6 +46,7 @@ import SugestoesEstrategicas from "./pages/marketing/SugestoesEstrategicas";
 import HoraClinica from "./pages/vega/HoraClinica";
 import PerguntasDecisao from "./pages/vega/PerguntasDecisao";
 import MentoraVega from "./pages/MentoraVega";
+import MentoraClaude from "./pages/MentoraClaude";
 import Documentos from "./pages/Documentos";
 import InstalarApp from "./pages/InstalarApp";
 
@@ -111,6 +112,7 @@ const App = () => {
             <Route path="/vega/hora-clinica" element={<ProtectedRoute><HoraClinica /></ProtectedRoute>} />
             <Route path="/vega/perguntas" element={<ProtectedRoute><PerguntasDecisao /></ProtectedRoute>} />
             <Route path="/mentora" element={<ProtectedRoute><MentoraVega /></ProtectedRoute>} />
+            <Route path="/mentora-claude" element={<ProtectedRoute><MentoraClaude /></ProtectedRoute>} />
             <Route path="/documentos" element={<ProtectedRoute><Documentos /></ProtectedRoute>} />
             <Route path="/instalar" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
 
