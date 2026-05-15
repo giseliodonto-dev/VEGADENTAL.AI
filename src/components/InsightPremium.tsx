@@ -17,6 +17,58 @@ interface InsightPremiumProps {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+const renderInline = (s: string) =>
+  escapeHtml(s).replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong class="text-autoridade font-semibold">$1</strong>'
+  );
+
+interface ParsedItem {
+  title: string;
+  body: string;
+  impact: string;
+}
+
+const parseInsightItems = (raw: string): ParsedItem[] => {
+  const blocks = raw
+    .split(/\n(?=\s*\d+[.)]\s)/)
+    .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return blocks.map((block) => {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    let impact = "";
+    const rest: string[] = [];
+    for (const l of lines) {
+      const m = l.match(/^(?:\*\*)?Impacto(?:\*\*)?\s*[:\-—]\s*(.+?)\*?\*?$/i);
+      if (m) impact = m[1].replace(/\*\*/g, "").trim();
+      else rest.push(l);
+    }
+    let title = "";
+    let body = "";
+    if (rest.length) {
+      const first = rest[0];
+      const boldMatch = first.match(/^\*\*(.+?)\*\*\s*[:\-—]?\s*(.*)$/);
+      if (boldMatch) {
+        title = boldMatch[1].trim();
+        const remainder = boldMatch[2].trim();
+        body = [remainder, ...rest.slice(1)].filter(Boolean).join(" ");
+      } else {
+        title = first.replace(/\*\*/g, "").replace(/[:\-—]\s*$/, "").trim();
+        body = rest.slice(1).join(" ");
+      }
+    }
+    return { title, body, impact };
+  });
+};
+
 export const InsightPremium = ({
   revenue,
   expenses,
