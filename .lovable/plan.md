@@ -1,53 +1,69 @@
-## Insight Premium com Claude na página /inteligencia
+## Refinamento do Insight Premium — foco em margem + numerais dourados
 
-Adicionar um novo bloco "Insight de Gestão Premium" no topo da página `InteligenciaVega.tsx` que coleta os KPIs vivos da clínica (mesmos do VegaGPS) e envia para a Edge Function `claude-ai-service` para gerar 3 ações prioritárias da semana.
+A integração base já está em produção (`src/components/InsightPremium.tsx` + queries em `src/pages/InteligenciaVega.tsx`). Esta etapa **refina o prompt** e o **render visual** para entregar a estética Quiet Luxury exigida.
 
-### 1. Nova Edge Function helper — reaproveitar `claude-ai-service`
+### 1. Prompt — foco total em margem + reativação
 
-Nenhuma alteração na função. Ela já aceita `messages: [{role, content}]` e usa o system prompt do Vega. Vamos enviar a pergunta como mensagem do usuário (com os dados embutidos), mantendo o contrato atual.
+Reescrever `buildPrompt()` em `InsightPremium.tsx` para:
 
-### 2. Novo componente `src/components/InsightPremium.tsx`
+- Reforçar **lucratividade real** (não faturamento bruto): margem de contribuição, mix de procedimentos de alto markup (2,38× a 3,30×), aumento de ticket médio.
+- Tratar **pacientes parados no funil há +7 dias** como ativo recuperável, não como métrica passiva.
+- Pedir resposta **estritamente em 3 itens numerados** `1.` `2.` `3.`, com formato fixo:
+  - Linha 1: título curto em negrito.
+  - Linha 2-3: justificativa estratégica (por que isso protege margem).
+  - Linha final: `Impacto: …` (estimativa numérica ou faixa quando possível).
+- System prompt da Edge Function permanece o mesmo ("inteligência central do Vega Dental…"); o foco vem no `user message`.
 
-Responsável por:
+Texto final do prompt:
 
-- Receber props: `revenue`, `expenses`, `profit`, `conversionRate`, `stagnantFunnelCount`, `clinicaName` (opcional, "Dra. Giseli" como default).
-- Botão "Gerar Insight Premium" (estilo Azul Petróleo + dourado, ícone `Sparkles`).
-- Ao clicar, monta o prompt:
-  > "Com base nestes dados da clínica (Faturamento: R$ X, Lucro: R$ Y, Conversão: Z%, Pacientes parados no funil: N), quais são as 3 ações prioritárias para a Dra. Giseli aumentar a lucratividade esta semana? Responda em português, formato lista numerada, tom premium e direto."
-- Chama `supabase.functions.invoke("claude-ai-service", { body: { messages: [{ role: "user", content: prompt }] } })`.
-- Estados: `loading`, `error`, `insight` (string markdown), `generatedAt`.
-- Loading: skeleton com `Loader2` + texto "Vega está analisando seus números…".
-- Erro: banner com botão "Tentar novamente".
-- Resposta: renderizada com `react-markdown` (já usado em `MentoraClaude`), dentro de um Card com:
-  - borda `border-autoridade/30`, fundo sutil com gradiente Azul Petróleo → transparente
-  - tipografia: título `font-display` em dourado (`text-gold` ou `text-autoridade`), corpo em `prose prose-sm` com leading relaxado e itálico nos destaques
-  - rodapé pequeno: "Gerado em {hh:mm} • Inteligência Vega · Claude 3.5".
-  - quais são as **3 ações prioritárias** para a Dra. Giseli aumentar a **lucratividade** esta semana? **Priorize ações que melhorem a margem de contribuição e o ticket médio, não apenas o volume de vendas**. **Considere que o lucro é a prioridade sobre o faturamento.**"
+> "Atue como consultor sênior de gestão odontológica premium. Dados da clínica este mês — Faturamento: R$ X · Despesas: R$ Y · Lucro: R$ Z · Conversão do funil: W% · Pacientes parados no funil há +7 dias: N. Entregue **as 3 ações prioritárias para a Dra. Giseli aumentar a LUCRATIVIDADE esta semana**, com foco absoluto em (a) margem de contribuição e ticket médio e (b) reativação dos N pacientes parados no funil. Não sugira ações de volume puro nem investimento em mídia paga. Responda em português, em exatamente 3 itens numerados (1. 2. 3.). Cada item deve ter: **título curto em negrito**, 1-2 frases de justificativa estratégica e uma linha final começando com `Impacto:` com estimativa numérica."
 
-### 3. Integração em `src/pages/InteligenciaVega.tsx`
+### 2. Parser + render com numerais dourados
 
-- Adicionar queries (mesmo padrão do `VegaGPS.tsx`) para buscar do mês atual:
-  - `revenue`: financials `entrada` `pago`
-  - `expenses`: financials `saida` `pago`
-  - `funnelData` → derivar `conversionRate` e `stagnantFunnel.length` (>7 dias)
-- Renderizar `<InsightPremium>` logo abaixo do header e acima do botão "Gerar Análise" existente.
-- Manter intacto o fluxo da `vega-intelligence` já existente.
+Substituir o bloco atual (`<p whitespace-pre-wrap>`) por um parser leve que divide a resposta em itens `1.` `2.` `3.` e renderiza cada um como uma linha do tipo:
 
-### 4. Estilo "Quiet Luxury"
+```text
+┌────────────────────────────────────────────┐
+│  01   Título da ação em negrito            │
+│       Justificativa em corpo serif claro.  │
+│       Impacto: +15% margem.                │
+└────────────────────────────────────────────┘
+```
 
-- Card com `rounded-xl`, `shadow-sm`, padding generoso (`p-6`), sem cores berrantes.
-- Heading: `font-display text-lg tracking-tight text-autoridade`.
-- Lista numerada destacada com numerais dourados grandes (`text-gold/60 font-display text-2xl`).
-- Botão CTA: `bg-primary text-gold hover:bg-primary/90` com ícone `Sparkles` (mantém padrão dos botões premium do projeto).
+Detalhes:
 
-### Detalhes técnicos
+- Numeral grande à esquerda: `font-display text-4xl text-gold/70 leading-none tabular-nums`, formatado como `01`, `02`, `03`.
+- Texto do item em `text-sm leading-relaxed text-foreground` com `**negrito**` simples (regex `**…**` → `<strong className="text-autoridade">`).
+- Linha `Impacto:` destacada em itálico, `text-xs text-gold/80 mt-2 block`.
+- Separador sutil entre itens: `divide-y divide-border/40` no container.
+- Container externo mantém `rounded-xl border border-gold/20 bg-background/60 p-6`.
 
-- Reaproveita `react-markdown` (já no projeto via `MentoraClaude.tsx`).
-- Sem mudanças no banco nem na Edge Function.
-- Sem persistência: o insight é gerado sob demanda (pode ser regenerado quantas vezes o usuário quiser).
-- Tratamento de erro idêntico ao padrão do `MentoraClaude` (toast `sonner` + retry).
+Parsing simples no client (sem dependência nova):
+
+```ts
+const items = insight
+  .split(/\n(?=\s*\d+\.\s)/)        // quebra antes de "1." "2." "3."
+  .map((s) => s.replace(/^\s*\d+\.\s*/, "").trim())
+  .filter(Boolean)
+  .slice(0, 3);
+```
+
+Para cada item, separar título (primeira linha entre `**…**` ou primeira frase até `.`) do corpo, e isolar a linha que começa com `Impacto:`.
+
+### 3. Estilo Quiet Luxury — ajustes finais
+
+- Card já usa `border-autoridade/30` e gradiente sutil → manter.
+- Header: trocar ícone `Crown` por par `Sparkles + Crown` lado a lado é exagero; manter só `Crown` em dourado (`text-gold` em vez de `text-autoridade`) para reforçar identidade.
+- Botão CTA: já em `bg-primary text-gold` — sem mudança.
+- Tipografia do corpo das ações: usar `font-body` com `tracking-[0.005em] leading-[1.7]`.
+- Rodapé "Gerado em …" mantém estilo discreto atual.
+
+### 4. Sem mudanças em backend / dados
+
+- Edge Function `claude-ai-service`: nenhuma alteração.
+- Queries em `InteligenciaVega.tsx`: nenhuma alteração (já trazem `revenue`, `expenses`, `conversionRate`, `stagnantFunnelCount`).
+- Sem nova dependência (sem `react-markdown`).
 
 ### Arquivos
 
-- **Novo:** `src/components/InsightPremium.tsx`
-- **Editado:** `src/pages/InteligenciaVega.tsx` (queries de KPI + render do componente)
+- **Editado:** `src/components/InsightPremium.tsx` (prompt + parser + render com numerais dourados)

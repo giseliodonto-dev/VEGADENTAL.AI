@@ -17,6 +17,58 @@ interface InsightPremiumProps {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+const renderInline = (s: string) =>
+  escapeHtml(s).replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong class="text-autoridade font-semibold">$1</strong>'
+  );
+
+interface ParsedItem {
+  title: string;
+  body: string;
+  impact: string;
+}
+
+const parseInsightItems = (raw: string): ParsedItem[] => {
+  const blocks = raw
+    .split(/\n(?=\s*\d+[.)]\s)/)
+    .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return blocks.map((block) => {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    let impact = "";
+    const rest: string[] = [];
+    for (const l of lines) {
+      const m = l.match(/^(?:\*\*)?Impacto(?:\*\*)?\s*[:\-—]\s*(.+?)\*?\*?$/i);
+      if (m) impact = m[1].replace(/\*\*/g, "").trim();
+      else rest.push(l);
+    }
+    let title = "";
+    let body = "";
+    if (rest.length) {
+      const first = rest[0];
+      const boldMatch = first.match(/^\*\*(.+?)\*\*\s*[:\-—]?\s*(.*)$/);
+      if (boldMatch) {
+        title = boldMatch[1].trim();
+        const remainder = boldMatch[2].trim();
+        body = [remainder, ...rest.slice(1)].filter(Boolean).join(" ");
+      } else {
+        title = first.replace(/\*\*/g, "").replace(/[:\-—]\s*$/, "").trim();
+        body = rest.slice(1).join(" ");
+      }
+    }
+    return { title, body, impact };
+  });
+};
+
 export const InsightPremium = ({
   revenue,
   expenses,
@@ -31,9 +83,11 @@ export const InsightPremium = ({
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
 
   const buildPrompt = () =>
-    `Com base nestes dados da clínica este mês — Faturamento: ${brl(revenue)}, Despesas: ${brl(
-      expenses
-    )}, Lucro: ${brl(profit)}, Conversão do funil: ${conversionRate}%, Pacientes parados no funil há mais de 7 dias: ${stagnantFunnelCount} — quais são as 3 ações prioritárias para a ${doctorName} aumentar a lucratividade esta semana? Priorize ações que melhorem margem de contribuição e ticket médio, não apenas volume. O lucro é prioridade sobre o faturamento. Responda em português, em formato de lista numerada (1. 2. 3.), com tom premium, direto e acionável. Para cada ação inclua: título curto em negrito, 1-2 frases de justificativa estratégica, e o impacto esperado.`;
+    `Atue como consultor sênior de gestão odontológica premium. Dados da clínica este mês — Faturamento: ${brl(
+      revenue
+    )} · Despesas: ${brl(expenses)} · Lucro: ${brl(
+      profit
+    )} · Conversão do funil: ${conversionRate}% · Pacientes parados no funil há mais de 7 dias: ${stagnantFunnelCount}. Entregue as 3 ações prioritárias para a ${doctorName} aumentar a LUCRATIVIDADE esta semana, com foco absoluto em (a) margem de contribuição e ticket médio (mix de procedimentos com markup entre 2,38× e 3,30×) e (b) reativação dos ${stagnantFunnelCount} pacientes parados no funil. Não sugira ações de volume puro nem investimento em mídia paga. Responda em português, em exatamente 3 itens numerados (1. 2. 3.). Cada item deve conter, nesta ordem: **título curto em negrito** na primeira linha; 1 ou 2 frases de justificativa estratégica explicando por que a ação protege margem ou reativa pacientes; e uma linha final começando exatamente com "Impacto:" trazendo uma estimativa numérica (R$, % ou número de pacientes). Não escreva nada antes do item 1 nem depois do item 3.`;
 
   const generate = async () => {
     setLoading(true);
@@ -68,7 +122,7 @@ export const InsightPremium = ({
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Crown className="h-5 w-5 text-autoridade" />
+                <Crown className="h-5 w-5 text-gold" />
               </div>
               <div>
                 <h2 className="font-display text-lg tracking-tight text-autoridade">
@@ -145,13 +199,36 @@ export const InsightPremium = ({
           {/* Insight */}
           {insight && !loading && (
             <div className="pt-2">
-              <div className="rounded-xl border border-gold/20 bg-background/60 p-5">
-                <p
-                  className="text-sm leading-relaxed text-foreground whitespace-pre-wrap font-body"
-                  style={{ letterSpacing: "0.005em" }}
-                >
-                  {insight}
-                </p>
+              <div className="rounded-xl border border-gold/20 bg-background/60 p-6 divide-y divide-border/40">
+                {parseInsightItems(insight).map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex gap-5 py-5 first:pt-0 last:pb-0"
+                  >
+                    <div className="shrink-0 font-display text-4xl text-gold/70 leading-none tabular-nums tracking-tight w-12">
+                      {String(idx + 1).padStart(2, "0")}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {item.title && (
+                        <h3 className="font-display text-base text-autoridade tracking-tight">
+                          {item.title}
+                        </h3>
+                      )}
+                      {item.body && (
+                        <p
+                          className="text-sm text-foreground font-body leading-[1.7]"
+                          style={{ letterSpacing: "0.005em" }}
+                          dangerouslySetInnerHTML={{ __html: renderInline(item.body) }}
+                        />
+                      )}
+                      {item.impact && (
+                        <span className="block text-xs italic text-gold/80 mt-2">
+                          Impacto: {item.impact}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               {generatedAt && (
                 <p className="text-[10px] text-muted-foreground mt-2 text-right">
