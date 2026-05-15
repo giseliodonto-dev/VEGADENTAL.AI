@@ -854,6 +854,36 @@ export type Database = {
           },
         ]
       }
+      prescriptions: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          dentist_user_id: string | null
+          id: string
+          medications: Json
+          notes: string | null
+          patient_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          dentist_user_id?: string | null
+          id?: string
+          medications?: Json
+          notes?: string | null
+          patient_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          dentist_user_id?: string | null
+          id?: string
+          medications?: Json
+          notes?: string | null
+          patient_id?: string
+        }
+        Relationships: []
+      }
       procedures_catalog: {
         Row: {
           category: string
