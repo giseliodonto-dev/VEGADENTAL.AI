@@ -760,6 +760,7 @@ export default function PacienteDetalhe() {
                                 <SelectItem value="planejado">Planejado</SelectItem>
                                 <SelectItem value="em_andamento">Em andamento</SelectItem>
                                 <SelectItem value="concluido">Concluído</SelectItem>
+                                <SelectItem value="executado">Executado</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>
