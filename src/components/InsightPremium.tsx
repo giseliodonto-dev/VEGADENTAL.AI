@@ -31,9 +31,11 @@ export const InsightPremium = ({
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
 
   const buildPrompt = () =>
-    `Com base nestes dados da clínica este mês — Faturamento: ${brl(revenue)}, Despesas: ${brl(
-      expenses
-    )}, Lucro: ${brl(profit)}, Conversão do funil: ${conversionRate}%, Pacientes parados no funil há mais de 7 dias: ${stagnantFunnelCount} — quais são as 3 ações prioritárias para a ${doctorName} aumentar a lucratividade esta semana? Priorize ações que melhorem margem de contribuição e ticket médio, não apenas volume. O lucro é prioridade sobre o faturamento. Responda em português, em formato de lista numerada (1. 2. 3.), com tom premium, direto e acionável. Para cada ação inclua: título curto em negrito, 1-2 frases de justificativa estratégica, e o impacto esperado.`;
+    `Atue como consultor sênior de gestão odontológica premium. Dados da clínica este mês — Faturamento: ${brl(
+      revenue
+    )} · Despesas: ${brl(expenses)} · Lucro: ${brl(
+      profit
+    )} · Conversão do funil: ${conversionRate}% · Pacientes parados no funil há mais de 7 dias: ${stagnantFunnelCount}. Entregue as 3 ações prioritárias para a ${doctorName} aumentar a LUCRATIVIDADE esta semana, com foco absoluto em (a) margem de contribuição e ticket médio (mix de procedimentos com markup entre 2,38× e 3,30×) e (b) reativação dos ${stagnantFunnelCount} pacientes parados no funil. Não sugira ações de volume puro nem investimento em mídia paga. Responda em português, em exatamente 3 itens numerados (1. 2. 3.). Cada item deve conter, nesta ordem: **título curto em negrito** na primeira linha; 1 ou 2 frases de justificativa estratégica explicando por que a ação protege margem ou reativa pacientes; e uma linha final começando exatamente com "Impacto:" trazendo uma estimativa numérica (R$, % ou número de pacientes). Não escreva nada antes do item 1 nem depois do item 3.`;
 
   const generate = async () => {
     setLoading(true);
