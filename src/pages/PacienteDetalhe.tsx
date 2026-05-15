@@ -26,7 +26,7 @@ import { PrescriptionPanel } from "@/components/prescriptions/PrescriptionPanel"
 import { HistoryPanel } from "@/components/history/HistoryPanel";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado" };
+const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado", executado: "Executado" };
 const PAY_STATUS_COLORS: Record<string, string> = {
   pendente: "bg-amber-100 text-amber-800 border-amber-300",
   parcial: "bg-blue-100 text-blue-800 border-blue-300",
