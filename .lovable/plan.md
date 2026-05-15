@@ -1,115 +1,84 @@
-# Prescrição Inteligente — Plano de Implementação
+## Histórico de Atendimentos (Evolução Clínica)
 
-Módulo de prescrição médica no prontuário do paciente, com formulário multi-medicamento, IA opcional (Claude) por tier de plano, e geração de PDF profissional.
+Nova aba **"Evolução"** no prontuário do paciente, com timeline vertical de atendimentos clínicos e editor rich text para registro rápido durante a consulta.
 
-## 1. Banco de Dados (migration)
+### 1. Banco de dados
 
-Nova tabela `public.prescriptions`:
+Nova tabela `public.patient_history`:
 
 - `id uuid pk default gen_random_uuid()`
 - `clinic_id uuid not null` (multi-tenant)
 - `patient_id uuid not null`
-- `dentist_user_id uuid` (auth.uid no insert)
-- `medications jsonb not null default '[]'` — array de objetos `{ name, usage_type, posology, duration_days }`
-- `notes text`
-- `created_at timestamptz default now()`
+- `dentist_user_id uuid` (auth.uid no insert — quem realizou)
+- `content text not null` (HTML do rich text)
+- `summary text` (primeiros ~120 chars sem HTML, gerado no client para a listagem)
+- `created_at timestamptz default now()` (data/hora automática)
+- `updated_at timestamptz default now()`
 
-RLS (mesmo padrão das demais tabelas):
-- SELECT/INSERT/UPDATE: membros da clínica via `get_user_clinic_ids(auth.uid())`
+RLS no padrão das outras tabelas:
+- SELECT/INSERT/UPDATE: membros via `get_user_clinic_ids(auth.uid())`
 - DELETE: apenas `dono` via `has_clinic_role`
 
-Índice em `(clinic_id, patient_id, created_at desc)`.
+Trigger `update_updated_at_column` em UPDATE. Índice `(clinic_id, patient_id, created_at desc)`.
 
-## 2. Permissão por Plano (Tiering)
+### 2. Rich text editor
 
-Hook leve `useAiAccess()` em `src/hooks/useAiAccess.tsx`:
+Adicionar `@tiptap/react` + `@tiptap/starter-kit` + `@tiptap/extension-placeholder`. Componente `src/components/history/RichTextEditor.tsx` com toolbar mínima (Bold, Italic, Bullet list, Numbered list, Undo) — visualmente Quiet Luxury (borda `border-gold/30`, `rounded-xl`, foco em `ring-primary/30`). Output: HTML.
 
-- Versão 1 (entrega imediata): retorna `false` por padrão e lê de `localStorage.getItem("vega_plan") === "pro"` para teste manual; expõe `{ hasAiAccess, plan }`.
-- Documenta TODO para evoluir para coluna `clinics.plan` (`basic`/`pro`) numa migration futura, sem bloquear esta entrega.
+### 3. UI no prontuário
 
-Quando `hasAiAccess === false`, o botão IA vira um `Button disabled` com ícone `Lock` e tooltip/label "Disponível no Plano Pro".
+Em `src/pages/PacienteDetalhe.tsx`, adicionar nova aba **"Evolução"** ao lado de "Prescrições", renderizando `<HistoryPanel patientId clinicId />`.
 
-## 3. UI no prontuário
+Novo `src/components/history/HistoryPanel.tsx`:
+- Header com título "Evolução Clínica" (font-display, `text-primary`) + botão primário **"+ Novo Atendimento"**.
+- Ao clicar, abre form inline (collapsible, no topo da timeline) com:
+  - Editor rich text (placeholder: "Descreva o que foi realizado nesta sessão...").
+  - Botões "Cancelar" e "Salvar Atendimento" (variant `gold`).
+  - Data/hora atual exibida em texto sutil — apenas display, gravada automaticamente no insert.
+- Após salvar: invalida React Query, fecha o form, toast de sucesso.
 
-`src/pages/PacienteDetalhe.tsx` já usa `Tabs`. Adicionar nova aba **"Prescrições"** que renderiza o componente `PrescriptionPanel`.
+Novo `src/components/history/HistoryTimeline.tsx`:
+- Lista vertical ordenada por `created_at desc`.
+- Linha vertical fina (`border-l border-gold/20`) à esquerda, com bullet circular dourado por item.
+- Cada `HistoryEntryCard`:
+  - Topo: data formatada (`dd 'de' MMMM 'de' yyyy · HH:mm`, ptBR) em `text-xs text-muted-foreground tracking-wide uppercase`.
+  - Nome do dentista responsável (lookup via `profiles.full_name` do `dentist_user_id`) em `text-sm text-primary font-medium`.
+  - Conteúdo HTML renderizado dentro de `prose prose-sm max-w-none` (tipografia generosa, line-height alto).
+  - Card: `rounded-xl border border-border/60 bg-card p-6 ml-6` com hover sutil.
+- Empty state: ícone `ClipboardList` + "Nenhum atendimento registrado ainda."
+- Loading: 3 skeletons.
 
-Novo componente `src/components/prescriptions/PrescriptionPanel.tsx`:
+### 4. Queries
 
-- Lista as prescrições anteriores do paciente (data, nº de medicamentos, botão "Reimprimir PDF").
-- Botão primário "Nova Prescrição" abre `PrescriptionForm` (Dialog ou seção inline).
+React Query keys:
+- `["patient-history", patientId]` — SELECT join lógico via segunda query em `profiles` (id, full_name) para mapear `dentist_user_id → nome`. Alternativa simples: `useQuery` separado `["profiles", clinicId]` cacheado, e mapeia no client.
+- `useMutation` para insert: `{ clinic_id, patient_id, dentist_user_id: auth.uid(), content, summary }`. `invalidateQueries` no sucesso.
 
-Novo `src/components/prescriptions/PrescriptionForm.tsx`:
+### 5. Design Quiet Luxury
 
-- Estado: `medications: Medication[]` (array dinâmico, mínimo 1).
-- Por item: `name` (Input), `usage_type` (Select com opções: Interno, Externo, IM, EV, Pomada, Tópico, Solução Oral, Bochecho), `posology` (Textarea), `duration_days` (Input number).
-- Botões: "+ Adicionar medicamento", "Remover" (Trash2) por linha.
-- Botão "✨ Sugerir Posologia com IA" por linha:
-  - Se `hasAiAccess`: chama edge function (item 4).
-  - Senão: ícone `Lock` + texto "Plano Pro".
-- Ações: "Salvar e Gerar PDF" (insert no Supabase + abre PDF), "Salvar Rascunho" (apenas insert).
+- Tokens existentes: `text-primary` (Azul Petróleo), `border-gold/20-30`, `rounded-xl`, `font-display` para títulos, `font-sans` para corpo.
+- Espaçamento generoso: `space-y-6` entre cards, `p-6` interno, `leading-relaxed`.
+- Sem cores hardcoded. Botão principal em `variant="gold"`.
 
-Estilo Quiet Luxury: `border border-gold/30`, `rounded-xl`, headings em `text-primary` (Azul Petróleo), botões `variant="default"` e `variant="gold"` para a ação principal. Sem cores hardcoded — usar tokens do design system.
-
-## 4. Integração Claude (IA)
-
-Reusar a edge function existente `claude-ai-service` (já deployada).
-
-Cliente envia `messages: [{ role: "user", content: <prompt> }]` com prompt:
-
-> "Atue como um farmacologista clínico. Para o medicamento [NOME], forneça a posologia padrão odontológica, tipo de uso e duração recomendada seguindo as normas farmacológicas brasileiras. Retorne apenas JSON no formato: `{\"name\": string, \"usage_type\": one of [Interno, Externo, IM, EV, Pomada, Tópico, Solução Oral, Bochecho], \"posology\": string, \"duration_days\": number}`. Sem texto fora do JSON."
-
-Helper `src/lib/prescriptionAi.ts`:
-- `suggestPosology(name): Promise<Medication>` — invoca a function via `supabase.functions.invoke("claude-ai-service", { body: { messages } })`, faz `JSON.parse` defensivo do `reply` (extrai bloco JSON via regex se houver texto extra), valida com `zod` contra o enum de `usage_type`.
-- Em erro: toast e mantém os campos editáveis.
-
-O dentista sempre pode editar todos os campos preenchidos pela IA antes de salvar. Inclui disclaimer pequeno: "Sugestão de IA — revise antes de prescrever."
-
-## 5. Geração de PDF
-
-Novo `src/utils/prescriptionPdf.ts` usando `jsPDF` (já no projeto via budgetPdf):
-
-Layout A4:
-- **Topo**: logo da clínica (`clinics.logo_url`) à esquerda, nome/endereço/telefone à direita; linha dourada fina abaixo.
-- **Bloco paciente** centralizado: "RECEITUÁRIO", nome do paciente, CPF, data.
-- **Corpo**: lista numerada `1. Nome do medicamento` em negrito, abaixo `Uso: <tipo> · Duração: <X> dias`, depois `Posologia: <texto>` justificado. Espaçamento generoso entre itens.
-- **Rodapé**: linha de assinatura, nome do dentista (`profiles.full_name` do `auth.uid()`) + CRO (`clinics.responsible_cro` como fallback), data automática (dd/mm/aaaa), retângulo "Carimbo".
-- Tipografia: Helvetica (jsPDF default) com pesos contrastantes; títulos em cor Azul Petróleo `#103444`, detalhes em dourado sutil `#B8964A`.
-
-Função: `generatePrescriptionPdf({ clinic, patient, dentist, prescription }): jsPDF` — abre em nova aba (`doc.output("bloburl")`).
-
-## 6. Fluxo de fallback (Plano Básico)
-
-Sem IA: o formulário continua 100% funcional (todos os campos editáveis, sem atrito), salva no Supabase e gera PDF da mesma forma. O botão IA aparece travado mas não bloqueia nenhuma ação manual.
-
-## Arquivos
+### Arquivos
 
 Novos:
-- `src/hooks/useAiAccess.tsx`
-- `src/components/prescriptions/PrescriptionPanel.tsx`
-- `src/components/prescriptions/PrescriptionForm.tsx`
-- `src/lib/prescriptionAi.ts`
-- `src/utils/prescriptionPdf.ts`
+- `src/components/history/RichTextEditor.tsx`
+- `src/components/history/HistoryPanel.tsx`
+- `src/components/history/HistoryTimeline.tsx`
+- `src/components/history/HistoryEntryCard.tsx`
 
 Editados:
-- `src/pages/PacienteDetalhe.tsx` (nova aba "Prescrições")
+- `src/pages/PacienteDetalhe.tsx` (nova aba "Evolução")
 
 Migration:
-- Tabela `prescriptions` + RLS + índice.
+- Tabela `patient_history` + RLS + trigger updated_at + índice.
 
-Sem mudanças em `claude-ai-service` (já operacional).
+Dependências:
+- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`.
 
-## Detalhes técnicos
+### Não incluído nesta entrega
 
-```ts
-type UsageType = "Interno" | "Externo" | "IM" | "EV" | "Pomada" | "Tópico" | "Solução Oral" | "Bochecho";
-interface Medication {
-  name: string;
-  usage_type: UsageType;
-  posology: string;
-  duration_days: number;
-}
-```
-
-- Validação cliente com `zod` antes do insert.
-- React Query: `["prescriptions", patientId]` para listagem; `invalidateQueries` após salvar.
-- Tiering por localStorage é provisório e marcado com TODO para futura migration `clinics.plan`.
+- Edição/exclusão de entradas (apenas leitura + criação). Pode ser adicionado depois com confirmação.
+- Anexos de imagens/arquivos por atendimento.
+- Vínculo automático com `appointments` (futuramente: criar entrada de evolução a partir de uma consulta concluída).
