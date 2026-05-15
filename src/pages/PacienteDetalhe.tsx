@@ -528,6 +528,9 @@ export default function PacienteDetalhe() {
             <TabsTrigger value="financeiro" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <DollarSign className="h-4 w-4" /> Financeiro do Paciente
             </TabsTrigger>
+            <TabsTrigger value="prescricoes" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <FileSignature className="h-4 w-4" /> Prescrições
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="cadastro">
