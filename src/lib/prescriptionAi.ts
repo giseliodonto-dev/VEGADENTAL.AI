@@ -43,5 +43,5 @@ export async function suggestPosology(name: string): Promise<Medication> {
   if (error) throw error;
   const reply: string = data?.reply ?? "";
   const parsed = JSON.parse(extractJson(reply));
-  return medSchema.parse(parsed);
+  return medSchema.parse(parsed) as Medication;
 }
