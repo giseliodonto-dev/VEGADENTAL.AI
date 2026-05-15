@@ -722,9 +722,11 @@ export type Database = {
           content: string
           created_at: string
           dentist_user_id: string | null
+          executed_value: number
           id: string
           patient_id: string
           summary: string | null
+          treatment_id: string | null
           updated_at: string
         }
         Insert: {
@@ -732,9 +734,11 @@ export type Database = {
           content: string
           created_at?: string
           dentist_user_id?: string | null
+          executed_value?: number
           id?: string
           patient_id: string
           summary?: string | null
+          treatment_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -742,9 +746,11 @@ export type Database = {
           content?: string
           created_at?: string
           dentist_user_id?: string | null
+          executed_value?: number
           id?: string
           patient_id?: string
           summary?: string | null
+          treatment_id?: string | null
           updated_at?: string
         }
         Relationships: []

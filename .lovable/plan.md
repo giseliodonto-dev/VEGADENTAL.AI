@@ -1,84 +1,95 @@
-## Histórico de Atendimentos (Evolução Clínica)
+## Reescrita da aba Evolução Clínica
 
-Nova aba **"Evolução"** no prontuário do paciente, com timeline vertical de atendimentos clínicos e editor rich text para registro rápido durante a consulta.
+Substitui o formulário rich-text "Novo Atendimento" (que está incorreto) por um formulário enxuto que vincula a evolução a um procedimento aprovado e abate o saldo de créditos pagos do paciente.
 
-### 1. Banco de dados
+### O que vai sair
 
-Nova tabela `public.patient_history`:
+- Remover do `HistoryPanel.tsx` o form livre com Tiptap.
 
-- `id uuid pk default gen_random_uuid()`
-- `clinic_id uuid not null` (multi-tenant)
-- `patient_id uuid not null`
-- `dentist_user_id uuid` (auth.uid no insert — quem realizou)
-- `content text not null` (HTML do rich text)
-- `summary text` (primeiros ~120 chars sem HTML, gerado no client para a listagem)
-- `created_at timestamptz default now()` (data/hora automática)
-- `updated_at timestamptz default now()`
+- Remover dependência do `RichTextEditor` nessa tela (arquivo permanece no repo, sem uso, para não quebrar nada).
 
-RLS no padrão das outras tabelas:
-- SELECT/INSERT/UPDATE: membros via `get_user_clinic_ids(auth.uid())`
-- DELETE: apenas `dono` via `has_clinic_role`
+- Manter a tabela `patient_history` (já existe com `content`, `summary`, `dentist_user_id`).
 
-Trigger `update_updated_at_column` em UPDATE. Índice `(clinic_id, patient_id, created_at desc)`.
+### O que vai entrar
 
-### 2. Rich text editor
+**1. Migration (uma única):**
 
-Adicionar `@tiptap/react` + `@tiptap/starter-kit` + `@tiptap/extension-placeholder`. Componente `src/components/history/RichTextEditor.tsx` com toolbar mínima (Bold, Italic, Bullet list, Numbered list, Undo) — visualmente Quiet Luxury (borda `border-gold/30`, `rounded-xl`, foco em `ring-primary/30`). Output: HTML.
+- `ALTER TABLE patient_history ADD COLUMN treatment_id uuid` (nullable, sem FK rígida pra preservar histórico se o tratamento for excluído).
 
-### 3. UI no prontuário
+- `ALTER TABLE patient_history ADD COLUMN executed_value numeric NOT NULL DEFAULT 0` — snapshot do valor abatido no momento da execução.
 
-Em `src/pages/PacienteDetalhe.tsx`, adicionar nova aba **"Evolução"** ao lado de "Prescrições", renderizando `<HistoryPanel patientId clinicId />`.
+- Index `(patient_id, created_at desc)`.
 
-Novo `src/components/history/HistoryPanel.tsx`:
-- Header com título "Evolução Clínica" (font-display, `text-primary`) + botão primário **"+ Novo Atendimento"**.
-- Ao clicar, abre form inline (collapsible, no topo da timeline) com:
-  - Editor rich text (placeholder: "Descreva o que foi realizado nesta sessão...").
-  - Botões "Cancelar" e "Salvar Atendimento" (variant `gold`).
-  - Data/hora atual exibida em texto sutil — apenas display, gravada automaticamente no insert.
-- Após salvar: invalida React Query, fecha o form, toast de sucesso.
+**2. Lógica de saldo (calculada no client, sem trigger):**
 
-Novo `src/components/history/HistoryTimeline.tsx`:
-- Lista vertical ordenada por `created_at desc`.
-- Linha vertical fina (`border-l border-gold/20`) à esquerda, com bullet circular dourado por item.
-- Cada `HistoryEntryCard`:
-  - Topo: data formatada (`dd 'de' MMMM 'de' yyyy · HH:mm`, ptBR) em `text-xs text-muted-foreground tracking-wide uppercase`.
-  - Nome do dentista responsável (lookup via `profiles.full_name` do `dentist_user_id`) em `text-sm text-primary font-medium`.
-  - Conteúdo HTML renderizado dentro de `prose prose-sm max-w-none` (tipografia generosa, line-height alto).
-  - Card: `rounded-xl border border-border/60 bg-card p-6 ml-6` com hover sutil.
-- Empty state: ícone `ClipboardList` + "Nenhum atendimento registrado ainda."
-- Loading: 3 skeletons.
+```
 
-### 4. Queries
+saldoCreditos = totalPagoEntradas(financials) − Σ(executed_value das evoluções)
 
-React Query keys:
-- `["patient-history", patientId]` — SELECT join lógico via segunda query em `profiles` (id, full_name) para mapear `dentist_user_id → nome`. Alternativa simples: `useQuery` separado `["profiles", clinicId]` cacheado, e mapeia no client.
-- `useMutation` para insert: `{ clinic_id, patient_id, dentist_user_id: auth.uid(), content, summary }`. `invalidateQueries` no sucesso.
+```
 
-### 5. Design Quiet Luxury
+- `totalPagoEntradas` = soma de `financials` `type='entrada'` `status='pago'` do paciente (já carregado em `patientFinancials`).
 
-- Tokens existentes: `text-primary` (Azul Petróleo), `border-gold/20-30`, `rounded-xl`, `font-display` para títulos, `font-sans` para corpo.
-- Espaçamento generoso: `space-y-6` entre cards, `p-6` interno, `leading-relaxed`.
-- Sem cores hardcoded. Botão principal em `variant="gold"`.
+- A subtração acontece automaticamente porque ao salvar uma evolução criamos uma linha em `patient_history` com `executed_value = treatment.value`.
 
-### Arquivos
+**3. Novo `HistoryPanel`:**
 
-Novos:
-- `src/components/history/RichTextEditor.tsx`
-- `src/components/history/HistoryPanel.tsx`
-- `src/components/history/HistoryTimeline.tsx`
-- `src/components/history/HistoryEntryCard.tsx`
+- Header: "Evolução Clínica" + botão `+ Nova Evolução`.
 
-Editados:
-- `src/pages/PacienteDetalhe.tsx` (nova aba "Evolução")
+- Card de saldo no topo: "Saldo de Créditos Pagos: R$ X" (atualiza em tempo real via React Query).
 
-Migration:
-- Tabela `patient_history` + RLS + trigger updated_at + índice.
+- Form inline ao clicar:
 
-Dependências:
-- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`.
+  - **Select de procedimento** — lista apenas treatments do paciente com `status IN ('aprovado','planejado','em_andamento')` (não executados ainda). Mostra "Procedimento · dente · R$ valor".*Se o saldo de créditos for menor que o valor do procedimento, exiba um alerta em amarelo: 'Atenção: Saldo insuficiente para este procedimento', mas permita salvar (afinal, o paciente pode pagar depois)."* — Isso evita que o sistema trave se o saldo estiver negativo.
 
-### Não incluído nesta entrega
+  - **Textarea simples** (sem Tiptap) — texto da evolução, placeholder "Descreva o que foi realizado...".
 
-- Edição/exclusão de entradas (apenas leitura + criação). Pode ser adicionado depois com confirmação.
-- Anexos de imagens/arquivos por atendimento.
-- Vínculo automático com `appointments` (futuramente: criar entrada de evolução a partir de uma consulta concluída).
+  - Botões Cancelar / Salvar Evolução.
+
+- Ao salvar (transação client-side sequencial):
+
+  1. `INSERT patient_history { clinic_id, patient_id, dentist_user_id, treatment_id, content, summary, executed_value: treatment.value }`.
+
+  2. `UPDATE treatments SET status='executado' WHERE id = treatment_id`.
+
+  3. Invalida queries `["patient-history", id]`, `["treatments", id]`, `["patient-financials", id]` → saldo recalcula sozinho.
+
+  - Toast: "Evolução registrada · R$ X abatido do saldo".
+
+**4. Timeline:**
+
+- `HistoryEntryCard` ajustado para exibir uma linha por evolução:
+
+  - **Data** `dd/MM/yyyy · HH:mm`) • **Procedimento** (nome + dente, lookup pelo `treatment_id` em `treatments`) • **Texto** da evolução • **Saldo abatido** `fmtBRL(executed_value)` em destaque dourado).
+
+- Dentista responsável em linha secundária.
+
+- Empty state mantido.
+
+**5. Status `executado`:**
+
+- Adicionar opção `executado` ao Select de status no Plano de Tratamento (linha ~756 de `PacienteDetalhe.tsx`) e ao `STATUS_LABELS`.
+
+- Ajustar `totalAprovado` para considerar também `executado` (procedimento executado continua compondo o total contratado).
+
+### Arquivos tocados (em um único passo)
+
+- Migration: adiciona `treatment_id` e `executed_value` em `patient_history`.
+
+- `src/components/history/HistoryPanel.tsx` — reescrito (sem Tiptap, com select + textarea + saldo).
+
+- `src/components/history/HistoryEntryCard.tsx` — reescrito para o novo layout de linha do tempo.
+
+- `src/components/history/HistoryTimeline.tsx` — pequeno ajuste de props.
+
+- `src/pages/PacienteDetalhe.tsx` — adiciona `executado` aos status e inclui no `totalAprovado`.
+
+### Não incluído
+
+- Reverter execução (se precisar desfazer, por enquanto é manual: mudar status do tratamento e excluir entrada de histórico).
+
+- FK formal `treatment_id → treatments(id)` (deixado solto pra preservar histórico).
+
+- Edição da evolução depois de salva.
+
+ESTA CERTO ISSO?

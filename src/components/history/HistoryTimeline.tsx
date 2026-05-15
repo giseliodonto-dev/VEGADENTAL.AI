@@ -7,15 +7,23 @@ interface Entry {
   created_at: string;
   content: string;
   dentist_user_id: string | null;
+  treatment_id?: string | null;
+  executed_value?: number | null;
 }
 
 interface Props {
   entries: Entry[];
   isLoading: boolean;
   dentistNameById: Record<string, string>;
+  treatmentById: Record<string, any>;
 }
 
-export function HistoryTimeline({ entries, isLoading, dentistNameById }: Props) {
+export function HistoryTimeline({
+  entries,
+  isLoading,
+  dentistNameById,
+  treatmentById,
+}: Props) {
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -31,7 +39,7 @@ export function HistoryTimeline({ entries, isLoading, dentistNameById }: Props) 
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 py-16 text-center">
         <ClipboardList className="h-10 w-10 text-muted-foreground/60" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground">
-          Nenhum atendimento registrado ainda.
+          Nenhuma evolução registrada ainda.
         </p>
       </div>
     );
@@ -39,14 +47,22 @@ export function HistoryTimeline({ entries, isLoading, dentistNameById }: Props) 
 
   return (
     <div className="relative space-y-6 border-l border-gold/20 pl-2">
-      {entries.map((e) => (
-        <HistoryEntryCard
-          key={e.id}
-          createdAt={e.created_at}
-          dentistName={e.dentist_user_id ? dentistNameById[e.dentist_user_id] : null}
-          contentHtml={e.content}
-        />
-      ))}
+      {entries.map((e) => {
+        const t = e.treatment_id ? treatmentById[e.treatment_id] : null;
+        const procLabel = t
+          ? `${t.procedure_type}${t.tooth_number ? ` · dente ${t.tooth_number}` : ""}`
+          : null;
+        return (
+          <HistoryEntryCard
+            key={e.id}
+            createdAt={e.created_at}
+            dentistName={e.dentist_user_id ? dentistNameById[e.dentist_user_id] : null}
+            contentHtml={e.content}
+            procedureLabel={procLabel}
+            executedValue={Number(e.executed_value || 0)}
+          />
+        );
+      })}
     </div>
   );
 }

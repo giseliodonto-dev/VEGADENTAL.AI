@@ -26,7 +26,7 @@ import { PrescriptionPanel } from "@/components/prescriptions/PrescriptionPanel"
 import { HistoryPanel } from "@/components/history/HistoryPanel";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado" };
+const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado", executado: "Executado" };
 const PAY_STATUS_COLORS: Record<string, string> = {
   pendente: "bg-amber-100 text-amber-800 border-amber-300",
   parcial: "bg-blue-100 text-blue-800 border-blue-300",
@@ -381,7 +381,7 @@ export default function PacienteDetalhe() {
   const [finDesc, setFinDesc] = useState("");
   const [finInstallments, setFinInstallments] = useState(1);
 
-  const totalAprovado = treatments.filter((t: any) => t.status === "aprovado").reduce((acc: number, t: any) => acc + Number(t.value || 0), 0);
+  const totalAprovado = treatments.filter((t: any) => t.status === "aprovado" || t.status === "executado").reduce((acc: number, t: any) => acc + Number(t.value || 0), 0);
   const totalPago = patientFinancials.filter((f: any) => f.status === "pago").reduce((acc: number, f: any) => acc + Number(f.value || 0), 0);
   const saldoDevedor = Math.max(0, totalAprovado - totalPago);
 
@@ -760,6 +760,7 @@ export default function PacienteDetalhe() {
                                 <SelectItem value="planejado">Planejado</SelectItem>
                                 <SelectItem value="em_andamento">Em andamento</SelectItem>
                                 <SelectItem value="concluido">Concluído</SelectItem>
+                                <SelectItem value="executado">Executado</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>
