@@ -147,13 +147,36 @@ export const InsightPremium = ({
           {/* Insight */}
           {insight && !loading && (
             <div className="pt-2">
-              <div className="rounded-xl border border-gold/20 bg-background/60 p-5">
-                <p
-                  className="text-sm leading-relaxed text-foreground whitespace-pre-wrap font-body"
-                  style={{ letterSpacing: "0.005em" }}
-                >
-                  {insight}
-                </p>
+              <div className="rounded-xl border border-gold/20 bg-background/60 p-6 divide-y divide-border/40">
+                {parseInsightItems(insight).map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex gap-5 py-5 first:pt-0 last:pb-0"
+                  >
+                    <div className="shrink-0 font-display text-4xl text-gold/70 leading-none tabular-nums tracking-tight w-12">
+                      {String(idx + 1).padStart(2, "0")}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {item.title && (
+                        <h3 className="font-display text-base text-autoridade tracking-tight">
+                          {item.title}
+                        </h3>
+                      )}
+                      {item.body && (
+                        <p
+                          className="text-sm text-foreground font-body leading-[1.7]"
+                          style={{ letterSpacing: "0.005em" }}
+                          dangerouslySetInnerHTML={{ __html: renderInline(item.body) }}
+                        />
+                      )}
+                      {item.impact && (
+                        <span className="block text-xs italic text-gold/80 mt-2">
+                          Impacto: {item.impact}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               {generatedAt && (
                 <p className="text-[10px] text-muted-foreground mt-2 text-right">
