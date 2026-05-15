@@ -1,11 +1,13 @@
-import Anthropic from "npm:@anthropic-ai/sdk@0.32.1";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+const MODEL = "claude-3-5-sonnet-latest";
 
 const SYSTEM_PROMPT =
   "Você é a inteligência central do Vega Dental, uma assistente de gestão odontológica de luxo, técnica, empática e eficiente.";
@@ -21,12 +23,17 @@ function isValidMessages(input: unknown): input is ChatMessage[] {
     (m) =>
       m &&
       typeof m === "object" &&
-      (m as any).role &&
       ["user", "assistant"].includes((m as any).role) &&
       typeof (m as any).content === "string" &&
       (m as any).content.trim().length > 0,
   );
 }
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,84 +44,67 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
       console.error("ANTHROPIC_API_KEY ausente");
-      return new Response(
-        JSON.stringify({ error: "Configuração do servidor incompleta." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return json({ error: "Configuração do servidor incompleta." }, 500);
     }
 
     const body = await req.json().catch(() => null);
     const messages = body?.messages;
 
     if (!isValidMessages(messages)) {
-      return new Response(
-        JSON.stringify({
+      return json(
+        {
           error:
             "Formato inválido. Envie { messages: [{ role, content }, ...] }.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
+        400,
       );
     }
 
-    const anthropic = new Anthropic({ apiKey });
-
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages,
+    const anthropicResp = await fetch(ANTHROPIC_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages,
+      }),
     });
 
-    const reply = response.content
-      .filter((b: any) => b.type === "text")
+    if (!anthropicResp.ok) {
+      const errText = await anthropicResp.text();
+      console.error(
+        "Anthropic error:",
+        anthropicResp.status,
+        errText,
+      );
+
+      if (anthropicResp.status === 401 || anthropicResp.status === 403) {
+        return json({ error: "Falha de autenticação com Claude." }, 502);
+      }
+      if (anthropicResp.status === 429) {
+        return json(
+          { error: "Limite de requisições atingido. Tente novamente em instantes." },
+          429,
+        );
+      }
+      return json({ error: "Erro ao consultar a IA.", detail: errText }, 502);
+    }
+
+    const data = await anthropicResp.json();
+    const reply = (data?.content ?? [])
+      .filter((b: any) => b?.type === "text")
       .map((b: any) => b.text)
       .join("\n")
       .trim();
 
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ reply });
   } catch (err: any) {
-    console.error("claude-ai-service error:", err?.status, err?.message, err);
-
-    const status = err?.status ?? err?.response?.status;
-
-    if (status === 401 || status === 403) {
-      return new Response(
-        JSON.stringify({ error: "Falha de autenticação com Claude." }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-    if (status === 429) {
-      return new Response(
-        JSON.stringify({
-          error: "Limite de requisições atingido. Tente novamente em instantes.",
-        }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        error: err?.message ?? "Erro interno ao consultar a IA.",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    console.error("claude-ai-service error:", err?.message, err);
+    return json({ error: err?.message ?? "Erro interno ao consultar a IA." }, 500);
   }
 });
