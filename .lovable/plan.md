@@ -1,35 +1,115 @@
-## Plano: Redeploy do claude-ai-service
+# Prescrição Inteligente — Plano de Implementação
 
-### 1. Verificar a secret
-- Confirmar `ANTHROPIC_API_KEY` via `secrets--fetch_secrets` antes do redeploy.
+Módulo de prescrição médica no prontuário do paciente, com formulário multi-medicamento, IA opcional (Claude) por tier de plano, e geração de PDF profissional.
 
-### 2. Ajustar a Edge Function (`supabase/functions/claude-ai-service/index.ts`)
-A função hoje usa o SDK `npm:@anthropic-ai/sdk`, que internamente já chama `https://api.anthropic.com/v1/messages`, mas você pediu garantia explícita do endpoint. Vou:
-- Substituir o SDK por `fetch` direto para `https://api.anthropic.com/v1/messages` (endpoint visível e auditável no código).
-- Manter `Deno.env.get("ANTHROPIC_API_KEY")` com checagem e log claro caso ausente.
-- Manter headers obrigatórios: `x-api-key`, `anthropic-version: 2023-06-01`, `content-type: application/json`.
-- Manter `model: claude-3-5-sonnet-latest`, `max_tokens: 1024`, `system` prompt e `messages` validados.
-- Preservar CORS, validação de input e mapeamento de erros (401/403 → 502, 429 → 429).
-- Resposta continua `{ reply: string }` para não quebrar `MentoraClaude.tsx` nem `InsightPremium.tsx`.
+## 1. Banco de Dados (migration)
 
-### 3. Redeploy
-- Rodar `supabase--deploy_edge_functions` com `["claude-ai-service"]`.
-- Validar com `supabase--curl_edge_functions` (POST `/claude-ai-service` com `{ messages: [{role:"user", content:"ping"}] }`) esperando `200` + `reply`.
-- Conferir `supabase--edge_function_logs` para garantir ausência de "ANTHROPIC_API_KEY ausente".
+Nova tabela `public.prescriptions`:
 
-### 4. Limpar cache do frontend
-- `MentoraClaude.tsx` e `InsightPremium.tsx` usam `supabase.functions.invoke`, que não tem cache de browser, mas a UI mantém estado em memória. Vou:
-  - Em `InsightPremium.tsx`: ao clicar em "Gerar novamente", já reseta `insight`, `error`, `generatedAt` — adicionar `setInsight(null)` no início de `generate()` para forçar nova chamada e descartar resposta anterior.
-  - Em `MentoraClaude.tsx`: nenhum cache real; sem mudança necessária.
-- Não há service worker / React Query cache cobrindo essas chamadas, então não precisa `queryClient.invalidateQueries`.
+- `id uuid pk default gen_random_uuid()`
+- `clinic_id uuid not null` (multi-tenant)
+- `patient_id uuid not null`
+- `dentist_user_id uuid` (auth.uid no insert)
+- `medications jsonb not null default '[]'` — array de objetos `{ name, usage_type, posology, duration_days }`
+- `notes text`
+- `created_at timestamptz default now()`
 
-### Detalhes técnicos
-- Endpoint final: `POST https://api.anthropic.com/v1/messages`
-- Body: `{ model, max_tokens, system, messages }`
-- Resposta Anthropic: `content: [{type:"text", text:"..."}]` → concatenar `text` dos blocos `type==="text"`.
-- Sem mudanças em `supabase/config.toml` (função já com `verify_jwt` padrão para Lovable).
-- Sem mudanças em schema, RLS ou outras funções.
+RLS (mesmo padrão das demais tabelas):
+- SELECT/INSERT/UPDATE: membros da clínica via `get_user_clinic_ids(auth.uid())`
+- DELETE: apenas `dono` via `has_clinic_role`
 
-### Arquivos afetados
-- `supabase/functions/claude-ai-service/index.ts` (reescrito para fetch direto)
-- `src/components/InsightPremium.tsx` (reset de estado ao regenerar)
+Índice em `(clinic_id, patient_id, created_at desc)`.
+
+## 2. Permissão por Plano (Tiering)
+
+Hook leve `useAiAccess()` em `src/hooks/useAiAccess.tsx`:
+
+- Versão 1 (entrega imediata): retorna `false` por padrão e lê de `localStorage.getItem("vega_plan") === "pro"` para teste manual; expõe `{ hasAiAccess, plan }`.
+- Documenta TODO para evoluir para coluna `clinics.plan` (`basic`/`pro`) numa migration futura, sem bloquear esta entrega.
+
+Quando `hasAiAccess === false`, o botão IA vira um `Button disabled` com ícone `Lock` e tooltip/label "Disponível no Plano Pro".
+
+## 3. UI no prontuário
+
+`src/pages/PacienteDetalhe.tsx` já usa `Tabs`. Adicionar nova aba **"Prescrições"** que renderiza o componente `PrescriptionPanel`.
+
+Novo componente `src/components/prescriptions/PrescriptionPanel.tsx`:
+
+- Lista as prescrições anteriores do paciente (data, nº de medicamentos, botão "Reimprimir PDF").
+- Botão primário "Nova Prescrição" abre `PrescriptionForm` (Dialog ou seção inline).
+
+Novo `src/components/prescriptions/PrescriptionForm.tsx`:
+
+- Estado: `medications: Medication[]` (array dinâmico, mínimo 1).
+- Por item: `name` (Input), `usage_type` (Select com opções: Interno, Externo, IM, EV, Pomada, Tópico, Solução Oral, Bochecho), `posology` (Textarea), `duration_days` (Input number).
+- Botões: "+ Adicionar medicamento", "Remover" (Trash2) por linha.
+- Botão "✨ Sugerir Posologia com IA" por linha:
+  - Se `hasAiAccess`: chama edge function (item 4).
+  - Senão: ícone `Lock` + texto "Plano Pro".
+- Ações: "Salvar e Gerar PDF" (insert no Supabase + abre PDF), "Salvar Rascunho" (apenas insert).
+
+Estilo Quiet Luxury: `border border-gold/30`, `rounded-xl`, headings em `text-primary` (Azul Petróleo), botões `variant="default"` e `variant="gold"` para a ação principal. Sem cores hardcoded — usar tokens do design system.
+
+## 4. Integração Claude (IA)
+
+Reusar a edge function existente `claude-ai-service` (já deployada).
+
+Cliente envia `messages: [{ role: "user", content: <prompt> }]` com prompt:
+
+> "Atue como um farmacologista clínico. Para o medicamento [NOME], forneça a posologia padrão odontológica, tipo de uso e duração recomendada seguindo as normas farmacológicas brasileiras. Retorne apenas JSON no formato: `{\"name\": string, \"usage_type\": one of [Interno, Externo, IM, EV, Pomada, Tópico, Solução Oral, Bochecho], \"posology\": string, \"duration_days\": number}`. Sem texto fora do JSON."
+
+Helper `src/lib/prescriptionAi.ts`:
+- `suggestPosology(name): Promise<Medication>` — invoca a function via `supabase.functions.invoke("claude-ai-service", { body: { messages } })`, faz `JSON.parse` defensivo do `reply` (extrai bloco JSON via regex se houver texto extra), valida com `zod` contra o enum de `usage_type`.
+- Em erro: toast e mantém os campos editáveis.
+
+O dentista sempre pode editar todos os campos preenchidos pela IA antes de salvar. Inclui disclaimer pequeno: "Sugestão de IA — revise antes de prescrever."
+
+## 5. Geração de PDF
+
+Novo `src/utils/prescriptionPdf.ts` usando `jsPDF` (já no projeto via budgetPdf):
+
+Layout A4:
+- **Topo**: logo da clínica (`clinics.logo_url`) à esquerda, nome/endereço/telefone à direita; linha dourada fina abaixo.
+- **Bloco paciente** centralizado: "RECEITUÁRIO", nome do paciente, CPF, data.
+- **Corpo**: lista numerada `1. Nome do medicamento` em negrito, abaixo `Uso: <tipo> · Duração: <X> dias`, depois `Posologia: <texto>` justificado. Espaçamento generoso entre itens.
+- **Rodapé**: linha de assinatura, nome do dentista (`profiles.full_name` do `auth.uid()`) + CRO (`clinics.responsible_cro` como fallback), data automática (dd/mm/aaaa), retângulo "Carimbo".
+- Tipografia: Helvetica (jsPDF default) com pesos contrastantes; títulos em cor Azul Petróleo `#103444`, detalhes em dourado sutil `#B8964A`.
+
+Função: `generatePrescriptionPdf({ clinic, patient, dentist, prescription }): jsPDF` — abre em nova aba (`doc.output("bloburl")`).
+
+## 6. Fluxo de fallback (Plano Básico)
+
+Sem IA: o formulário continua 100% funcional (todos os campos editáveis, sem atrito), salva no Supabase e gera PDF da mesma forma. O botão IA aparece travado mas não bloqueia nenhuma ação manual.
+
+## Arquivos
+
+Novos:
+- `src/hooks/useAiAccess.tsx`
+- `src/components/prescriptions/PrescriptionPanel.tsx`
+- `src/components/prescriptions/PrescriptionForm.tsx`
+- `src/lib/prescriptionAi.ts`
+- `src/utils/prescriptionPdf.ts`
+
+Editados:
+- `src/pages/PacienteDetalhe.tsx` (nova aba "Prescrições")
+
+Migration:
+- Tabela `prescriptions` + RLS + índice.
+
+Sem mudanças em `claude-ai-service` (já operacional).
+
+## Detalhes técnicos
+
+```ts
+type UsageType = "Interno" | "Externo" | "IM" | "EV" | "Pomada" | "Tópico" | "Solução Oral" | "Bochecho";
+interface Medication {
+  name: string;
+  usage_type: UsageType;
+  posology: string;
+  duration_days: number;
+}
+```
+
+- Validação cliente com `zod` antes do insert.
+- React Query: `["prescriptions", patientId]` para listagem; `invalidateQueries` após salvar.
+- Tiering por localStorage é provisório e marcado com TODO para futura migration `clinics.plan`.
