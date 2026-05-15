@@ -716,6 +716,39 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_history: {
+        Row: {
+          clinic_id: string
+          content: string
+          created_at: string
+          dentist_user_id: string | null
+          id: string
+          patient_id: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          content: string
+          created_at?: string
+          dentist_user_id?: string | null
+          id?: string
+          patient_id: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          content?: string
+          created_at?: string
+          dentist_user_id?: string | null
+          id?: string
+          patient_id?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           birthdate: string | null
