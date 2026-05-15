@@ -92,6 +92,8 @@ export const InsightPremium = ({
   const generate = async () => {
     setLoading(true);
     setError(null);
+    setInsight(null);
+    setGeneratedAt(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("claude-ai-service", {
         body: { messages: [{ role: "user", content: buildPrompt() }] },
