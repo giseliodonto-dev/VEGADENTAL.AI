@@ -381,7 +381,7 @@ export default function PacienteDetalhe() {
   const [finDesc, setFinDesc] = useState("");
   const [finInstallments, setFinInstallments] = useState(1);
 
-  const totalAprovado = treatments.filter((t: any) => t.status === "aprovado").reduce((acc: number, t: any) => acc + Number(t.value || 0), 0);
+  const totalAprovado = treatments.filter((t: any) => t.status === "aprovado" || t.status === "executado").reduce((acc: number, t: any) => acc + Number(t.value || 0), 0);
   const totalPago = patientFinancials.filter((f: any) => f.status === "pago").reduce((acc: number, f: any) => acc + Number(f.value || 0), 0);
   const saldoDevedor = Math.max(0, totalAprovado - totalPago);
 
