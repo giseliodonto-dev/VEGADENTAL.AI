@@ -22,6 +22,7 @@ import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/w
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
+import { PrescriptionPanel } from "@/components/prescriptions/PrescriptionPanel";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado" };
@@ -950,6 +951,14 @@ export default function PacienteDetalhe() {
                     </Table>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="prescricoes">
+            <Card className="bg-white border-amber-400/30">
+              <CardContent className="p-6">
+                <PrescriptionPanel patient={patient} />
               </CardContent>
             </Card>
           </TabsContent>
