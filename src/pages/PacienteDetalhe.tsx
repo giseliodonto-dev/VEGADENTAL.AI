@@ -17,12 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign, History } from "lucide-react";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
 import { getPublicAppOrigin } from "@/lib/publicUrl";
 import { PrescriptionPanel } from "@/components/prescriptions/PrescriptionPanel";
+import { HistoryPanel } from "@/components/history/HistoryPanel";
 
 const fmtBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const STATUS_LABELS: Record<string, string> = { planejado: "Planejado", em_andamento: "Em andamento", concluido: "Concluído", em_analise: "Em Análise", aprovado: "Aprovado", recusado: "Recusado" };
@@ -532,6 +533,9 @@ export default function PacienteDetalhe() {
             <TabsTrigger value="prescricoes" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <FileSignature className="h-4 w-4" /> Prescrições
             </TabsTrigger>
+            <TabsTrigger value="evolucao" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <History className="h-4 w-4" /> Evolução
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="cadastro">
@@ -959,6 +963,14 @@ export default function PacienteDetalhe() {
             <Card className="bg-white border-amber-400/30">
               <CardContent className="p-6">
                 <PrescriptionPanel patient={patient} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="evolucao">
+            <Card className="bg-white border-amber-400/30">
+              <CardContent className="p-6">
+                <HistoryPanel patient={patient} />
               </CardContent>
             </Card>
           </TabsContent>
