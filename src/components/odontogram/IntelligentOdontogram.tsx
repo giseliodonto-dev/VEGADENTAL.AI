@@ -5,10 +5,10 @@ import { ToothSVG } from "./ToothSVG";
 import { ToothActionMenu } from "./ToothActionMenu";
 import {
   UPPER_TEETH, LOWER_TEETH_VISUAL,
-  Face, StatusType, Condition,
+  Face, StatusType, Condition, Combo,
   CONDITION_LABELS, CONDITION_FILL,
 } from "./odontogramConfig";
-import { useOdontogramMarks, useToggleMark, OdontogramMark } from "./useOdontogram";
+import { useOdontogramMarks, useToggleMark, useApplyCombo, OdontogramMark } from "./useOdontogram";
 
 type Props = { patientId: string; clinicId: string | null; };
 
@@ -37,8 +37,8 @@ function Arch({
 
 function Legend({ statusType }: { statusType: StatusType }) {
   const items: Condition[] = statusType === "inicial"
-    ? ["carie", "fratura", "canal_necessario", "ausente"]
-    : ["restauracao", "endodontia", "implante", "coroa"];
+    ? ["carie", "fratura", "pulpite_necrose", "ausente", "destruicao_coronaria"]
+    : ["restauracao_direta_1face", "canal_unirradicular", "implante_unitario_cirurgia", "coroa_ceramica"];
   return (
     <div className="flex flex-wrap gap-3 pt-3 border-t border-[#103444]/10 mt-4">
       {items.map((c) => (
@@ -57,6 +57,7 @@ function Legend({ statusType }: { statusType: StatusType }) {
 function ArchView({ patientId, clinicId, statusType }: Props & { statusType: StatusType }) {
   const { data: marks = [], isLoading } = useOdontogramMarks(patientId, statusType);
   const toggle = useToggleMark(patientId, clinicId);
+  const applyCombo = useApplyCombo(patientId, clinicId);
 
   const [menu, setMenu] = useState<{
     open: boolean;
@@ -113,13 +114,36 @@ function ArchView({ patientId, clinicId, statusType }: Props & { statusType: Sta
           face={menu.face}
           currentCondition={menu.currentCondition}
           onSelect={(c) => {
-            toggle.mutate({
+            if (c === "arcada_ausente_total") {
+              const isUpper = menu.toothNumber >= 11 && menu.toothNumber <= 28;
+              const ok = window.confirm(
+                `Aplicar Protocolo Fixo ${isUpper ? "Superior" : "Inferior"} em toda a arcada?`,
+              );
+              if (ok) {
+                applyCombo.mutate({
+                  combo: "protocolo_arcada",
+                  tooth_number: String(menu.toothNumber),
+                  status_type: statusType,
+                  arcadaScope: isUpper ? "superior" : "inferior",
+                });
+              }
+            } else {
+              toggle.mutate({
+                tooth_number: String(menu.toothNumber),
+                face: menu.face,
+                status_type: statusType,
+                condition: c,
+                existingId: menu.existingId,
+                existingCondition: menu.currentCondition,
+              });
+            }
+            setMenu((m) => (m ? { ...m, open: false } : null));
+          }}
+          onSelectCombo={(combo) => {
+            applyCombo.mutate({
+              combo,
               tooth_number: String(menu.toothNumber),
-              face: menu.face,
               status_type: statusType,
-              condition: c,
-              existingId: menu.existingId,
-              existingCondition: menu.currentCondition,
             });
             setMenu((m) => (m ? { ...m, open: false } : null));
           }}
