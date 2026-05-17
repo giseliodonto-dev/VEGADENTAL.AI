@@ -157,6 +157,11 @@ export function useToggleMark(patientId: string, clinicId: string | null) {
         .single();
       if (upErr) throw upErr;
 
+      // Diagnósticos NÃO entram no plano de tratamento — apenas marcam visualmente o SVG.
+      if (isDiagnosis(input.condition)) {
+        return { removed: false };
+      }
+
       // Gera/atualiza tratamentos (1+ por condition via resolver)
       const procNames = resolveProcedures(input.condition, Number(input.tooth_number));
       let firstTreatmentId: string | null = null;
