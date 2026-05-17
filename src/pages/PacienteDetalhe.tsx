@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign, History } from "lucide-react";
+import { IntelligentOdontogram } from "@/components/odontogram/IntelligentOdontogram";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
@@ -33,18 +34,8 @@ const PAY_STATUS_COLORS: Record<string, string> = {
   pago: "bg-emerald-100 text-emerald-800 border-emerald-300",
 };
 
-const TOOTH_STATES = {
-  higido: { label: "Hígido", color: "bg-white border-[#103444]/30 text-[#103444]" },
-  cariado: { label: "Cariado", color: "bg-red-500 border-red-600 text-white" },
-  restaurado: { label: "Restaurado", color: "bg-blue-500 border-blue-600 text-white" },
-  ausente: { label: "Ausente", color: "bg-slate-300 border-slate-400 text-slate-600 line-through" },
-  coroa: { label: "Coroa", color: "bg-amber-500 border-amber-600 text-white" },
-  canal: { label: "Canal", color: "bg-purple-500 border-purple-600 text-white" },
-} as const;
-type ToothState = keyof typeof TOOTH_STATES;
+// Odontograma legado removido — substituído por <IntelligentOdontogram />
 
-const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
 const DISEASE_OPTIONS = [
   "diabetes", "hipertensao", "cardiopatia", "gestante", "epilepsia", "asma", "hepatite", "anemia"
@@ -156,57 +147,8 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  const { data: odo } = useQuery({
-    queryKey: ["odontogram", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("odontograms").select("*").eq("patient_id", id!).maybeSingle();
-      return data;
-    },
-    enabled: !!id,
-  });
+  // ===== Odontograma antigo removido. Novo módulo em <IntelligentOdontogram />. =====
 
-  const [teeth, setTeeth] = useState<Record<string, ToothState>>({});
-  useEffect(() => {
-    if (odo?.teeth_data) setTeeth(odo.teeth_data as Record<string, ToothState>);
-  }, [odo]);
-
-  const cycleTooth = (n: number) => {
-    const states: ToothState[] = ["higido", "cariado", "restaurado", "coroa", "canal", "ausente"];
-    const cur = teeth[n] || "higido";
-    const next = states[(states.indexOf(cur) + 1) % states.length];
-    setTeeth(t => ({ ...t, [n]: next }));
-  };
-
-  const saveOdontogram = useMutation({
-    mutationFn: async () => {
-      if (!clinicId) throw new Error("Clínica não identificada");
-      const payload = { patient_id: id!, clinic_id: clinicId, teeth_data: teeth };
-      if (odo?.id) {
-        const { error } = await supabase.from("odontograms").update(payload).eq("id", odo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("odontograms").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => { toast.success("Odontograma salvo"); queryClient.invalidateQueries({ queryKey: ["odontogram", id] }); },
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-
-  const Tooth = ({ n }: { n: number }) => {
-    const st = teeth[n] || "higido";
-    const cfg = TOOTH_STATES[st];
-    return (
-      <button
-        onClick={() => cycleTooth(n)}
-        className={`h-10 w-10 rounded-md border-2 text-[10px] font-bold transition-all hover:scale-110 ${cfg.color}`}
-        title={cfg.label}
-      >
-        {n}
-      </button>
-    );
-  };
 
   // ===== PLANO DE TRATAMENTO =====
 
@@ -256,7 +198,7 @@ export default function PacienteDetalhe() {
   const [newItem, setNewItem] = useState<{ procedure_type: string; tooth_number: string; region: string; value: number }>({
     procedure_type: "", tooth_number: "", region: "", value: 0,
   });
-  const markedTeeth = Object.keys(teeth);
+  
 
   const addTreatment = useMutation({
     mutationFn: async () => {
@@ -668,46 +610,7 @@ export default function PacienteDetalhe() {
           </TabsContent>
 
           <TabsContent value="odonto">
-            <Card className="bg-white border-amber-400/30">
-              <CardContent className="p-6 space-y-6">
-                <p className="text-sm text-[#103444]/70">
-                  Clique em um dente para alternar seu estado: hígido → cariado → restaurado → coroa → canal → ausente.
-                </p>
-
-                <div className="space-y-3 py-4">
-                  <div className="flex justify-center gap-1 flex-wrap">
-                    {UPPER_TEETH.map(n => <Tooth key={n} n={n} />)}
-                  </div>
-                  <div className="border-t border-dashed border-[#103444]/20 mx-8" />
-                  <div className="flex justify-center gap-1 flex-wrap">
-                    {LOWER_TEETH.map(n => <Tooth key={n} n={n} />)}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-[#103444] font-bold mb-2 block">Legenda</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {Object.entries(TOOTH_STATES).map(([k, v]) => (
-                      <div key={k} className="flex items-center gap-2">
-                        <span className={`h-5 w-5 rounded border-2 ${v.color}`} />
-                        <span className="text-xs text-[#103444]">{v.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-white border-t border-amber-400/30 flex justify-end">
-                  <Button
-                    onClick={() => saveOdontogram.mutate()}
-                    disabled={saveOdontogram.isPending}
-                    className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2"
-                  >
-                    {saveOdontogram.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Salvar Odontograma
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <IntelligentOdontogram patientId={id!} clinicId={clinicId} />
           </TabsContent>
 
           <TabsContent value="plano">
@@ -994,18 +897,7 @@ export default function PacienteDetalhe() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-[#103444]">Dente</Label>
-                {markedTeeth.length > 0 ? (
-                  <Select value={newItem.tooth_number} onValueChange={v => setNewItem(s => ({ ...s, tooth_number: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {markedTeeth.map(n => (
-                        <SelectItem key={n} value={n}>{n} — {TOOTH_STATES[teeth[n]].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
-                )}
+                <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
               </div>
               <div>
                 <Label className="text-[#103444]">Região (opcional)</Label>

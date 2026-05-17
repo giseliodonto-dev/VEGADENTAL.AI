@@ -755,6 +755,48 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_odontogram: {
+        Row: {
+          clinic_id: string
+          condition: string
+          created_at: string
+          created_by: string | null
+          face: string
+          id: string
+          patient_id: string
+          status_type: string
+          tooth_number: string
+          treatment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          condition: string
+          created_at?: string
+          created_by?: string | null
+          face: string
+          id?: string
+          patient_id: string
+          status_type: string
+          tooth_number: string
+          treatment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          condition?: string
+          created_at?: string
+          created_by?: string | null
+          face?: string
+          id?: string
+          patient_id?: string
+          status_type?: string
+          tooth_number?: string
+          treatment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           birthdate: string | null
