@@ -34,18 +34,8 @@ const PAY_STATUS_COLORS: Record<string, string> = {
   pago: "bg-emerald-100 text-emerald-800 border-emerald-300",
 };
 
-const TOOTH_STATES = {
-  higido: { label: "Hígido", color: "bg-white border-[#103444]/30 text-[#103444]" },
-  cariado: { label: "Cariado", color: "bg-red-500 border-red-600 text-white" },
-  restaurado: { label: "Restaurado", color: "bg-blue-500 border-blue-600 text-white" },
-  ausente: { label: "Ausente", color: "bg-slate-300 border-slate-400 text-slate-600 line-through" },
-  coroa: { label: "Coroa", color: "bg-amber-500 border-amber-600 text-white" },
-  canal: { label: "Canal", color: "bg-purple-500 border-purple-600 text-white" },
-} as const;
-type ToothState = keyof typeof TOOTH_STATES;
+// Odontograma legado removido — substituído por <IntelligentOdontogram />
 
-const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
 const DISEASE_OPTIONS = [
   "diabetes", "hipertensao", "cardiopatia", "gestante", "epilepsia", "asma", "hepatite", "anemia"
