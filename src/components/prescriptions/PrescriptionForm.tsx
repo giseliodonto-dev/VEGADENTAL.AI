@@ -271,25 +271,39 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-3 justify-end">
+      <div className="flex flex-wrap gap-2 justify-end">
         <Button
           variant="outline"
-          onClick={() => saveMutation.mutate({ withPdf: false })}
+          onClick={() => saveMutation.mutate({ action: null })}
           disabled={saveMutation.isPending}
         >
           <Save className="h-4 w-4" /> Salvar
         </Button>
         <Button
+          variant="outline"
+          onClick={() => saveMutation.mutate({ action: "download" })}
+          disabled={saveMutation.isPending}
+        >
+          <Download className="h-4 w-4" /> Salvar no Computador
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => saveMutation.mutate({ action: "print" })}
+          disabled={saveMutation.isPending}
+        >
+          <Printer className="h-4 w-4" /> Imprimir Receita
+        </Button>
+        <Button
           variant="gold"
-          onClick={() => saveMutation.mutate({ withPdf: true })}
+          onClick={() => saveMutation.mutate({ action: "whatsapp" })}
           disabled={saveMutation.isPending}
         >
           {saveMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <FileSignature className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4" />
           )}
-          Salvar e Gerar PDF
+          Enviar por WhatsApp
         </Button>
       </div>
     </div>
