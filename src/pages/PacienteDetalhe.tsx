@@ -610,46 +610,7 @@ export default function PacienteDetalhe() {
           </TabsContent>
 
           <TabsContent value="odonto">
-            <Card className="bg-white border-amber-400/30">
-              <CardContent className="p-6 space-y-6">
-                <p className="text-sm text-[#103444]/70">
-                  Clique em um dente para alternar seu estado: hígido → cariado → restaurado → coroa → canal → ausente.
-                </p>
-
-                <div className="space-y-3 py-4">
-                  <div className="flex justify-center gap-1 flex-wrap">
-                    {UPPER_TEETH.map(n => <Tooth key={n} n={n} />)}
-                  </div>
-                  <div className="border-t border-dashed border-[#103444]/20 mx-8" />
-                  <div className="flex justify-center gap-1 flex-wrap">
-                    {LOWER_TEETH.map(n => <Tooth key={n} n={n} />)}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-[#103444] font-bold mb-2 block">Legenda</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {Object.entries(TOOTH_STATES).map(([k, v]) => (
-                      <div key={k} className="flex items-center gap-2">
-                        <span className={`h-5 w-5 rounded border-2 ${v.color}`} />
-                        <span className="text-xs text-[#103444]">{v.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-white border-t border-amber-400/30 flex justify-end">
-                  <Button
-                    onClick={() => saveOdontogram.mutate()}
-                    disabled={saveOdontogram.isPending}
-                    className="bg-[#103444] hover:bg-[#0a232d] border border-amber-500/60 gap-2"
-                  >
-                    {saveOdontogram.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Salvar Odontograma
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <IntelligentOdontogram patientId={id!} clinicId={clinicId} />
           </TabsContent>
 
           <TabsContent value="plano">
