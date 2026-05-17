@@ -897,18 +897,7 @@ export default function PacienteDetalhe() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-[#103444]">Dente</Label>
-                {markedTeeth.length > 0 ? (
-                  <Select value={newItem.tooth_number} onValueChange={v => setNewItem(s => ({ ...s, tooth_number: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {markedTeeth.map(n => (
-                        <SelectItem key={n} value={n}>{n} — {TOOTH_STATES[teeth[n]].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
-                )}
+                <Input value={newItem.tooth_number} onChange={e => setNewItem(s => ({ ...s, tooth_number: e.target.value }))} placeholder="Ex: 16" />
               </div>
               <div>
                 <Label className="text-[#103444]">Região (opcional)</Label>
