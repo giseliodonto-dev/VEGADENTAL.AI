@@ -1,153 +1,235 @@
-# Odontograma Inteligente — Substituição Atômica
+# Matriz Preditiva Absoluta — Odontograma Inteligente
 
-## 1. Limpeza do odontograma antigo
+Integração completa da matriz de procedimentos no `odontogramConfig.ts`, no menu `ToothActionMenu.tsx` e na lógica de geração de tratamentos em `useOdontogram.ts`. Sem simplificar nomenclaturas, com endodontia dinâmica por tipo de dente, combos automáticos e fallback seguro.
 
-Remover do `src/pages/PacienteDetalhe.tsx`:
+## 1. `src/components/odontogram/odontogramConfig.ts`
 
-- Constantes `TOOTH_STATES`, `UPPER_TEETH`, `LOWER_TEETH` e o componente interno `Tooth` (blocos coloridos).
-- Query `["odontogram", id]` e mutação `saveOdontogram` (tabela legada `odontograms`).
-- `<TabsContent value="odonto">` antigo e o botão "Salvar Odontograma".
-- Import `Smile` (se não usado em outro lugar).
+### 1.1 Expansão do tipo `Condition`
 
-A tabela `odontograms` permanece no banco (apenas deixamos de ler/escrever) — sem migração destrutiva para não correr risco com dados existentes. Pode ser depreciada depois.
+Substituir o enum atual por uma matriz categorizada (mantendo retrocompatibilidade com marcas já salvas no banco — strings):
 
-## 2. Nova arquitetura de arquivos
+```ts
+export type Specialty =
+  | "dentistica" | "endodontia" | "protese"
+  | "implantodontia" | "ortodontia" | "periodontia" | "cirurgia";
+
+export type Condition =
+  // Diagnósticos (visão inicial)
+  | "carie" | "fratura" | "pulpite_necrose" | "ausente"
+  | "destruicao_coronaria" | "arcada_ausente_total"
+  // Dentística
+  | "restauracao_direta_1face"
+  | "restauracao_complexa_2faces"
+  | "remineralizacao_selante"
+  | "restauracao_cervical"
+  | "reconstrucao_estetica"
+  | "restauracao_indireta"
+  // Endodontia
+  | "canal_unirradicular"
+  | "canal_birradicular"
+  | "canal_multirradicular"
+  | "retratamento_endodontico"
+  // Prótese
+  | "retentor_intrarradicular"
+  | "coroa_provisoria"
+  | "coroa_ceramica"
+  | "ponte_fixa"
+  | "ppr"
+  | "protese_total"
+  // Implantodontia
+  | "implante_unitario_cirurgia"
+  | "coroa_sobre_implante"
+  | "implantes_multiplos_cirurgia"
+  | "ponte_sobre_implantes"
+  | "protocolo_cirurgia"
+  | "protocolo_protese"
+  // Ortodontia
+  | "aparelho_fixo"
+  | "aparelho_removivel"
+  | "alinhadores"
+  | "planejamento_ortodontico_digital"
+  // Periodontia
+  | "raspagem_supra_profilaxia"
+  | "raspagem_sub_polimento"
+  | "splintagem_gengival"
+  // Cirurgia
+  | "exodontia_permanente"
+  | "exodontia_siso"
+  | "placa_miorrelaxante";
+```
+
+### 1.2 Tabela de procedimentos (nomes exatos)
+
+Mapa `PROCEDURE_NAME: Record<Condition, string>` com a nomenclatura exata da matriz (ex.: `"Restauração Indireta Estética (Inlay / Onlay / Overlay)"`, `"Implante Dentário Unitário (Fase Cirúrgica)"`, `"Exodontia de Dente Incluso / Semi-Incluso (Siso)"` etc.).
+
+Mapa `CONDITION_LABELS` curto para UI do menu (label visível) — separado do nome do procedimento.
+
+Mapa `CONDITION_SPECIALTY: Record<Condition, Specialty>` para agrupar no menu.
+
+Manter `CONDITION_FILL` e `CONDITION_STROKE` por condição (cores Quiet Luxury: vermelho diagnóstico, azul petróleo para finalizados, dourado para coroa/implante).
+
+### 1.3 Endodontia dinâmica
+
+```ts
+export function endodonticProcedureFor(toothNumber: number): Condition {
+  const unit = toothNumber % 10;
+  if (unit <= 3) return "canal_unirradicular";          // incisivos/caninos/pré-molares 14, 24,34,35,44,45
+  if (unit === 15 || unit === 25) return "canal_birradicular"; // pré-molares 15, 25
+  return "canal_multirradicular";                        // molares (6,7,8)
+}
+```
+
+### 1.4 Trigger automático de Siso
+
+```ts
+export function isSiso(toothNumber: number): boolean {
+  return [18, 28, 38, 48].includes(toothNumber);
+}
+```
+
+Quando o usuário escolher `exodontia_permanente` em 18/28/38/48 → forçar `exodontia_siso`.
+
+### 1.5 Combos inteligentes
+
+```ts
+export type Combo =
+  | "reabilitacao_unitaria"   // canal + destruição
+  | "implante_unitario"       // ausente + implante
+  | "protocolo_arcada";       // arcada ausente total
+
+export function expandCombo(
+  combo: Combo,
+  toothNumber: number,
+): Condition[] {
+  switch (combo) {
+    case "reabilitacao_unitaria":
+      return [
+        endodonticProcedureFor(toothNumber),
+        "retentor_intrarradicular",
+        "coroa_provisoria",
+        "coroa_ceramica",
+      ];
+    case "implante_unitario":
+      return ["implante_unitario_cirurgia", "coroa_sobre_implante"];
+    case "protocolo_arcada":
+      return ["protocolo_cirurgia", "protocolo_protese"];
+  }
+}
+```
+
+Helper `procedureForCondition(c, tooth)` substituído por `resolveProcedures(condition, toothNumber)` que retorna `string[]` (nomes exatos), aplicando:
+
+- endodontia dinâmica quando `condition === "pulpite_necrose"`,
+- siso automático quando `exodontia_permanente` em 18/28/38/48,
+- expansão de combos.
+
+## 2. `src/components/odontogram/ToothActionMenu.tsx`
+
+Refazer popover glassmorphism com **scroll interno** e seções por especialidade (em vez de 2 colunas fixas):
 
 ```text
-src/components/odontogram/
-  IntelligentOdontogram.tsx     ← componente raiz com Tabs "Diagnóstico Inicial" / "Evolução Clínica"
-  ToothSVG.tsx                  ← SVG anatômico por tipo (incisivo, canino, pré-molar, molar) com 5 faces clicáveis + raiz
-  ToothActionMenu.tsx           ← Popover glassmorphism com 2 colunas (Diagnóstico / Tratamento)
-  odontogramConfig.ts           ← mapas: numeração FDI, tipo por dente, cores por condição, mapeamento condição→procedimento
-  useOdontogram.ts              ← hooks React Query (fetch, upsert por marca, geração de treatment)
+┌──────────────────────────────────────────┐
+│ Dente 36 · oclusal — Diagnóstico Inicial │
+├──────────────────────────────────────────┤
+│ 🩺 Diagnósticos                           │
+│   • Cárie  • Fratura  • Pulpite/Necrose  │
+│   • Destruição Coronária  • Ausente      │
+│   • Arcada Ausente Total                 │
+├──────────────────────────────────────────┤
+│ ✨ Dentística & Estética (6 itens)        │
+│ 🦷 Endodontia (1 dinâmico + retratamento)│
+│ 👑 Prótese & Reabilitação (6)            │
+│ 🔩 Implantodontia (6)                    │
+│ 📐 Ortodontia (4)                        │
+│ 🌿 Periodontia (3)                       │
+│ ⚔️  Cirurgia & Disfunção (3)             │
+├──────────────────────────────────────────┤
+│ ⚡ Combos Inteligentes                    │
+│   • Reabilitação Unitária                │
+│   • Implante Unitário                    │
+│   • Protocolo de Arcada                  │
+└──────────────────────────────────────────┘
 ```
 
-Rota nova na aba "Odontograma" do `PacienteDetalhe`: substitui o conteúdo antigo por `<IntelligentOdontogram patientId={id} clinicId={clinicId} />`.
+- `Accordion` shadcn (já no projeto) com uma seção por especialidade, padrão recolhido exceto Diagnósticos.
+- Largura `w-[420px]`, altura máx `max-h-[70vh] overflow-y-auto`.
+- Ícones Lucide por especialidade (Sparkles, Activity, Crown, Anchor, Ruler, Leaf, Scissors).
+- Cores: vermelho para Diagnósticos, azul petróleo `#103444` para tratamentos, dourado `#c9a24c` para combos.
+- Endodontia mostra **um único item dinâmico** com label "Canal — [tipo detectado para dente N]" + "Retratamento Endodôntico".
+- Botão de combo dispara `onSelectCombo(combo)` separado do `onSelect(condition)`.
 
-## 3. UI
+Props novas:
 
-- Card com cabeçalho discreto: **"Odontograma Clínico"** (aba Antes) e **"Planejamento Estético"** (aba Depois). Sem "Dental note" / "Teeth collection".
-- Tabs com fundo `bg-white` borda `amber-400/30` (padrão do projeto).
-- Arcada superior 18→11 / 21→28 e inferior 48→41 / 31→38 em duas linhas centralizadas.
-- Cada dente: SVG anatômico com silhuetas vetoriais por tipo:
-  - Incisivos (11–13, 21–23, 31–33, 41–43 ajustados): silhueta retangular afilada.
-  - Caninos: ponta única.
-  - Pré-molares: duas cúspides.
-  - Molares: quatro cúspides com sulco em "+".
-- 5 zonas como `<path>` independentes: Vestibular, Palatina/Lingual, Oclusal/Incisal, Mesial, Distal + Raiz.
-- Hover: `stroke #103444` + `filter: drop-shadow(0 0 4px rgba(16,52,68,.4))`.
-- Cores Antes: cárie `rgba(239,68,68,.55)`, fratura tracejado vermelho, ausente `#94a3b8` opaco, canal necessário hachura.
-- Cores Depois: restauração `#103444`, endo concluída anel azul, coroa `#c9a24c` com brilho, implante ícone parafuso dourado.
+```ts
+onSelectCombo: (combo: Combo) => void;
+```
 
-## 4. Menu flutuante (Glassmorphism)
+## 3. `src/components/odontogram/useOdontogram.ts`
 
-`Popover` do shadcn estilizado:
+### 3.1 Mutation `useToggleMark`
+
+Trocar a lógica de "1 procedimento por condição" por loop sobre `resolveProcedures()`:
+
+```ts
+const procedureNames = resolveProcedures(input.condition, Number(input.tooth_number));
+for (const procName of procedureNames) {
+  await ensureTreatment(procName, input);
+}
+```
+
+### 3.2 Nova mutation `useApplyCombo`
+
+```ts
+mutate({ combo, tooth_number, status_type })
+  → conditions = expandCombo(combo, tooth)
+  → para cada condition: insere marca em patient_odontogram
+    + chama ensureTreatment para cada procedureName resolvido
+```
+
+### 3.3 Helper `ensureTreatment(procName, ctx)`
+
+```ts
+// 1. Busca catálogo (match exato por nome, ilike como fallback)
+const { data: catalog } = await supabase
+  .from("procedures_catalog")
+  .select("default_value")
+  .eq("clinic_id", clinicId)
+  .eq("name", procName)
+  .maybeSingle();
+
+const value = Number(catalog?.default_value ?? 0); // FALLBACK 0.00
+
+// 2. Verifica duplicidade (mesmo paciente + procedimento + dente + planejado)
+const { data: existing } = await supabase
+  .from("treatments")
+  .select("id, status")
+  .eq("patient_id", patientId)
+  .eq("clinic_id", clinicId)
+  .eq("tooth_number", tooth)
+  .eq("procedure_type", procName)
+  .maybeSingle();
+
+// 3. Insert (planejado) ou Update (executado) conforme status_type
+```
+
+Nunca falhar por catálogo ausente — sempre insere com `value=0` para edição manual posterior.
+
+## 4. `src/components/odontogram/IntelligentOdontogram.tsx`
+
+- Passar `onSelectCombo` para `ToothActionMenu`.
+- Quando o usuário marcar `arcada_ausente_total`, abrir um confirm rápido perguntando "Aplicar Protocolo Fixo Superior/Inferior em todos os elementos?" e disparar combo `protocolo_arcada` por arcada (cria marcas em todos os dentes da arcada com `condition="ausente"` + gera os 2 procedimentos no orçamento uma única vez).
+
+## 5. Banco de dados
+
+Nenhuma migração nova — `patient_odontogram.condition` e `treatments.procedure_type` são `text` livres. As novas strings entram naturalmente. O catálogo `procedures_catalog` **não** precisa ser populado para destravar — o fallback `0.00` garante isso. Opcional num momento futuro: seed adicional dos novos nomes para preço sugerido.
+
+## 6. Resumo dos arquivos a tocar
 
 ```text
-backdrop-blur-xl bg-white/40 border border-white/40 shadow-2xl rounded-2xl
+src/components/odontogram/odontogramConfig.ts   (reescrita ampla, sem quebrar imports)
+src/components/odontogram/ToothActionMenu.tsx   (refatoração visual + accordion + combos)
+src/components/odontogram/useOdontogram.ts      (resolveProcedures loop + ensureTreatment + useApplyCombo)
+src/components/odontogram/IntelligentOdontogram.tsx (wire-up de onSelectCombo + confirm de arcada)
 ```
 
-Duas colunas:
-
-- **Diagnósticos** (vermelho `#ef4444`): Cárie, Fratura, Canal Necessário, Ausente.
-- **Tratamentos** (azul/dourado): Restauração, Endodontia Concluída, Implante, Coroa/Prótese.
-
-Cada item: ícone Lucide + label, click → salva marca e fecha menu.
-
-## 5. Integração com Plano de Tratamento
-
-Mapa condição → procedimento (`odontogramConfig.ts`):
-
-
-| Condição marcada      | Procedimento gerado             |
-| --------------------- | ------------------------------- |
-| Cárie (oclusal)       | Restauração 1 face — Dente N    |
-| Cárie (2+ faces)      | Restauração 2 faces — Dente N   |
-| Canal necessário      | Endodontia — Dente N            |
-| Fratura               | Avaliação/Restauração — Dente N |
-| Ausente               | Implante — Dente N              |
-| Coroa/Prótese marcada | Coroa protética — Dente N       |
-
-
-Ao marcar **Diagnóstico** na visão Antes, faz `insert` em `treatments` com `status='planejado'`, `procedure_type` derivado, `tooth_number` e `value` do `procedures_catalog` (match por nome). Se já existir treatment com mesmo `tooth_number` + `procedure_type` + `status='planejado'`, não duplica.
-
-Ao marcar **Tratamento concluído** na visão Depois, faz `update` no treatment correspondente para `status='executado'` (ou cria já como executado, se não existir).
-
-## 6. Banco de Dados
-
-Nova tabela `patient_odontogram` (uma linha por marca, não um JSON único — permite histórico e queries):
-
-```sql
-CREATE TABLE public.patient_odontogram (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  clinic_id uuid NOT NULL,
-  patient_id uuid NOT NULL,
-  tooth_number text NOT NULL,           -- ex: "16"
-  face text NOT NULL,                    -- vestibular|palatina|oclusal|mesial|distal|raiz|dente
-  status_type text NOT NULL,             -- 'inicial' | 'final'
-  condition text NOT NULL,               -- carie|fratura|canal|ausente|restauracao|endo|implante|coroa
-  treatment_id uuid,                     -- vínculo opcional
-  created_by uuid,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (patient_id, tooth_number, face, status_type)
-);
-
-ALTER TABLE public.patient_odontogram ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Members view odontogram"
-  ON public.patient_odontogram FOR SELECT
-  USING (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-
-CREATE POLICY "Members insert odontogram"
-  ON public.patient_odontogram FOR INSERT
-  WITH CHECK (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-
-CREATE POLICY "Members update odontogram"
-  ON public.patient_odontogram FOR UPDATE
-  USING (clinic_id IN (SELECT get_user_clinic_ids(auth.uid())));
-
-CREATE POLICY "Donos delete odontogram"
-  ON public.patient_odontogram FOR DELETE
-  USING (has_clinic_role(auth.uid(), clinic_id, 'dono'::app_role));
-
-CREATE INDEX idx_patient_odontogram_patient ON public.patient_odontogram(patient_id, status_type);
-
-CREATE TRIGGER trg_patient_odontogram_updated
-  BEFORE UPDATE ON public.patient_odontogram
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-```
-
-UPSERT via `onConflict: 'patient_id,tooth_number,face,status_type'` para que clicar novamente atualize a condição em vez de duplicar. Clique na mesma condição já marcada → DELETE (toggle off).
-
-## 7. Performance / UX
-
-- React Query: uma query por `(patient_id, status_type)`. Optimistic updates no `mutate` para cor instantânea.
-- `Tabs` controlado mantém estado entre Antes/Depois sem refetch (mesma queryKey base).
-- SVG renderizado uma vez; faces são `<path>` com `data-face` e handler único por dente.
-
-## Execução
-
-Tudo em **uma única rodada** após aprovação:
-
-1. Migração SQL acima.
-2. Criação dos 5 arquivos em `src/components/odontogram/`.
-3. Edição cirúrgica do `PacienteDetalhe.tsx` removendo o antigo e plugando o novo componente.
-
-Nenhum arquivo do PDF de receita / evolução clínica é tocado.
-
-O plano está perfeito e aprovado! Pode executar a substituição atômica exatamente como descrito no escopo. Crie a tabela no banco de dados, os novos arquivos anatômicos em SVG e faça a limpeza do componente antigo no `PacienteDetalhe.tsx` agora mesmo."
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
-
-&nbsp;
+Nenhum outro arquivo é tocado. Tipos do Supabase não mudam.
