@@ -184,23 +184,21 @@ export function downloadPrescriptionPdf(doc: jsPDF, patientName: string) {
 export function printPrescriptionPdf(doc: jsPDF) {
   const blob = doc.output("blob");
   const blobUrl = URL.createObjectURL(blob);
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText =
-    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
-  iframe.src = blobUrl;
-  iframe.onload = () => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch (err) {
-      console.error("print failed", err);
-    }
-  };
-  document.body.appendChild(iframe);
-  setTimeout(() => {
-    URL.revokeObjectURL(blobUrl);
-    iframe.remove();
-  }, 60_000);
+
+  const printWindow = window.open(blobUrl, "_blank", "width=800,height=600");
+
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => {
+        printWindow.close();
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    };
+  } else {
+    doc.save("receita-emergencial.pdf");
+  }
 }
 
 export function sendPrescriptionViaWhatsApp(
