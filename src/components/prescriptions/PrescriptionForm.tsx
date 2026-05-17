@@ -10,9 +10,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Sparkles, Lock, Loader2, FileSignature, Save } from "lucide-react";
+import { Plus, Trash2, Sparkles, Lock, Loader2, Save, Download, Printer, MessageCircle } from "lucide-react";
 import { USAGE_TYPES, type Medication, suggestPosology } from "@/lib/prescriptionAi";
-import { generatePrescriptionPdf } from "@/utils/prescriptionPdf";
+import {
+  generatePrescriptionPdf,
+  downloadPrescriptionPdf,
+  printPrescriptionPdf,
+  sendPrescriptionViaWhatsApp,
+} from "@/utils/prescriptionPdf";
+import type jsPDF from "jspdf";
+
+type PdfAction = "download" | "print" | "whatsapp";
 
 const emptyMed = (): Medication => ({
   name: "",
@@ -78,9 +86,9 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
     return { clinic, profile };
   };
 
-  const openPdf = async (medications: Medication[]) => {
+  const buildPdf = async (medications: Medication[]): Promise<jsPDF> => {
     const { clinic, profile } = await fetchContext();
-    const doc = await generatePrescriptionPdf({
+    return generatePrescriptionPdf({
       clinicName: clinic?.name ?? "Clínica",
       clinicPhone: clinic?.phone,
       clinicEmail: clinic?.email,
@@ -94,11 +102,26 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
       notes,
       createdAt: new Date().toLocaleDateString("pt-BR"),
     });
-    window.open(doc.output("bloburl"), "_blank");
+  };
+
+  const runPdfAction = async (action: PdfAction, doc: jsPDF) => {
+    if (action === "download") {
+      downloadPrescriptionPdf(doc, patient.name);
+    } else if (action === "print") {
+      printPrescriptionPdf(doc);
+    } else if (action === "whatsapp") {
+      const { clinic } = await fetchContext();
+      sendPrescriptionViaWhatsApp(
+        doc,
+        patient.name,
+        patient.phone ?? patient.whatsapp ?? null,
+        clinic?.name ?? "nossa clínica",
+      );
+    }
   };
 
   const saveMutation = useMutation({
-    mutationFn: async ({ withPdf }: { withPdf: boolean }) => {
+    mutationFn: async ({ action }: { action: PdfAction | null }) => {
       if (!clinicId) throw new Error("Clínica não definida");
       if (!validate()) throw new Error("Preencha todos os campos dos medicamentos");
       const payload = {
@@ -110,7 +133,10 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
       };
       const { error } = await supabase.from("prescriptions").insert(payload);
       if (error) throw error;
-      if (withPdf) await openPdf(meds);
+      if (action) {
+        const doc = await buildPdf(meds);
+        await runPdfAction(action, doc);
+      }
     },
     onSuccess: () => {
       toast.success("Prescrição salva.");
@@ -245,25 +271,39 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-3 justify-end">
+      <div className="flex flex-wrap gap-2 justify-end">
         <Button
           variant="outline"
-          onClick={() => saveMutation.mutate({ withPdf: false })}
+          onClick={() => saveMutation.mutate({ action: null })}
           disabled={saveMutation.isPending}
         >
           <Save className="h-4 w-4" /> Salvar
         </Button>
         <Button
+          variant="outline"
+          onClick={() => saveMutation.mutate({ action: "download" })}
+          disabled={saveMutation.isPending}
+        >
+          <Download className="h-4 w-4" /> Salvar no Computador
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => saveMutation.mutate({ action: "print" })}
+          disabled={saveMutation.isPending}
+        >
+          <Printer className="h-4 w-4" /> Imprimir Receita
+        </Button>
+        <Button
           variant="gold"
-          onClick={() => saveMutation.mutate({ withPdf: true })}
+          onClick={() => saveMutation.mutate({ action: "whatsapp" })}
           disabled={saveMutation.isPending}
         >
           {saveMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <FileSignature className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4" />
           )}
-          Salvar e Gerar PDF
+          Enviar por WhatsApp
         </Button>
       </div>
     </div>

@@ -164,3 +164,55 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData) {
 
   return doc;
 }
+
+// ===== Helpers de entrega (download / impressão / WhatsApp) =====
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+
+function slugifyName(name: string): string {
+  return (name || "paciente")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "paciente";
+}
+
+export function downloadPrescriptionPdf(doc: jsPDF, patientName: string) {
+  doc.save(`receita-${slugifyName(patientName)}.pdf`);
+}
+
+export function printPrescriptionPdf(doc: jsPDF) {
+  const blob = doc.output("blob");
+  const blobUrl = URL.createObjectURL(blob);
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  iframe.src = blobUrl;
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (err) {
+      console.error("print failed", err);
+    }
+  };
+  document.body.appendChild(iframe);
+  setTimeout(() => {
+    URL.revokeObjectURL(blobUrl);
+    iframe.remove();
+  }, 60_000);
+}
+
+export function sendPrescriptionViaWhatsApp(
+  doc: jsPDF,
+  patientName: string,
+  patientPhone: string | null | undefined,
+  clinicName: string,
+) {
+  downloadPrescriptionPdf(doc, patientName);
+  const msg =
+    `Olá, ${patientName}. Segue sua receita gerada na ${clinicName}. ` +
+    `(O PDF foi baixado no dispositivo do(a) profissional — anexe nesta conversa para receber.)`;
+  const url = buildWhatsAppUrl(patientPhone, msg);
+  window.open(url, "_blank", "noopener,noreferrer");
+}

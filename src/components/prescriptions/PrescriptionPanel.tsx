@@ -4,15 +4,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileSignature, Plus, Printer, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileSignature, Plus, Loader2, Download, Printer, MessageCircle, ChevronDown } from "lucide-react";
 import { PrescriptionForm } from "./PrescriptionForm";
-import { generatePrescriptionPdf } from "@/utils/prescriptionPdf";
+import {
+  generatePrescriptionPdf,
+  downloadPrescriptionPdf,
+  printPrescriptionPdf,
+  sendPrescriptionViaWhatsApp,
+} from "@/utils/prescriptionPdf";
 import type { Medication } from "@/lib/prescriptionAi";
 import { toast } from "sonner";
 
 interface Props {
   patient: any;
 }
+
+type PdfAction = "download" | "print" | "whatsapp";
 
 export function PrescriptionPanel({ patient }: Props) {
   const { clinicId } = useClinic();
@@ -32,7 +45,7 @@ export function PrescriptionPanel({ patient }: Props) {
     enabled: !!patient?.id,
   });
 
-  const reprint = async (p: any) => {
+  const runAction = async (p: any, action: PdfAction) => {
     try {
       const { data: clinic } = await supabase
         .from("clinics")
@@ -60,7 +73,15 @@ export function PrescriptionPanel({ patient }: Props) {
         notes: p.notes,
         createdAt: new Date(p.created_at).toLocaleDateString("pt-BR"),
       });
-      window.open(doc.output("bloburl"), "_blank");
+      if (action === "download") downloadPrescriptionPdf(doc, patient.name);
+      else if (action === "print") printPrescriptionPdf(doc);
+      else
+        sendPrescriptionViaWhatsApp(
+          doc,
+          patient.name,
+          patient.phone ?? patient.whatsapp ?? null,
+          clinic?.name ?? "nossa clínica",
+        );
     } catch (e) {
       console.error(e);
       toast.error("Erro ao gerar PDF.");
@@ -114,8 +135,8 @@ export function PrescriptionPanel({ patient }: Props) {
         ) : (
           prescriptions.map((p: any) => (
             <Card key={p.id} className="border-border">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
                   <div className="text-sm font-medium text-foreground">
                     {new Date(p.created_at).toLocaleDateString("pt-BR")} ·{" "}
                     {(p.medications as any[])?.length ?? 0} medicamento(s)
@@ -124,9 +145,24 @@ export function PrescriptionPanel({ patient }: Props) {
                     {(p.medications as any[])?.map((m) => m.name).join(", ")}
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => reprint(p)}>
-                  <Printer className="h-4 w-4" /> Reimprimir PDF
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      Reimprimir <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => runAction(p, "download")}>
+                      <Download className="h-4 w-4" /> Salvar no Computador
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => runAction(p, "print")}>
+                      <Printer className="h-4 w-4" /> Imprimir Receita
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => runAction(p, "whatsapp")}>
+                      <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardContent>
             </Card>
           ))
