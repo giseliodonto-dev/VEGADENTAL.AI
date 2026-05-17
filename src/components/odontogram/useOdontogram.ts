@@ -34,7 +34,8 @@ export function useOdontogramMarks(patientId: string, statusType: StatusType) {
   });
 }
 
-// Garante uma linha em treatments com fallback 0.00 quando o catálogo não tem o procedimento.
+// Garante uma linha em treatments amarrada ao catálogo via FK procedure_id.
+// Se não encontrar match, insere fallback editável (procedure_id=null, value=0, notes=⚠).
 async function ensureTreatment(args: {
   patientId: string;
   clinicId: string;
@@ -46,89 +47,72 @@ async function ensureTreatment(args: {
   const { patientId, clinicId, procName, toothNumber, statusType, condition } = args;
   if (!procName) return null;
 
-  // Busca catálogo: match exato; fallback ilike
+  // Match inteligente via RPC (normaliza acentos, ILIKE, score por tokens)
+  let procedureId: string | null = null;
+  let canonicalName = procName;
   let value = 0;
-  const { data: catExact } = await supabase
-    .from("procedures_catalog")
-    .select("default_value")
-    .eq("clinic_id", clinicId)
-    .eq("name", procName)
-    .maybeSingle();
-  if (catExact?.default_value != null) {
-    value = Number(catExact.default_value);
+  let unmatched = false;
+
+  const { data: matchData } = await (supabase as any).rpc("match_procedure", {
+    _clinic: clinicId,
+    _name: procName,
+  });
+  const match = Array.isArray(matchData) ? matchData[0] : matchData;
+  if (match?.id) {
+    procedureId = match.id;
+    canonicalName = match.name ?? procName;
+    value = Number(match.default_value ?? 0);
   } else {
-    const { data: catLike } = await supabase
-      .from("procedures_catalog")
-      .select("default_value")
-      .eq("clinic_id", clinicId)
-      .ilike("name", procName)
-      .maybeSingle();
-    value = Number(catLike?.default_value ?? 0);
+    unmatched = true;
+    toast.warning(
+      `"${procName}" não está no catálogo da clínica. Item adicionado ao plano — ajuste o valor manualmente.`,
+    );
   }
 
-  // Verifica duplicidade
+  // Verifica duplicidade (mesmo dente + mesmo procedimento)
   const { data: existing } = await supabase
     .from("treatments")
     .select("id, status")
     .eq("patient_id", patientId)
     .eq("clinic_id", clinicId)
     .eq("tooth_number", toothNumber)
-    .eq("procedure_type", procName)
+    .eq("procedure_type", canonicalName)
     .maybeSingle();
 
   const isDx = isDiagnosis(condition);
-  if (statusType === "inicial" && isDx) {
-    if (existing) return existing.id;
-    const { data: ins, error } = await supabase
-      .from("treatments")
-      .insert({
-        patient_id: patientId,
-        clinic_id: clinicId,
-        procedure_type: procName,
-        tooth_number: toothNumber,
-        value,
-        status: "planejado",
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return ins.id;
-  }
+  const targetStatus: "planejado" | "executado" =
+    statusType === "final" ? "executado" : "planejado";
 
-  if (statusType === "final") {
-    if (existing) {
+  if (existing) {
+    if (statusType === "final" && existing.status !== "executado") {
       await supabase.from("treatments").update({ status: "executado" }).eq("id", existing.id);
-      return existing.id;
     }
-    const { data: ins } = await supabase
-      .from("treatments")
-      .insert({
-        patient_id: patientId,
-        clinic_id: clinicId,
-        procedure_type: procName,
-        tooth_number: toothNumber,
-        value,
-        status: "executado",
-      })
-      .select("id")
-      .single();
-    return ins?.id ?? null;
+    return existing.id;
   }
 
-  // visão inicial mas tratamento direto → planejado
-  if (existing) return existing.id;
-  const { data: ins } = await supabase
+  // statusType inicial sem ser diagnóstico → mesmo assim entra como planejado
+  void isDx;
+
+  const insertPayload: Record<string, unknown> = {
+    patient_id: patientId,
+    clinic_id: clinicId,
+    procedure_type: canonicalName,
+    tooth_number: toothNumber,
+    value,
+    status: targetStatus,
+  };
+  if (procedureId) insertPayload.procedure_id = procedureId;
+  if (unmatched) {
+    insertPayload.notes =
+      "⚠️ Procedimento não encontrado no catálogo — ajuste o valor manualmente.";
+  }
+
+  const { data: ins, error } = await (supabase as any)
     .from("treatments")
-    .insert({
-      patient_id: patientId,
-      clinic_id: clinicId,
-      procedure_type: procName,
-      tooth_number: toothNumber,
-      value,
-      status: "planejado",
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
+  if (error) throw error;
   return ins?.id ?? null;
 }
 
