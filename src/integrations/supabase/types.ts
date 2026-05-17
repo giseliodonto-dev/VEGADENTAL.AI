@@ -1149,6 +1149,7 @@ export type Database = {
           patient_id: string
           payment_status: string
           payment_type: string | null
+          procedure_id: string | null
           procedure_type: string
           region: string | null
           status: string
@@ -1168,6 +1169,7 @@ export type Database = {
           patient_id: string
           payment_status?: string
           payment_type?: string | null
+          procedure_id?: string | null
           procedure_type: string
           region?: string | null
           status?: string
@@ -1187,6 +1189,7 @@ export type Database = {
           patient_id?: string
           payment_status?: string
           payment_type?: string | null
+          procedure_id?: string | null
           procedure_type?: string
           region?: string | null
           status?: string
@@ -1237,10 +1240,19 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      match_procedure: {
+        Args: { _clinic: string; _name: string }
+        Returns: {
+          default_value: number
+          id: string
+          name: string
+        }[]
+      }
       seed_default_procedures: {
         Args: { _clinic_id: string }
         Returns: undefined
       }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role:
