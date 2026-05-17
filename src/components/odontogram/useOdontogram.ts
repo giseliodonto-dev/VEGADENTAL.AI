@@ -253,8 +253,10 @@ export function useApplyCombo(patientId: string, clinicId: string | null) {
       return { ok: true };
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["odontogram-marks", patientId, vars.status_type] });
+      qc.invalidateQueries({ queryKey: ["odontogram-marks", patientId] });
+      qc.invalidateQueries({ queryKey: ["odontogram", patientId] });
       qc.invalidateQueries({ queryKey: ["treatments", patientId] });
+      void vars;
       toast.success("Combo aplicado ao plano de tratamento.");
     },
     onError: (e: any) => toast.error("Erro: " + (e.message || e)),
