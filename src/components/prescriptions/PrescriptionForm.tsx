@@ -10,9 +10,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Sparkles, Lock, Loader2, FileSignature, Save } from "lucide-react";
+import { Plus, Trash2, Sparkles, Lock, Loader2, Save, Download, Printer, MessageCircle } from "lucide-react";
 import { USAGE_TYPES, type Medication, suggestPosology } from "@/lib/prescriptionAi";
-import { generatePrescriptionPdf } from "@/utils/prescriptionPdf";
+import {
+  generatePrescriptionPdf,
+  downloadPrescriptionPdf,
+  printPrescriptionPdf,
+  sendPrescriptionViaWhatsApp,
+} from "@/utils/prescriptionPdf";
+import type jsPDF from "jspdf";
+
+type PdfAction = "download" | "print" | "whatsapp";
 
 const emptyMed = (): Medication => ({
   name: "",
