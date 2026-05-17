@@ -198,7 +198,7 @@ export default function PacienteDetalhe() {
   const [newItem, setNewItem] = useState<{ procedure_type: string; tooth_number: string; region: string; value: number }>({
     procedure_type: "", tooth_number: "", region: "", value: 0,
   });
-  const markedTeeth = Object.keys(teeth);
+  
 
   const addTreatment = useMutation({
     mutationFn: async () => {
