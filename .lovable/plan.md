@@ -1,95 +1,55 @@
-## Reescrita da aba Evolução Clínica
+## Objetivo
 
-Substitui o formulário rich-text "Novo Atendimento" (que está incorreto) por um formulário enxuto que vincula a evolução a um procedimento aprovado e abate o saldo de créditos pagos do paciente.
+Aja como Engenheiro Software Full Stack Sênior. Siga RIGOROSAMENTE o plano de reengenharia de emissão de PDFs abaixo. Substitua as funções de janela por download direto e iframe oculto para eliminar o erro `ERR_BLOCKED_BY_CLIENT`. Execute todas as alterações de arquivos em um único passo unificado.
 
-### O que vai sair
+Eliminar o erro `ERR_BLOCKED_BY_CLIENT` na geração e reimpressão de receituários, removendo todo uso de `doc.output("bloburl")` + `window.open` e oferecendo um trio de ações no padrão Quiet Luxury: **Salvar no Computador**, **Imprimir Receita**, **Enviar por WhatsApp**.
 
-- Remover do `HistoryPanel.tsx` o form livre com Tiptap.
+## Mudanças
 
-- Remover dependência do `RichTextEditor` nessa tela (arquivo permanece no repo, sem uso, para não quebrar nada).
+### 1. `src/utils/prescriptionPdf.ts`
 
-- Manter a tabela `patient_history` (já existe com `content`, `summary`, `dentist_user_id`).
+- Manter `generatePrescriptionPdf` como está (já retorna o `jsPDF doc`).
+- Adicionar 3 helpers que recebem o `doc` pronto + `patientName`/`patientPhone`:
+  - `downloadPrescriptionPdf(doc, patientName)` → `doc.save(\`receita-${slug(patientName)}.pdf)`.
+  - `printPrescriptionPdf(doc)` → converte para `blob`, cria `URL.createObjectURL`, injeta `<iframe style="display:none">` no `document.body`, no `onload` chama `iframe.contentWindow.focus()` + `print()` e limpa o iframe + revoga a URL após alguns segundos. **Sem** `window.open` e **sem** `dataurlnewwindow`/`view()`.
+  - `sendPrescriptionViaWhatsApp(patientName, patientPhone, clinicName)` → primeiro chama `downloadPrescriptionPdf` (para o dentista anexar manualmente), depois abre `https://api.whatsapp.com/send?phone=<digits>&text=<msg>` via `window.open(..., "_blank", "noopener")`. Mensagem: `Olá, {nome}. Segue o link para download da sua receita gerada na {clinica}. (O PDF foi baixado no seu dispositivo — anexe nesta conversa para enviar.)`. Reutilizar a normalização de telefone existente em `src/lib/whatsapp.ts` (`buildWhatsAppUrl`) para garantir prefixo 55 e fallback desktop/mobile.
 
-### O que vai entrar
+### 2. `src/components/prescriptions/PrescriptionForm.tsx`
 
-**1. Migration (uma única):**
+- Apagar `openPdf` (que usa `doc.output("bloburl")` + `window.open`).
+- Substituir o botão único "Salvar e Gerar PDF" por um grupo de 4 botões à direita (Quiet Luxury — `variant="outline"` discreto + um `variant="gold"` principal):
+  1. **Salvar** (sem PDF) — mantém.
+  2. **💾 Salvar no Computador** — chama `saveMutation` e em `onSuccess` dispara `downloadPrescriptionPdf`.
+  3. **🖨️ Imprimir** — salva no banco e dispara `printPrescriptionPdf`.
+  4. **💬 WhatsApp** — salva no banco, dispara `downloadPrescriptionPdf` e abre WhatsApp via helper.
+- Refatorar `saveMutation` para aceitar um callback pós-save (`afterSave?: (doc) => Promise<void> | void`) em vez do flag `withPdf`. O `doc` é gerado dentro do mutation após o insert e passado ao callback.
 
-- `ALTER TABLE patient_history ADD COLUMN treatment_id uuid` (nullable, sem FK rígida pra preservar histórico se o tratamento for excluído).
+### 3. `src/components/prescriptions/PrescriptionPanel.tsx`
 
-- `ALTER TABLE patient_history ADD COLUMN executed_value numeric NOT NULL DEFAULT 0` — snapshot do valor abatido no momento da execução.
+- Na função `reprint(p)`, remover `window.open(doc.output("bloburl"), "_blank")`.
+- Substituir o único botão "Reimprimir PDF" por menu de 3 ações (dropdown `DropdownMenu` do shadcn, já presente no projeto) com os itens: **Salvar no Computador**, **Imprimir**, **Enviar por WhatsApp**. Cada um chama o helper correspondente passando o `doc` recém-gerado e os dados do paciente (`patient.name`, `patient.phone`/`patient.whatsapp`).
 
-- Index `(patient_id, created_at desc)`.
+## Detalhes técnicos
 
-**2. Lógica de saldo (calculada no client, sem trigger):**
+- O método de impressão por iframe oculto evita popups bloqueados e mantém o foco na página atual:
+  ```ts
+  const blobUrl = URL.createObjectURL(doc.output("blob"));
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  iframe.src = blobUrl;
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  };
+  document.body.appendChild(iframe);
+  setTimeout(() => { URL.revokeObjectURL(blobUrl); iframe.remove(); }, 60_000);
+  ```
+- `slug(patientName)`: lower + remover acentos + `[^a-z0-9]+` → `-`.
+- Telefone do paciente: ler `patient.phone` ou `patient.whatsapp` (qualquer que exista no schema) e passar para `buildWhatsAppUrl` de `src/lib/whatsapp.ts`.
+- Nenhuma alteração de schema, RLS ou backend.
 
-```
+## Arquivos tocados
 
-saldoCreditos = totalPagoEntradas(financials) − Σ(executed_value das evoluções)
-
-```
-
-- `totalPagoEntradas` = soma de `financials` `type='entrada'` `status='pago'` do paciente (já carregado em `patientFinancials`).
-
-- A subtração acontece automaticamente porque ao salvar uma evolução criamos uma linha em `patient_history` com `executed_value = treatment.value`.
-
-**3. Novo `HistoryPanel`:**
-
-- Header: "Evolução Clínica" + botão `+ Nova Evolução`.
-
-- Card de saldo no topo: "Saldo de Créditos Pagos: R$ X" (atualiza em tempo real via React Query).
-
-- Form inline ao clicar:
-
-  - **Select de procedimento** — lista apenas treatments do paciente com `status IN ('aprovado','planejado','em_andamento')` (não executados ainda). Mostra "Procedimento · dente · R$ valor".*Se o saldo de créditos for menor que o valor do procedimento, exiba um alerta em amarelo: 'Atenção: Saldo insuficiente para este procedimento', mas permita salvar (afinal, o paciente pode pagar depois)."* — Isso evita que o sistema trave se o saldo estiver negativo.
-
-  - **Textarea simples** (sem Tiptap) — texto da evolução, placeholder "Descreva o que foi realizado...".
-
-  - Botões Cancelar / Salvar Evolução.
-
-- Ao salvar (transação client-side sequencial):
-
-  1. `INSERT patient_history { clinic_id, patient_id, dentist_user_id, treatment_id, content, summary, executed_value: treatment.value }`.
-
-  2. `UPDATE treatments SET status='executado' WHERE id = treatment_id`.
-
-  3. Invalida queries `["patient-history", id]`, `["treatments", id]`, `["patient-financials", id]` → saldo recalcula sozinho.
-
-  - Toast: "Evolução registrada · R$ X abatido do saldo".
-
-**4. Timeline:**
-
-- `HistoryEntryCard` ajustado para exibir uma linha por evolução:
-
-  - **Data** `dd/MM/yyyy · HH:mm`) • **Procedimento** (nome + dente, lookup pelo `treatment_id` em `treatments`) • **Texto** da evolução • **Saldo abatido** `fmtBRL(executed_value)` em destaque dourado).
-
-- Dentista responsável em linha secundária.
-
-- Empty state mantido.
-
-**5. Status `executado`:**
-
-- Adicionar opção `executado` ao Select de status no Plano de Tratamento (linha ~756 de `PacienteDetalhe.tsx`) e ao `STATUS_LABELS`.
-
-- Ajustar `totalAprovado` para considerar também `executado` (procedimento executado continua compondo o total contratado).
-
-### Arquivos tocados (em um único passo)
-
-- Migration: adiciona `treatment_id` e `executed_value` em `patient_history`.
-
-- `src/components/history/HistoryPanel.tsx` — reescrito (sem Tiptap, com select + textarea + saldo).
-
-- `src/components/history/HistoryEntryCard.tsx` — reescrito para o novo layout de linha do tempo.
-
-- `src/components/history/HistoryTimeline.tsx` — pequeno ajuste de props.
-
-- `src/pages/PacienteDetalhe.tsx` — adiciona `executado` aos status e inclui no `totalAprovado`.
-
-### Não incluído
-
-- Reverter execução (se precisar desfazer, por enquanto é manual: mudar status do tratamento e excluir entrada de histórico).
-
-- FK formal `treatment_id → treatments(id)` (deixado solto pra preservar histórico).
-
-- Edição da evolução depois de salva.
-
-ESTA CERTO ISSO?
+- `src/utils/prescriptionPdf.ts` (adiciona helpers)
+- `src/components/prescriptions/PrescriptionForm.tsx` (UI + remoção de `window.open`)
+- `src/components/prescriptions/PrescriptionPanel.tsx` (UI reimpressão + remoção de `window.open`)
