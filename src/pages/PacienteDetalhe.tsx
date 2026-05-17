@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign, History } from "lucide-react";
+import { IntelligentOdontogram } from "@/components/odontogram/IntelligentOdontogram";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { WhatsAppTemplatesDialog } from "@/components/WhatsAppTemplatesDialog";
