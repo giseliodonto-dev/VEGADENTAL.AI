@@ -147,57 +147,8 @@ export default function PacienteDetalhe() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  const { data: odo } = useQuery({
-    queryKey: ["odontogram", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("odontograms").select("*").eq("patient_id", id!).maybeSingle();
-      return data;
-    },
-    enabled: !!id,
-  });
+  // ===== Odontograma antigo removido. Novo módulo em <IntelligentOdontogram />. =====
 
-  const [teeth, setTeeth] = useState<Record<string, ToothState>>({});
-  useEffect(() => {
-    if (odo?.teeth_data) setTeeth(odo.teeth_data as Record<string, ToothState>);
-  }, [odo]);
-
-  const cycleTooth = (n: number) => {
-    const states: ToothState[] = ["higido", "cariado", "restaurado", "coroa", "canal", "ausente"];
-    const cur = teeth[n] || "higido";
-    const next = states[(states.indexOf(cur) + 1) % states.length];
-    setTeeth(t => ({ ...t, [n]: next }));
-  };
-
-  const saveOdontogram = useMutation({
-    mutationFn: async () => {
-      if (!clinicId) throw new Error("Clínica não identificada");
-      const payload = { patient_id: id!, clinic_id: clinicId, teeth_data: teeth };
-      if (odo?.id) {
-        const { error } = await supabase.from("odontograms").update(payload).eq("id", odo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("odontograms").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => { toast.success("Odontograma salvo"); queryClient.invalidateQueries({ queryKey: ["odontogram", id] }); },
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
-
-  const Tooth = ({ n }: { n: number }) => {
-    const st = teeth[n] || "higido";
-    const cfg = TOOTH_STATES[st];
-    return (
-      <button
-        onClick={() => cycleTooth(n)}
-        className={`h-10 w-10 rounded-md border-2 text-[10px] font-bold transition-all hover:scale-110 ${cfg.color}`}
-        title={cfg.label}
-      >
-        {n}
-      </button>
-    );
-  };
 
   // ===== PLANO DE TRATAMENTO =====
 
