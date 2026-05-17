@@ -716,6 +716,42 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_documents: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          id: string
+          patient_id: string
+          payload: Json
+          pdf_path: string | null
+          rendered_text: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          created_by?: string | null
+          doc_type: string
+          id?: string
+          patient_id: string
+          payload?: Json
+          pdf_path?: string | null
+          rendered_text?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          id?: string
+          patient_id?: string
+          payload?: Json
+          pdf_path?: string | null
+          rendered_text?: string | null
+        }
+        Relationships: []
+      }
       patient_history: {
         Row: {
           clinic_id: string

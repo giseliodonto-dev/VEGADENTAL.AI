@@ -1,235 +1,101 @@
-# Matriz Preditiva Absoluta — Odontograma Inteligente
+## Diagnóstico
 
-Integração completa da matriz de procedimentos no `odontogramConfig.ts`, no menu `ToothActionMenu.tsx` e na lógica de geração de tratamentos em `useOdontogram.ts`. Sem simplificar nomenclaturas, com endodontia dinâmica por tipo de dente, combos automáticos e fallback seguro.
+Verifiquei o código. Os "formulários antigos" são na verdade o componente **`src/components/documents/DocumentGenerator.tsx`** (renderizado em `/documentos`), que hoje tem 5 botões inline (RECEITA, ATESTADO, DECLARACAO, RADIOGRAFIA, RELATORIO) compartilhando um único `<textarea>` editável e um botão genérico de imprimir. É exatamente este o layout "desorganizado e poluído" a ser eliminado. Não existem subcomponentes em `src/components/patients/`, nem aba "Documentos" dentro de `PacienteDetalhe.tsx` — então o trabalho é refatorar a página global `/documentos` e (opcionalmente) plugar o mesmo módulo na ficha do paciente.
 
-## 1. `src/components/odontogram/odontogramConfig.ts`
-
-### 1.1 Expansão do tipo `Condition`
-
-Substituir o enum atual por uma matriz categorizada (mantendo retrocompatibilidade com marcas já salvas no banco — strings):
-
-```ts
-export type Specialty =
-  | "dentistica" | "endodontia" | "protese"
-  | "implantodontia" | "ortodontia" | "periodontia" | "cirurgia";
-
-export type Condition =
-  // Diagnósticos (visão inicial)
-  | "carie" | "fratura" | "pulpite_necrose" | "ausente"
-  | "destruicao_coronaria" | "arcada_ausente_total"
-  // Dentística
-  | "restauracao_direta_1face"
-  | "restauracao_complexa_2faces"
-  | "remineralizacao_selante"
-  | "restauracao_cervical"
-  | "reconstrucao_estetica"
-  | "restauracao_indireta"
-  // Endodontia
-  | "canal_unirradicular"
-  | "canal_birradicular"
-  | "canal_multirradicular"
-  | "retratamento_endodontico"
-  // Prótese
-  | "retentor_intrarradicular"
-  | "coroa_provisoria"
-  | "coroa_ceramica"
-  | "ponte_fixa"
-  | "ppr"
-  | "protese_total"
-  // Implantodontia
-  | "implante_unitario_cirurgia"
-  | "coroa_sobre_implante"
-  | "implantes_multiplos_cirurgia"
-  | "ponte_sobre_implantes"
-  | "protocolo_cirurgia"
-  | "protocolo_protese"
-  // Ortodontia
-  | "aparelho_fixo"
-  | "aparelho_removivel"
-  | "alinhadores"
-  | "planejamento_ortodontico_digital"
-  // Periodontia
-  | "raspagem_supra_profilaxia"
-  | "raspagem_sub_polimento"
-  | "splintagem_gengival"
-  // Cirurgia
-  | "exodontia_permanente"
-  | "exodontia_siso"
-  | "placa_miorrelaxante";
-```
-
-### 1.2 Tabela de procedimentos (nomes exatos)
-
-Mapa `PROCEDURE_NAME: Record<Condition, string>` com a nomenclatura exata da matriz (ex.: `"Restauração Indireta Estética (Inlay / Onlay / Overlay)"`, `"Implante Dentário Unitário (Fase Cirúrgica)"`, `"Exodontia de Dente Incluso / Semi-Incluso (Siso)"` etc.).
-
-Mapa `CONDITION_LABELS` curto para UI do menu (label visível) — separado do nome do procedimento.
-
-Mapa `CONDITION_SPECIALTY: Record<Condition, Specialty>` para agrupar no menu.
-
-Manter `CONDITION_FILL` e `CONDITION_STROKE` por condição (cores Quiet Luxury: vermelho diagnóstico, azul petróleo para finalizados, dourado para coroa/implante).
-
-### 1.3 Endodontia dinâmica
-
-```ts
-export function endodonticProcedureFor(toothNumber: number): Condition {
-  const unit = toothNumber % 10;
-  if (unit <= 3) return "canal_unirradicular";          // incisivos/caninos/pré-molares 14, 24,34,35,44,45
-  if (unit === 15 || unit === 25) return "canal_birradicular"; // pré-molares 15, 25
-  return "canal_multirradicular";                        // molares (6,7,8)
-}
-```
-
-### 1.4 Trigger automático de Siso
-
-```ts
-export function isSiso(toothNumber: number): boolean {
-  return [18, 28, 38, 48].includes(toothNumber);
-}
-```
-
-Quando o usuário escolher `exodontia_permanente` em 18/28/38/48 → forçar `exodontia_siso`.
-
-### 1.5 Combos inteligentes
-
-```ts
-export type Combo =
-  | "reabilitacao_unitaria"   // canal + destruição
-  | "implante_unitario"       // ausente + implante
-  | "protocolo_arcada";       // arcada ausente total
-
-export function expandCombo(
-  combo: Combo,
-  toothNumber: number,
-): Condition[] {
-  switch (combo) {
-    case "reabilitacao_unitaria":
-      return [
-        endodonticProcedureFor(toothNumber),
-        "retentor_intrarradicular",
-        "coroa_provisoria",
-        "coroa_ceramica",
-      ];
-    case "implante_unitario":
-      return ["implante_unitario_cirurgia", "coroa_sobre_implante"];
-    case "protocolo_arcada":
-      return ["protocolo_cirurgia", "protocolo_protese"];
-  }
-}
-```
-
-Helper `procedureForCondition(c, tooth)` substituído por `resolveProcedures(condition, toothNumber)` que retorna `string[]` (nomes exatos), aplicando:
-
-- endodontia dinâmica quando `condition === "pulpite_necrose"`,
-- siso automático quando `exodontia_permanente` em 18/28/38/48,
-- expansão de combos.
-
-## 2. `src/components/odontogram/ToothActionMenu.tsx`
-
-Refazer popover glassmorphism com **scroll interno** e seções por especialidade (em vez de 2 colunas fixas):
+## Arquitetura nova
 
 ```text
-┌──────────────────────────────────────────┐
-│ Dente 36 · oclusal — Diagnóstico Inicial │
-├──────────────────────────────────────────┤
-│ 🩺 Diagnósticos                           │
-│   • Cárie  • Fratura  • Pulpite/Necrose  │
-│   • Destruição Coronária  • Ausente      │
-│   • Arcada Ausente Total                 │
-├──────────────────────────────────────────┤
-│ ✨ Dentística & Estética (6 itens)        │
-│ 🦷 Endodontia (1 dinâmico + retratamento)│
-│ 👑 Prótese & Reabilitação (6)            │
-│ 🔩 Implantodontia (6)                    │
-│ 📐 Ortodontia (4)                        │
-│ 🌿 Periodontia (3)                       │
-│ ⚔️  Cirurgia & Disfunção (3)             │
-├──────────────────────────────────────────┤
-│ ⚡ Combos Inteligentes                    │
-│   • Reabilitação Unitária                │
-│   • Implante Unitário                    │
-│   • Protocolo de Arcada                  │
-└──────────────────────────────────────────┘
+/documentos
+└── Sidebar de pastas (Quiet Luxury, vertical)
+    ├── 📄 Declaração de Comparecimento
+    ├── 🩺 Atestado Odontológico
+    ├── 📋 Relatório Ortodôntico
+    └── 📨 Encaminhamentos                  ← nova pasta (placeholder)
+
+src/components/documents/
+  DocumentsWorkspace.tsx        ← layout sidebar + área principal + patient picker
+  PatientPicker.tsx             ← combobox que carrega patients da clínica (puxa name/rg/cpf)
+  DocumentLetterhead.tsx        ← preview "folha de papel timbrada" + rodapé fixo
+  DocumentActions.tsx           ← botões Salvar + WhatsApp
+  forms/
+    ComparecimentoForm.tsx
+    AtestadoForm.tsx
+    RelatorioOrtodonticoForm.tsx
+    EncaminhamentosFolder.tsx   ← placeholder com card "em breve / lista de encaminhamentos"
+  templates/
+    documentTemplates.ts        ← textos institucionais literais + interpolação {{var}}
+    signatureFooter.ts          ← "Cajamar, {{data}}." + Dra. Giseli + CROSP + rodapé
+  pdf/
+    generateDocumentPdf.ts      ← jsPDF (mesmo padrão de prescriptionPdf.ts)
+
+src/pages/Documentos.tsx        ← passa a renderizar <DocumentsWorkspace />
+src/components/documents/DocumentGenerator.tsx  ← REMOVIDO
 ```
 
-- `Accordion` shadcn (já no projeto) com uma seção por especialidade, padrão recolhido exceto Diagnósticos.
-- Largura `w-[420px]`, altura máx `max-h-[70vh] overflow-y-auto`.
-- Ícones Lucide por especialidade (Sparkles, Activity, Crown, Anchor, Ruler, Leaf, Scissors).
-- Cores: vermelho para Diagnósticos, azul petróleo `#103444` para tratamentos, dourado `#c9a24c` para combos.
-- Endodontia mostra **um único item dinâmico** com label "Canal — [tipo detectado para dente N]" + "Retratamento Endodôntico".
-- Botão de combo dispara `onSelectCombo(combo)` separado do `onSelect(condition)`.
+## Sub-abas — campos e textos (literal)
 
-Props novas:
+**Declaração de Comparecimento** — Inputs: `data_consulta` (date), `hora_inicio` (time), `hora_fim` (time). Nome/CPF/RG vêm do paciente selecionado. Texto base exato conforme o prompt, com `{{patient.name}}`, `{{patient.cpf}}`, `{{data_consulta}}`, `{{hora_inicio}}`, `{{hora_fim}}`.
 
-```ts
-onSelectCombo: (combo: Combo) => void;
+**Atestado Odontológico** — Inputs: `numero_de_dias` (number), `data_inicio_afastamento` (date), `Switch` "Privacidade do CID". Switch ligado → frase de omissão. Switch desligado → input `campo_cid` + frase com CID. Texto base da Lei 5.081/66 exatamente como no prompt.
+
+**Relatório Ortodôntico** — Inputs: `diagnostico`, `aparelho`, `data_inicio`, `fase_atual`, `nivel_cooperacao` (Select: Boa/Regular/Ruim), `meses_estimados`. Texto institucional exato.
+
+**Encaminhamentos** — pasta criada agora como placeholder (lista vazia + card "Nenhum encaminhamento ainda. Em breve."). Pronta para receber o formulário no próximo ciclo.
+
+## Rodapé fixo (todos os documentos)
+
+```
+Cajamar, {{data_atual_por_extenso}}.
+
+_________________________________
+Dra. Giseli da Costa Lage
+Cirurgiã-Dentista | CROSP 165429 | GC Odontologia
+
+Atendimento Clínico: Unidades Cajamar e Alphaville
 ```
 
-## 3. `src/components/odontogram/useOdontogram.ts`
+Data via `Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' })`.
 
-### 3.1 Mutation `useToggleMark`
+## Preview "papel timbrada"
 
-Trocar a lógica de "1 procedimento por condição" por loop sobre `resolveProcedures()`:
+- Container A4 simulado, `bg-white`, `shadow-md`, `border-amber-400/20`, `rounded-xl`, padding 48px, fonte serifada para corpo.
+- Topo: nome da clínica (puxado de `clinics`) + logo opcional + filete dourado.
+- Corpo: texto justificado interpolado em tempo real conforme o usuário digita.
 
-```ts
-const procedureNames = resolveProcedures(input.condition, Number(input.tooth_number));
-for (const procName of procedureNames) {
-  await ensureTreatment(procName, input);
-}
-```
+## Botões inteligentes
 
-### 3.2 Nova mutation `useApplyCombo`
+- **💾 Salvar Documento** (`variant="outline"`): gera PDF via jsPDF → faz upload para Supabase Storage no bucket `patient-documents` no caminho `clinic_id/patient_id/{doc_type}-{timestamp}.pdf` → insere em `patient_documents`.
+- **💬 Enviar no WhatsApp** (`variant="gold"`): executa o Salvar acima → dispara `downloadPdf()` no navegador → abre WhatsApp via `openWhatsApp(patient.phone, mensagem)` com texto cortês: *"Olá {nome}, segue em anexo seu {tipo} emitido em {data}. Qualquer dúvida estamos à disposição. — GC Odontologia"*.
 
-```ts
-mutate({ combo, tooth_number, status_type })
-  → conditions = expandCombo(combo, tooth)
-  → para cada condition: insere marca em patient_odontogram
-    + chama ensureTreatment para cada procedureName resolvido
-```
+## Banco de dados — migration única
 
-### 3.3 Helper `ensureTreatment(procName, ctx)`
+Tabela `patient_documents`:
+- `id`, `clinic_id`, `patient_id`, `doc_type text check in ('comparecimento','atestado','relatorio_ortodontico','encaminhamento')`, `payload jsonb` (campos preenchidos), `rendered_text text`, `pdf_path text`, `created_by uuid`, `created_at`.
+- RLS por `clinic_id IN (SELECT get_user_clinic_ids(auth.uid()))`; delete só por dono via `has_clinic_role(...,'dono')`.
+- Index `(patient_id, created_at desc)`.
 
-```ts
-// 1. Busca catálogo (match exato por nome, ilike como fallback)
-const { data: catalog } = await supabase
-  .from("procedures_catalog")
-  .select("default_value")
-  .eq("clinic_id", clinicId)
-  .eq("name", procName)
-  .maybeSingle();
+Bucket `patient-documents` (privado) com RLS em `storage.objects`:
+- SELECT/INSERT permitidos quando `(storage.foldername(name))[1] = clinic_id::text` e o user é membro da clínica.
+- DELETE apenas para dono da clínica.
 
-const value = Number(catalog?.default_value ?? 0); // FALLBACK 0.00
+## Identidade visual (Quiet Luxury)
 
-// 2. Verifica duplicidade (mesmo paciente + procedimento + dente + planejado)
-const { data: existing } = await supabase
-  .from("treatments")
-  .select("id, status")
-  .eq("patient_id", patientId)
-  .eq("clinic_id", clinicId)
-  .eq("tooth_number", tooth)
-  .eq("procedure_type", procName)
-  .maybeSingle();
+- Sidebar: `bg-white` + borda `border-amber-400/30`, itens com ícone lucide à esquerda, item ativo `bg-[#103444] text-white` com filete dourado à direita.
+- Inputs: borda `amber-400/30`, focus ring `#103444`.
+- Cards: `rounded-xl`, sombras suaves.
+- Tipografia: Plus Jakarta Sans nos títulos, Inter no corpo do app, serif clássica apenas no preview do documento.
 
-// 3. Insert (planejado) ou Update (executado) conforme status_type
-```
+## Integração na ficha do paciente (bônus)
 
-Nunca falhar por catálogo ausente — sempre insere com `value=0` para edição manual posterior.
+Como o `DocumentsWorkspace` recebe `patient` como prop, basta adicionar uma `<TabsTrigger value="documentos">` em `PacienteDetalhe.tsx` que renderiza `<DocumentsWorkspace patient={patient} hideSidebar={false} />`. O patient picker é escondido (paciente já vem do contexto) e a sidebar permanece. **Esta integração é opcional neste ciclo** — confirme se quer agora ou em ciclo seguinte.
 
-## 4. `src/components/odontogram/IntelligentOdontogram.tsx`
+## Entregáveis
 
-- Passar `onSelectCombo` para `ToothActionMenu`.
-- Quando o usuário marcar `arcada_ausente_total`, abrir um confirm rápido perguntando "Aplicar Protocolo Fixo Superior/Inferior em todos os elementos?" e disparar combo `protocolo_arcada` por arcada (cria marcas em todos os dentes da arcada com `condition="ausente"` + gera os 2 procedimentos no orçamento uma única vez).
+1. Migration: tabela `patient_documents` + bucket privado `patient-documents` + RLS storage.
+2. 9 arquivos novos em `src/components/documents/` (estrutura acima).
+3. `src/utils/` reutilizado para padrões jsPDF.
+4. `src/pages/Documentos.tsx` simplificado para apenas montar `<DocumentsWorkspace />`.
+5. Remoção do `DocumentGenerator.tsx` atual.
+6. (Opcional) edição cirúrgica em `PacienteDetalhe.tsx` para nova aba "Documentos".
 
-## 5. Banco de dados
-
-Nenhuma migração nova — `patient_odontogram.condition` e `treatments.procedure_type` são `text` livres. As novas strings entram naturalmente. O catálogo `procedures_catalog` **não** precisa ser populado para destravar — o fallback `0.00` garante isso. Opcional num momento futuro: seed adicional dos novos nomes para preço sugerido.
-
-## 6. Resumo dos arquivos a tocar
-
-```text
-src/components/odontogram/odontogramConfig.ts   (reescrita ampla, sem quebrar imports)
-src/components/odontogram/ToothActionMenu.tsx   (refatoração visual + accordion + combos)
-src/components/odontogram/useOdontogram.ts      (resolveProcedures loop + ensureTreatment + useApplyCombo)
-src/components/odontogram/IntelligentOdontogram.tsx (wire-up de onSelectCombo + confirm de arcada)
-```
-
-Nenhum outro arquivo é tocado. Tipos do Supabase não mudam.
+Nenhuma alteração em prescrições, orçamentos, odontograma ou outras áreas do app.
