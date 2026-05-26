@@ -312,7 +312,7 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
           ) : (
             <MessageCircle className="h-4 w-4" />
           )}
-          Enviar por WhatsApp
+          {saveMutation.isPending ? "Enviando..." : "Enviar por WhatsApp"}
         </Button>
       </div>
     </div>
