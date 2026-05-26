@@ -16,8 +16,8 @@ import {
   generatePrescriptionPdf,
   downloadPrescriptionPdf,
   printPrescriptionPdf,
-  sendPrescriptionViaWhatsApp,
 } from "@/utils/prescriptionPdf";
+import { sendDocumentViaTwilio } from "@/utils/twilioWhatsapp";
 import type jsPDF from "jspdf";
 
 type PdfAction = "download" | "print" | "whatsapp";
