@@ -16,8 +16,8 @@ import {
   generatePrescriptionPdf,
   downloadPrescriptionPdf,
   printPrescriptionPdf,
-  sendPrescriptionViaWhatsApp,
 } from "@/utils/prescriptionPdf";
+import { sendDocumentViaTwilio } from "@/utils/twilioWhatsapp";
 import type { Medication } from "@/lib/prescriptionAi";
 import { toast } from "sonner";
 
