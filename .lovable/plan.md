@@ -1,49 +1,46 @@
-# Migração Meta → Twilio WhatsApp
+## Diagnóstico
 
-## Objetivo
-Substituir toda a integração Meta Cloud API por Twilio, mantendo o fluxo invisível: clicar no botão → gera PDF → sobe no bucket público → dispara mensagem WhatsApp com link do documento → toast de status.
+A Edge Function `send-whatsapp-twilio` falha ao iniciar por causa desta linha:
 
-## O que será REMOVIDO
+```ts
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+```
 
-1. **Edge Function** `supabase/functions/send-whatsapp-document/` (Meta) — deletada do projeto e do Supabase.
-2. **Wrapper** `src/utils/metaWhatsapp.ts` — deletado.
-3. **Secrets Meta** continuam no Supabase mas ficam órfãos (você pode remover manualmente quando quiser): `META_SYSTEM_USER_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, `META_WHATSAPP_BUSINESS_ACCOUNT_ID`, `META_WHATSAPP_TEMPLATE_NAME`, `META_WHATSAPP_TEMPLATE_LANG`.
+Esse subpath `/cors` **não existe** no pacote `@supabase/supabase-js`. Resultado: o Deno não consegue resolver o módulo, a função nem chega a executar, e por isso:
+- O `supabase.functions.invoke` retorna erro genérico (não-2xx).
+- Não aparece nada nos logs da função (não houve execução).
+- O toast mostra mensagem vazia ou "Edge Function returned a non-2xx status code".
 
-## O que será CRIADO
+Todas as outras Edge Functions do projeto (`mentor-ai`, `claude-ai-service`, `content-suggestions`, `vega-intelligence`) declaram `corsHeaders` **localmente** — esse é o padrão estável e é o que vamos aplicar aqui.
 
-### 1. Edge Function `supabase/functions/send-whatsapp-twilio/index.ts`
-- CORS + preflight OPTIONS
-- Valida JWT do usuário logado (chamada autenticada)
-- Lê 3 secrets via `Deno.env.get`: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`
-- Valida body: `phone`, `patientName`, `documentUrl`, `filename?`
-- Normaliza telefone (digits-only, prefixa `55` se faltar, monta `whatsapp:+55...`)
-- Monta `From: whatsapp:${TWILIO_WHATSAPP_NUMBER}` (sandbox ou número aprovado)
-- POST `application/x-www-form-urlencoded` para `https://api.twilio.com/2010-04-01/Accounts/{SID}/Messages.json` com Basic Auth (`SID:AUTH_TOKEN` em base64)
-- Campos: `To`, `From`, `Body` (texto curto tipo "Olá {nome}, segue seu documento: {url}"), `MediaUrl` (URL pública do PDF)
-- Retorna erro real do Twilio (code + message) em caso de falha
+## Correção (1 arquivo)
 
-### 2. Wrapper `src/utils/twilioWhatsapp.ts`
-Função `sendDocumentViaTwilio({ phone, patientName, documentUrl, filename })` que faz `supabase.functions.invoke("send-whatsapp-twilio", { body })` e lança erro com detalhe se falhar.
+**`supabase/functions/send-whatsapp-twilio/index.ts`**
 
-### 3. Refatorar `src/components/documents/DocumentActions.tsx`
-Trocar import e chamada de `sendDocumentViaMetaAPI` para `sendDocumentViaTwilio`. O resto do fluxo (gera PDF → upload no bucket `whatsapp-documents` → getPublicUrl → insere em `patient_documents` → dispara → toast) permanece idêntico, incluindo loading state e toasts verde/vermelho via `sonner`.
+1. Remover o import quebrado:
+   ```ts
+   import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+   ```
+2. Declarar `corsHeaders` localmente no topo do arquivo (mesmo padrão de `mentor-ai`):
+   ```ts
+   const corsHeaders = {
+     "Access-Control-Allow-Origin": "*",
+     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+   };
+   ```
+3. Adicionar 2 `console.log` defensivos para deixar rastro nos logs:
+   - Antes do POST ao Twilio: `console.log("twilio:request", { to: toE164, from: fromClean });`
+   - No retorno OK: `console.log("twilio:ok", { sid: twilioJson?.sid, status: twilioJson?.status });`
 
-## Secrets que VOCÊ precisa cadastrar depois
-Quando der ok, eu abro o formulário seguro para você colar:
-- `TWILIO_ACCOUNT_SID` (começa com `AC...`)
-- `TWILIO_AUTH_TOKEN` (Auth Token principal da conta — em Console → Account → API keys & tokens)
-- `TWILIO_WHATSAPP_NUMBER` (no formato E.164 **sem** o prefixo `whatsapp:`, ex.: `+14155238886` para o sandbox)
+Nada mais muda — JWT, leitura dos 3 secrets, normalização E.164, `MediaUrl`, tratamento de erro Twilio e shape da resposta continuam idênticos.
 
-## Observações importantes (Twilio WhatsApp)
-- **Sandbox de testes**: para usar em DEV, o paciente precisa enviar a mensagem `join <palavra>` para o número do sandbox antes de receber qualquer coisa. Em produção, você precisa de número WhatsApp Business aprovado pela Meta via Twilio.
-- **MediaUrl exige URL pública HTTPS** acessível pela internet — o bucket `whatsapp-documents` já é público, então funciona.
-- **Mensagens fora da janela de 24h** exigem template aprovado (HSM). Para envio reativo logo após interação, mensagem livre + MediaUrl funciona normalmente.
+## Validação após o deploy
 
-## Arquivos finais
-- ❌ deletar `supabase/functions/send-whatsapp-document/index.ts`
-- ❌ deletar `src/utils/metaWhatsapp.ts`
-- ✅ criar `supabase/functions/send-whatsapp-twilio/index.ts`
-- ✅ criar `src/utils/twilioWhatsapp.ts`
-- ✏️ editar `src/components/documents/DocumentActions.tsx` (trocar 2 linhas: import + chamada)
+1. Refazer o teste de envio na tela do paciente.
+2. Se ainda der erro, vou ler `edge_function_logs` de `send-whatsapp-twilio` — agora os logs vão existir e mostrar a resposta crua do Twilio (códigos `63007` número fora do sandbox, `21211` telefone inválido, `20003` credenciais erradas, etc.).
 
-Aprova para eu executar tudo de uma vez?
+## O que NÃO está em escopo
+
+- Não vou mexer no frontend (`DocumentActions.tsx`, `twilioWhatsapp.ts`) — eles estão corretos.
+- Não vou alterar os secrets já cadastrados.
+- Não vou alterar políticas do bucket `whatsapp-documents` (ele já é público, então `MediaUrl` é acessível pelo Twilio).
