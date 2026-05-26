@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("twilio:ok", { sid: twilioJson?.sid, status: twilioJson?.status });
     return new Response(
       JSON.stringify({ success: true, sid: twilioJson?.sid, status: twilioJson?.status }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
