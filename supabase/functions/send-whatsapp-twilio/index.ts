@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
       MediaUrl: body.documentUrl,
     });
 
+    console.log("twilio:request", { to, from: fromClean, hasMedia: !!body.documentUrl });
     const basic = btoa(`${ACCOUNT_SID}:${AUTH_TOKEN}`);
 
     const twilioRes = await fetch(
