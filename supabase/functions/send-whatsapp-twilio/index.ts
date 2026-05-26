@@ -1,7 +1,11 @@
 // Edge Function: send-whatsapp-twilio
 // Envia um documento PDF via Twilio WhatsApp API usando MediaUrl.
 
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 interface RequestBody {
@@ -90,6 +94,7 @@ Deno.serve(async (req) => {
       MediaUrl: body.documentUrl,
     });
 
+    console.log("twilio:request", { to, from: fromClean, hasMedia: !!body.documentUrl });
     const basic = btoa(`${ACCOUNT_SID}:${AUTH_TOKEN}`);
 
     const twilioRes = await fetch(
@@ -119,6 +124,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("twilio:ok", { sid: twilioJson?.sid, status: twilioJson?.status });
     return new Response(
       JSON.stringify({ success: true, sid: twilioJson?.sid, status: twilioJson?.status }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
