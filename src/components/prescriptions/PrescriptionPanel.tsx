@@ -179,8 +179,16 @@ export function PrescriptionPanel({ patient }: Props) {
                     <DropdownMenuItem onClick={() => runAction(p, "print")}>
                       <Printer className="h-4 w-4" /> Imprimir Receita
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => runAction(p, "whatsapp")}>
-                      <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+                    <DropdownMenuItem
+                      disabled={waBusyId === p.id}
+                      onClick={() => runAction(p, "whatsapp")}
+                    >
+                      {waBusyId === p.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="h-4 w-4" />
+                      )}
+                      {waBusyId === p.id ? "Enviando..." : "Enviar por WhatsApp"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
