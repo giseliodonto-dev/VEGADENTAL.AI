@@ -165,8 +165,8 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData) {
   return doc;
 }
 
-// ===== Helpers de entrega (download / impressão / WhatsApp) =====
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+// ===== Helpers de entrega (download / impressão) =====
+// O envio por WhatsApp é tratado via Twilio Edge Function em `sendDocumentViaTwilio`.
 
 function slugifyName(name: string): string {
   return (name || "paciente")
@@ -199,18 +199,4 @@ export function printPrescriptionPdf(doc: jsPDF) {
   } else {
     doc.save("receita-emergencial.pdf");
   }
-}
-
-export function sendPrescriptionViaWhatsApp(
-  doc: jsPDF,
-  patientName: string,
-  patientPhone: string | null | undefined,
-  clinicName: string,
-) {
-  downloadPrescriptionPdf(doc, patientName);
-  const msg =
-    `Olá, ${patientName}. Segue sua receita gerada na ${clinicName}. ` +
-    `(O PDF foi baixado no dispositivo do(a) profissional — anexe nesta conversa para receber.)`;
-  const url = buildWhatsAppUrl(patientPhone, msg);
-  window.open(url, "_blank", "noopener,noreferrer");
 }
