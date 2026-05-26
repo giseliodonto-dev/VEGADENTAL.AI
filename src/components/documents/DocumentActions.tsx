@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
 import { generateDocumentPdf, downloadDocumentPdf } from "./pdf/generateDocumentPdf";
-import { sendDocumentViaMetaAPI } from "@/utils/metaWhatsapp";
+import { sendDocumentViaTwilio } from "@/utils/twilioWhatsapp";
 import { DOC_TITLES, type DocType } from "./templates/documentTemplates";
 import { toast } from "sonner";
 
@@ -113,7 +113,7 @@ export function DocumentActions({ docType, body, payload, patient, disabled }: P
 
       // 5. Dispara Meta API
       const niceName = `${DOC_TITLES[docType]} - ${patient.name}.pdf`;
-      await sendDocumentViaMetaAPI({
+      await sendDocumentViaTwilio({
         phone: patient.phone,
         patientName: patient.name,
         documentUrl,
