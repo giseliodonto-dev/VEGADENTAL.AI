@@ -30,6 +30,7 @@ type PdfAction = "download" | "print" | "whatsapp";
 export function PrescriptionPanel({ patient }: Props) {
   const { clinicId } = useClinic();
   const [creating, setCreating] = useState(false);
+  const [waBusyId, setWaBusyId] = useState<string | null>(null);
 
   const { data: prescriptions = [], isLoading } = useQuery({
     queryKey: ["prescriptions", patient.id],
