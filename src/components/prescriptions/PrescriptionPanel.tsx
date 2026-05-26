@@ -16,8 +16,8 @@ import {
   generatePrescriptionPdf,
   downloadPrescriptionPdf,
   printPrescriptionPdf,
-  sendPrescriptionViaWhatsApp,
 } from "@/utils/prescriptionPdf";
+import { sendDocumentViaTwilio } from "@/utils/twilioWhatsapp";
 import type { Medication } from "@/lib/prescriptionAi";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ type PdfAction = "download" | "print" | "whatsapp";
 export function PrescriptionPanel({ patient }: Props) {
   const { clinicId } = useClinic();
   const [creating, setCreating] = useState(false);
+  const [waBusyId, setWaBusyId] = useState<string | null>(null);
 
   const { data: prescriptions = [], isLoading } = useQuery({
     queryKey: ["prescriptions", patient.id],
@@ -47,6 +48,13 @@ export function PrescriptionPanel({ patient }: Props) {
 
   const runAction = async (p: any, action: PdfAction) => {
     try {
+      if (action === "whatsapp") {
+        if (!patient.phone && !patient.whatsapp) {
+          toast.error("Paciente sem telefone cadastrado.");
+          return;
+        }
+        setWaBusyId(p.id);
+      }
       const { data: clinic } = await supabase
         .from("clinics")
         .select("*")
@@ -73,18 +81,31 @@ export function PrescriptionPanel({ patient }: Props) {
         notes: p.notes,
         createdAt: new Date(p.created_at).toLocaleDateString("pt-BR"),
       });
-      if (action === "download") downloadPrescriptionPdf(doc, patient.name);
-      else if (action === "print") printPrescriptionPdf(doc);
-      else
-        sendPrescriptionViaWhatsApp(
-          doc,
-          patient.name,
-          patient.phone ?? patient.whatsapp ?? null,
-          clinic?.name ?? "nossa clínica",
-        );
-    } catch (e) {
+      if (action === "download") {
+        downloadPrescriptionPdf(doc, patient.name);
+      } else if (action === "print") {
+        printPrescriptionPdf(doc);
+      } else {
+        const blob = doc.output("blob");
+        const path = `${clinicId}/${patient.id}/receita-${crypto.randomUUID()}.pdf`;
+        const { error: upErr } = await supabase.storage
+          .from("whatsapp-documents")
+          .upload(path, blob, { contentType: "application/pdf", upsert: false });
+        if (upErr) throw new Error(`Falha no upload: ${upErr.message}`);
+        const { data: pub } = supabase.storage.from("whatsapp-documents").getPublicUrl(path);
+        await sendDocumentViaTwilio({
+          phone: patient.phone ?? patient.whatsapp,
+          patientName: patient.name,
+          documentUrl: pub.publicUrl,
+          filename: `Receita - ${patient.name}.pdf`,
+        });
+        toast.success("Receita enviada diretamente para o WhatsApp do paciente!");
+      }
+    } catch (e: any) {
       console.error(e);
-      toast.error("Erro ao gerar PDF.");
+      toast.error(e?.message || "Erro ao processar receita.");
+    } finally {
+      setWaBusyId(null);
     }
   };
 
@@ -158,8 +179,16 @@ export function PrescriptionPanel({ patient }: Props) {
                     <DropdownMenuItem onClick={() => runAction(p, "print")}>
                       <Printer className="h-4 w-4" /> Imprimir Receita
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => runAction(p, "whatsapp")}>
-                      <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+                    <DropdownMenuItem
+                      disabled={waBusyId === p.id}
+                      onClick={() => runAction(p, "whatsapp")}
+                    >
+                      {waBusyId === p.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="h-4 w-4" />
+                      )}
+                      {waBusyId === p.id ? "Enviando..." : "Enviar por WhatsApp"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

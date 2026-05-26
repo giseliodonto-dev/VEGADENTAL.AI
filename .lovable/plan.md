@@ -1,46 +1,42 @@
 ## Diagnóstico
 
-A Edge Function `send-whatsapp-twilio` falha ao iniciar por causa desta linha:
+- `DocumentActions.tsx` (botão "Enviar no WhatsApp" da aba **Documentos**) já está 100% via Twilio Edge Function. Não há `window.open` nem `wa.me` nele.
+- O erro `ERR_BLOCKED_BY_RESPONSE` vem do **botão de Receita** (`PrescriptionPanel.tsx` e `PrescriptionForm.tsx`), que ainda usa `sendPrescriptionViaWhatsApp()` de `src/utils/prescriptionPdf.ts`. Essa função baixa o PDF localmente e chama `window.open("https://web.whatsapp.com/send?...")` — o iframe do preview bloqueia, e em produção abriria aba do WhatsApp Web (comportamento que você quer eliminar).
+- Os demais `openWhatsApp` (lista de pacientes, leads, agenda, follow-up, orçamento, anamnese, templates) abrem WhatsApp apenas como atalho de **mensagem de texto** sem documento, e não foram citados no pedido — fora de escopo.
 
-```ts
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-```
+## Mudanças
 
-Esse subpath `/cors` **não existe** no pacote `@supabase/supabase-js`. Resultado: o Deno não consegue resolver o módulo, a função nem chega a executar, e por isso:
-- O `supabase.functions.invoke` retorna erro genérico (não-2xx).
-- Não aparece nada nos logs da função (não houve execução).
-- O toast mostra mensagem vazia ou "Edge Function returned a non-2xx status code".
+### 1. `src/components/prescriptions/PrescriptionPanel.tsx`
+- Remover import e uso de `sendPrescriptionViaWhatsApp`.
+- No handler "Enviar por WhatsApp":
+  - Setar `busy = "wa"` (loading "Enviando...").
+  - Gerar o PDF da receita (`generatePrescriptionPdf` — já existe).
+  - Fazer upload no bucket `whatsapp-documents` em `${clinicId}/${patientId}/receita-<uuid>.pdf` (mesmo padrão de `DocumentActions.handleWhatsApp`).
+  - Obter `publicUrl` via `supabase.storage.getPublicUrl`.
+  - Chamar `sendDocumentViaTwilio({ phone, patientName, documentUrl, filename: "Receita - <Paciente>.pdf" })`.
+  - Toast verde de sucesso / toast vermelho em erro. Sem `window.open`, sem download local.
+- Botão exibe `Loader2` e texto "Enviando..." enquanto `busy === "wa"`. Desabilitar se paciente sem telefone.
 
-Todas as outras Edge Functions do projeto (`mentor-ai`, `claude-ai-service`, `content-suggestions`, `vega-intelligence`) declaram `corsHeaders` **localmente** — esse é o padrão estável e é o que vamos aplicar aqui.
+### 2. `src/components/prescriptions/PrescriptionForm.tsx`
+- Mesma refatoração do handler de envio (substituir `sendPrescriptionViaWhatsApp` pelo fluxo Twilio acima). Estado de loading no botão "Enviar por WhatsApp".
 
-## Correção (1 arquivo)
+### 3. `src/utils/prescriptionPdf.ts`
+- Remover a função `sendPrescriptionViaWhatsApp` (e o import de `buildWhatsAppUrl`) para garantir que nenhum botão do app consiga reintroduzir o `window.open` para WhatsApp Web a partir de receita.
+- Manter `downloadPrescriptionPdf` e `printPrescriptionPdf` (são fluxos legítimos de download/impressão e não foram pedidos para mudança).
 
-**`supabase/functions/send-whatsapp-twilio/index.ts`**
+### 4. Pré-requisito de infraestrutura (apenas verificar — sem mudança automática)
+- `sendDocumentViaTwilio` depende do bucket público `whatsapp-documents` (já usado por `DocumentActions`). Se ele ainda não existe no Supabase, o upload da receita também falhará. Você confirma que o bucket já foi criado (mesmo usado nos testes de documento)? Se sim, nada a fazer.
 
-1. Remover o import quebrado:
-   ```ts
-   import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-   ```
-2. Declarar `corsHeaders` localmente no topo do arquivo (mesmo padrão de `mentor-ai`):
-   ```ts
-   const corsHeaders = {
-     "Access-Control-Allow-Origin": "*",
-     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-   };
-   ```
-3. Adicionar 2 `console.log` defensivos para deixar rastro nos logs:
-   - Antes do POST ao Twilio: `console.log("twilio:request", { to: toE164, from: fromClean });`
-   - No retorno OK: `console.log("twilio:ok", { sid: twilioJson?.sid, status: twilioJson?.status });`
+## Fora de escopo (não vou tocar)
 
-Nada mais muda — JWT, leitura dos 3 secrets, normalização E.164, `MediaUrl`, tratamento de erro Twilio e shape da resposta continuam idênticos.
+- `DocumentActions.tsx` — já está correto.
+- `openWhatsApp` em telas de lista/leads/agenda — são atalhos de mensagem de texto sem anexo, comportamento esperado de "abrir WhatsApp do usuário".
+- Edge Function `send-whatsapp-twilio` — sem alteração.
+- Segredos Twilio — sem alteração.
 
-## Validação após o deploy
+## Validação após implementar
 
-1. Refazer o teste de envio na tela do paciente.
-2. Se ainda der erro, vou ler `edge_function_logs` de `send-whatsapp-twilio` — agora os logs vão existir e mostrar a resposta crua do Twilio (códigos `63007` número fora do sandbox, `21211` telefone inválido, `20003` credenciais erradas, etc.).
-
-## O que NÃO está em escopo
-
-- Não vou mexer no frontend (`DocumentActions.tsx`, `twilioWhatsapp.ts`) — eles estão corretos.
-- Não vou alterar os secrets já cadastrados.
-- Não vou alterar políticas do bucket `whatsapp-documents` (ele já é público, então `MediaUrl` é acessível pelo Twilio).
+1. Abrir uma receita em `/pacientes/:id`, clicar "Enviar por WhatsApp".
+2. Esperado: botão vira "Enviando...", **nenhuma aba abre**, toast verde "Documento enviado…".
+3. Em erro: toast vermelho com a mensagem real do Twilio (ex.: `63007`, `21211`).
+4. Repetir o mesmo teste no botão de documento (Atestado/Comparecimento) para confirmar que nada regrediu.

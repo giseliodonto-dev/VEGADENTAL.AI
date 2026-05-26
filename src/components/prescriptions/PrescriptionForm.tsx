@@ -16,8 +16,8 @@ import {
   generatePrescriptionPdf,
   downloadPrescriptionPdf,
   printPrescriptionPdf,
-  sendPrescriptionViaWhatsApp,
 } from "@/utils/prescriptionPdf";
+import { sendDocumentViaTwilio } from "@/utils/twilioWhatsapp";
 import type jsPDF from "jspdf";
 
 type PdfAction = "download" | "print" | "whatsapp";
@@ -110,13 +110,22 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
     } else if (action === "print") {
       printPrescriptionPdf(doc);
     } else if (action === "whatsapp") {
-      const { clinic } = await fetchContext();
-      sendPrescriptionViaWhatsApp(
-        doc,
-        patient.name,
-        patient.phone ?? patient.whatsapp ?? null,
-        clinic?.name ?? "nossa clínica",
-      );
+      const phone = patient.phone ?? patient.whatsapp ?? null;
+      if (!phone) throw new Error("Paciente sem telefone cadastrado.");
+      const blob = doc.output("blob");
+      const path = `${clinicId}/${patient.id}/receita-${crypto.randomUUID()}.pdf`;
+      const { error: upErr } = await supabase.storage
+        .from("whatsapp-documents")
+        .upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (upErr) throw new Error(`Falha no upload: ${upErr.message}`);
+      const { data: pub } = supabase.storage.from("whatsapp-documents").getPublicUrl(path);
+      await sendDocumentViaTwilio({
+        phone,
+        patientName: patient.name,
+        documentUrl: pub.publicUrl,
+        filename: `Receita - ${patient.name}.pdf`,
+      });
+      toast.success("Receita enviada diretamente para o WhatsApp do paciente!");
     }
   };
 
@@ -303,7 +312,7 @@ export function PrescriptionForm({ patient, onSaved }: Props) {
           ) : (
             <MessageCircle className="h-4 w-4" />
           )}
-          Enviar por WhatsApp
+          {saveMutation.isPending ? "Enviando..." : "Enviar por WhatsApp"}
         </Button>
       </div>
     </div>
