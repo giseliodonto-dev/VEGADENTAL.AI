@@ -882,6 +882,9 @@ export default function PacienteDetalhe() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="exames">
+            <PatientExamsPanel patientId={id!} clinicId={clinicId} />
+          </TabsContent>
         </Tabs>
       </div>
 
