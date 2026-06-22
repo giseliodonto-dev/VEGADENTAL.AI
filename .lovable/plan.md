@@ -1,42 +1,66 @@
-## Diagnóstico
+## Objetivo
 
-- `DocumentActions.tsx` (botão "Enviar no WhatsApp" da aba **Documentos**) já está 100% via Twilio Edge Function. Não há `window.open` nem `wa.me` nele.
-- O erro `ERR_BLOCKED_BY_RESPONSE` vem do **botão de Receita** (`PrescriptionPanel.tsx` e `PrescriptionForm.tsx`), que ainda usa `sendPrescriptionViaWhatsApp()` de `src/utils/prescriptionPdf.ts`. Essa função baixa o PDF localmente e chama `window.open("https://web.whatsapp.com/send?...")` — o iframe do preview bloqueia, e em produção abriria aba do WhatsApp Web (comportamento que você quer eliminar).
-- Os demais `openWhatsApp` (lista de pacientes, leads, agenda, follow-up, orçamento, anamnese, templates) abrem WhatsApp apenas como atalho de **mensagem de texto** sem documento, e não foram citados no pedido — fora de escopo.
+Criar o separador "Exames e Fotos" em `/pacientes/:id` com upload seguro (LGPD), galeria otimizada e lightbox para análise clínica de RX e fotos.
 
-## Mudanças
+## 1. Backend (Migration única + bucket)
 
-### 1. `src/components/prescriptions/PrescriptionPanel.tsx`
-- Remover import e uso de `sendPrescriptionViaWhatsApp`.
-- No handler "Enviar por WhatsApp":
-  - Setar `busy = "wa"` (loading "Enviando...").
-  - Gerar o PDF da receita (`generatePrescriptionPdf` — já existe).
-  - Fazer upload no bucket `whatsapp-documents` em `${clinicId}/${patientId}/receita-<uuid>.pdf` (mesmo padrão de `DocumentActions.handleWhatsApp`).
-  - Obter `publicUrl` via `supabase.storage.getPublicUrl`.
-  - Chamar `sendDocumentViaTwilio({ phone, patientName, documentUrl, filename: "Receita - <Paciente>.pdf" })`.
-  - Toast verde de sucesso / toast vermelho em erro. Sem `window.open`, sem download local.
-- Botão exibe `Loader2` e texto "Enviando..." enquanto `busy === "wa"`. Desabilitar se paciente sem telefone.
+**Bucket** (via tool de storage, não SQL): `patient-exams`, **privado**.
 
-### 2. `src/components/prescriptions/PrescriptionForm.tsx`
-- Mesma refatoração do handler de envio (substituir `sendPrescriptionViaWhatsApp` pelo fluxo Twilio acima). Estado de loading no botão "Enviar por WhatsApp".
+**Tabela** `public.patient_exams`:
+- `id uuid PK default gen_random_uuid()`
+- `clinic_id uuid not null` (ref `clinics`)
+- `patient_id uuid not null` (ref `patients` on delete cascade)
+- `file_path text not null` (caminho no bucket)
+- `file_type text not null` (ex: `RX Panorâmico`, `Periapical`, `Foto Intraoral`, `Foto Rosto`)
+- `notes text`
+- `created_at timestamptz default now()`
+- `created_by uuid` (auth.uid)
 
-### 3. `src/utils/prescriptionPdf.ts`
-- Remover a função `sendPrescriptionViaWhatsApp` (e o import de `buildWhatsAppUrl`) para garantir que nenhum botão do app consiga reintroduzir o `window.open` para WhatsApp Web a partir de receita.
-- Manter `downloadPrescriptionPdf` e `printPrescriptionPdf` (são fluxos legítimos de download/impressão e não foram pedidos para mudança).
+**Grants + RLS** (padrão do projeto, baseado em `get_user_clinic_ids(auth.uid())`):
+- `GRANT SELECT, INSERT, DELETE ON public.patient_exams TO authenticated`
+- `GRANT ALL TO service_role`
+- Policies SELECT/INSERT/DELETE: `clinic_id IN (SELECT get_user_clinic_ids(auth.uid()))`
+- Index em `(patient_id, created_at desc)`
 
-### 4. Pré-requisito de infraestrutura (apenas verificar — sem mudança automática)
-- `sendDocumentViaTwilio` depende do bucket público `whatsapp-documents` (já usado por `DocumentActions`). Se ele ainda não existe no Supabase, o upload da receita também falhará. Você confirma que o bucket já foi criado (mesmo usado nos testes de documento)? Se sim, nada a fazer.
+**RLS no `storage.objects` para o bucket `patient-exams`:**
+- SELECT/INSERT/DELETE permitidos quando `bucket_id = 'patient-exams'` E o primeiro segmento do `name` (clinic_id) está em `get_user_clinic_ids(auth.uid())`.
+- Path enforçado pelo cliente: `${clinic_id}/${patient_id}/${uuid}-${filename}`.
 
-## Fora de escopo (não vou tocar)
+## 2. Frontend
 
-- `DocumentActions.tsx` — já está correto.
-- `openWhatsApp` em telas de lista/leads/agenda — são atalhos de mensagem de texto sem anexo, comportamento esperado de "abrir WhatsApp do usuário".
-- Edge Function `send-whatsapp-twilio` — sem alteração.
-- Segredos Twilio — sem alteração.
+**Novo componente** `src/components/patients/PatientExamsPanel.tsx` (props: `patientId`, `clinicId`).
 
-## Validação após implementar
+Estrutura:
+1. **Dropzone** (drag & drop + click) — borda tracejada `border-amber-400/30`, fundo branco, ícone `ImagePlus` em `#103444`. Antes de upload, abre um pequeno seletor de `file_type` (Select shadcn com as 4 opções + "Outro") e campo opcional `notes`.
+2. **Validações client-side**:
+   - Tipos aceites: `image/jpeg`, `image/png`, `image/webp`, `image/jpg`.
+   - Tamanho ≤ 10 MB.
+   - Erros via `toast.error` (sonner).
+3. **Upload**: `supabase.storage.from('patient-exams').upload(path, file)` → em sucesso, `insert` em `patient_exams`. Spinner no dropzone (`Loader2`) durante upload; barra/contagem se múltiplos ficheiros.
+4. **Galeria**: grid responsivo (`grid-cols-2 md:grid-cols-3 lg:grid-cols-4`, `gap-4`). Cada card:
+   - `<img loading="lazy" />` com signed URL (1h).
+   - Badge canto superior esquerdo com `file_type` (estilo gold/azul petróleo).
+   - Data de envio (`dd/MM/yyyy`) no rodapé.
+   - Botão lixeira (apaga do storage + tabela, com `AlertDialog` de confirmação).
+   - `rounded-xl`, `shadow-sm`, `hover:shadow-md`, `cursor-zoom-in`.
+5. **Signed URLs**: hook interno que, ao receber a lista de exames, chama `storage.from('patient-exams').createSignedUrls(paths, 3600)` em batch único. Re-fetch ao expirar não é necessário no MVP (sessão curta).
+6. **Lightbox**: `Dialog` shadcn em modo fullscreen — overlay `bg-black/80 backdrop-blur-md`, imagem centralizada `max-h-[90vh] object-contain`, botão `X` no topo direito, metadados (tipo + data + notas) em rodapé sutil. Navegação ←/→ entre imagens (teclado e botões).
+7. **Estados**: skeletons enquanto carrega lista; empty state "Nenhum exame enviado ainda" com ícone.
 
-1. Abrir uma receita em `/pacientes/:id`, clicar "Enviar por WhatsApp".
-2. Esperado: botão vira "Enviando...", **nenhuma aba abre**, toast verde "Documento enviado…".
-3. Em erro: toast vermelho com a mensagem real do Twilio (ex.: `63007`, `21211`).
-4. Repetir o mesmo teste no botão de documento (Atestado/Comparecimento) para confirmar que nada regrediu.
+**Integração no `PacienteDetalhe.tsx`**:
+- Adicionar `<TabsTrigger value="exames">Exames e Fotos</TabsTrigger>` na `TabsList` existente (linhas 458–481).
+- Adicionar `<TabsContent value="exames"><PatientExamsPanel patientId={id} clinicId={clinicId} /></TabsContent>`.
+
+## 3. Validação após implementar
+
+1. Upload de PNG/JPG/WEBP ≤ 10 MB → aparece no grid com badge correto.
+2. Upload de PDF ou ficheiro > 10 MB → toast vermelho, nada gravado.
+3. Outro utilizador de outra clínica não vê os ficheiros (RLS).
+4. Clique numa miniatura → lightbox fullscreen com X para fechar.
+5. Apagar → some do grid e do storage.
+
+## Fora de escopo
+
+- Edição de `file_type`/`notes` pós-upload (poderá vir depois).
+- Anotações sobre o RX, comparação lado-a-lado, integração com IA.
+- Compressão automática client-side.
