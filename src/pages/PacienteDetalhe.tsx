@@ -17,7 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProcedureSelector } from "@/components/ProcedureSelector";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign, History } from "lucide-react";
+import { ArrowLeft, Loader2, Save, AlertTriangle, UserCircle, Heart, Smile, ClipboardList, Plus, Trash2, FileSignature, Copy, CreditCard, MessageSquare, DollarSign, History, Camera } from "lucide-react";
+import { PatientExamsPanel } from "@/components/patients/PatientExamsPanel";
 import { IntelligentOdontogram } from "@/components/odontogram/IntelligentOdontogram";
 import { formatWhatsAppPhone, openWhatsApp, displayWhatsAppPhone } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
@@ -478,6 +479,9 @@ export default function PacienteDetalhe() {
             <TabsTrigger value="evolucao" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
               <History className="h-4 w-4" /> Evolução
             </TabsTrigger>
+            <TabsTrigger value="exames" className="data-[state=active]:bg-[#103444] data-[state=active]:text-white gap-2">
+              <Camera className="h-4 w-4" /> Exames e Fotos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="cadastro">
@@ -877,6 +881,9 @@ export default function PacienteDetalhe() {
                 <HistoryPanel patient={patient} />
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="exames">
+            <PatientExamsPanel patientId={id!} clinicId={clinicId} />
           </TabsContent>
         </Tabs>
       </div>
