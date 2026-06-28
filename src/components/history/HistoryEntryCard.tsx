@@ -1,27 +1,23 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserCircle2, Stethoscope, Wallet } from "lucide-react";
+import { UserCircle2, Stethoscope } from "lucide-react";
+
+interface ProcedureChip {
+  label: string;
+}
 
 interface Props {
   createdAt: string;
   dentistName?: string | null;
   contentHtml: string;
-  procedureLabel?: string | null;
-  executedValue?: number;
+  procedures?: ProcedureChip[];
 }
-
-const fmtBRL = (v: number) =>
-  `R$ ${(v || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
 
 export function HistoryEntryCard({
   createdAt,
   dentistName,
   contentHtml,
-  procedureLabel,
-  executedValue = 0,
+  procedures = [],
 }: Props) {
   const date = new Date(createdAt);
   const isHtml = /<[a-z][\s\S]*>/i.test(contentHtml);
@@ -34,24 +30,24 @@ export function HistoryEntryCard({
       />
       <article className="rounded-xl border border-border/60 bg-card p-6 transition-shadow hover:shadow-sm space-y-3">
         <header className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <time className="text-xs uppercase tracking-wider text-muted-foreground">
-              {format(date, "dd/MM/yyyy · HH:mm", { locale: ptBR })}
-            </time>
-            {procedureLabel && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-                <Stethoscope className="h-4 w-4" />
-                {procedureLabel}
-              </span>
-            )}
-          </div>
-          {executedValue > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
-              <Wallet className="h-3.5 w-3.5" />
-              Saldo abatido: {fmtBRL(executedValue)}
-            </span>
-          )}
+          <time className="text-xs uppercase tracking-wider text-muted-foreground">
+            {format(date, "dd/MM/yyyy · HH:mm", { locale: ptBR })}
+          </time>
         </header>
+
+        {procedures.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {procedures.map((p, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
+              >
+                <Stethoscope className="h-3.5 w-3.5" />
+                {p.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         {isHtml ? (
           <div

@@ -8,7 +8,9 @@ interface Entry {
   content: string;
   dentist_user_id: string | null;
   treatment_id?: string | null;
-  executed_value?: number | null;
+  patient_history_treatments?: Array<{
+    treatment: { id: string; procedure_type: string; tooth_number: number | null } | null;
+  }> | null;
 }
 
 interface Props {
@@ -48,18 +50,31 @@ export function HistoryTimeline({
   return (
     <div className="relative space-y-6 border-l border-gold/20 pl-2">
       {entries.map((e) => {
-        const t = e.treatment_id ? treatmentById[e.treatment_id] : null;
-        const procLabel = t
-          ? `${t.procedure_type}${t.tooth_number ? ` · dente ${t.tooth_number}` : ""}`
-          : null;
+        // Prefer many-to-many join; fallback to legacy single treatment_id
+        const joined = (e.patient_history_treatments ?? [])
+          .map((j) => j.treatment)
+          .filter(Boolean) as Array<{ id: string; procedure_type: string; tooth_number: number | null }>;
+
+        let procedures = joined.map((t) => ({
+          label: `${t.procedure_type}${t.tooth_number ? ` · dente ${t.tooth_number}` : ""}`,
+        }));
+
+        if (procedures.length === 0 && e.treatment_id) {
+          const t = treatmentById[e.treatment_id];
+          if (t) {
+            procedures = [{
+              label: `${t.procedure_type}${t.tooth_number ? ` · dente ${t.tooth_number}` : ""}`,
+            }];
+          }
+        }
+
         return (
           <HistoryEntryCard
             key={e.id}
             createdAt={e.created_at}
             dentistName={e.dentist_user_id ? dentistNameById[e.dentist_user_id] : null}
             contentHtml={e.content}
-            procedureLabel={procLabel}
-            executedValue={Number(e.executed_value || 0)}
+            procedures={procedures}
           />
         );
       })}
