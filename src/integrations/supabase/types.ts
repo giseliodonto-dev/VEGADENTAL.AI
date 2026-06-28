@@ -839,6 +839,42 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_history_treatments: {
+        Row: {
+          created_at: string
+          history_id: string
+          id: string
+          treatment_id: string
+        }
+        Insert: {
+          created_at?: string
+          history_id: string
+          id?: string
+          treatment_id: string
+        }
+        Update: {
+          created_at?: string
+          history_id?: string
+          id?: string
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_history_treatments_history_id_fkey"
+            columns: ["history_id"]
+            isOneToOne: false
+            referencedRelation: "patient_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_history_treatments_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_odontogram: {
         Row: {
           clinic_id: string
@@ -1295,6 +1331,15 @@ export type Database = {
           id: string
           name: string
         }[]
+      }
+      record_clinical_evolution: {
+        Args: {
+          _content: string
+          _patient_id: string
+          _summary: string
+          _treatment_ids: string[]
+        }
+        Returns: string
       }
       seed_default_procedures: {
         Args: { _clinic_id: string }
