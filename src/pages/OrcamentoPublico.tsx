@@ -1,16 +1,15 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { CheckCircle2, Loader2, FileText, Download, MessageCircle, Printer } from "lucide-react";
+import { Loader2, FileText, Download, MessageCircle, Printer } from "lucide-react";
 import { format } from "date-fns";
-import { generateContractPdf } from "@/utils/contractPdf";
+import { generateTreatmentPlanPdf } from "@/utils/treatmentPlanPdf";
+import { buildPaymentOptions, selectedPaymentKey } from "@/utils/paymentOptions";
 import { openWhatsApp } from "@/lib/whatsapp";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -18,15 +17,16 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-amber-100 text-amber-800 border-amber-300" },
-  enviado: { label: "Aguardando Aceite", color: "bg-blue-100 text-blue-800 border-blue-300" },
+  enviado: { label: "Enviado", color: "bg-blue-100 text-blue-800 border-blue-300" },
   aceito: { label: "Aceito", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   recusado: { label: "Recusado", color: "bg-red-100 text-red-800 border-red-300" },
   expirado: { label: "Expirado", color: "bg-muted text-muted-foreground" },
 };
 
+const brl = (n: number) => `R$ ${Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
 export default function OrcamentoPublico() {
   const { token } = useParams<{ token: string }>();
-  const [signature, setSignature] = useState("");
 
   const tokenClient = useMemo(() => {
     if (!token) return null;
@@ -36,7 +36,7 @@ export default function OrcamentoPublico() {
     });
   }, [token]);
 
-  const { data: budget, isLoading, refetch } = useQuery({
+  const { data: budget, isLoading } = useQuery({
     queryKey: ["public-budget", token],
     queryFn: async () => {
       if (!tokenClient) return null;
@@ -63,7 +63,7 @@ export default function OrcamentoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clinics")
-        .select("name, phone, email, address, responsible_name, responsible_cro, logo_url, cancellation_fee")
+        .select("name, phone, email, address, responsible_name, responsible_cro, logo_url")
         .eq("id", budget.clinic_id)
         .maybeSingle();
       if (error) throw error;
@@ -77,7 +77,7 @@ export default function OrcamentoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("name, cpf, rg, phone, email, street, number, neighborhood, city, state, postal_code")
+        .select("name, cpf, phone")
         .eq("id", budget.patient_id)
         .maybeSingle();
       if (error) throw error;
@@ -86,41 +86,24 @@ export default function OrcamentoPublico() {
     enabled: !!budget?.patient_id,
   });
 
-  const acceptMutation = useMutation({
-    mutationFn: async () => {
-      if (!signature.trim()) throw new Error("Digite seu nome completo");
-      if (!tokenClient) throw new Error("Token inválido");
-      const { error } = await (tokenClient as any)
-        .from("budgets")
-        .update({ status: "aceito", accepted_signature: signature.trim(), accepted_at: new Date().toISOString() })
-        .eq("id", budget.id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Plano de tratamento aceito!"); refetch(); },
-    onError: (e: any) => toast.error(e.message || "Erro ao aceitar"),
-  });
-
   const handleDownloadPdf = async () => {
     if (!budget || !clinic || !patient) return;
-    const paymentMethod = budget.notes?.replace(/^Forma de pagamento:\s*/i, "") || null;
-    const doc = await generateContractPdf({
+    const doc = await generateTreatmentPlanPdf({
       clinic,
       patient,
       items: items as any,
       totalValue: Number(budget.total_value),
       discount: Number(budget.discount || 0),
       finalValue: Number(budget.final_value),
-      paymentMethod,
+      paymentMethod: budget.notes?.replace(/^Forma de pagamento:\s*/i, "") || null,
       validUntil: budget.valid_until ? format(new Date(budget.valid_until), "dd/MM/yyyy") : null,
       createdAt: format(new Date(budget.created_at), "dd/MM/yyyy"),
-      acceptedSignature: budget.accepted_signature,
-      acceptedAt: budget.accepted_at ? format(new Date(budget.accepted_at), "dd/MM/yyyy 'às' HH:mm") : null,
     });
-    doc.save(`contrato-${patient.name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    doc.save(`plano-tratamento-${patient.name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
   };
 
   const handleWhatsApp = () => {
-    const message = `Olá ${patient?.name?.split(" ")[0] || ""}, segue seu plano de tratamento da ${clinic?.name || "clínica"}:\n\n${window.location.href}\n\nValor: R$ ${Number(budget.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    const message = `Olá ${patient?.name?.split(" ")[0] || ""}, segue seu plano de tratamento da ${clinic?.name || "clínica"}:\n\n${window.location.href}\n\nValor: ${brl(budget.final_value)}`;
     openWhatsApp(patient?.phone, message);
   };
 
@@ -134,7 +117,7 @@ export default function OrcamentoPublico() {
         <Card className="max-w-md w-full mx-4">
           <CardContent className="p-8 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold">Contrato não encontrado</h2>
+            <h2 className="text-lg font-semibold">Plano de tratamento não encontrado</h2>
             <p className="text-sm text-muted-foreground mt-2">Este link pode estar expirado ou inválido.</p>
           </CardContent>
         </Card>
@@ -143,16 +126,16 @@ export default function OrcamentoPublico() {
   }
 
   const st = statusLabels[budget.status] || statusLabels.pendente;
-  const isAcceptable = budget.status === "pendente" || budget.status === "enviado";
-  const paymentMethodLabel = budget.notes?.replace(/^Forma de pagamento:\s*/i, "") || "—";
   const clinicInitials = (clinic?.name || "C").split(" ").map((s: string) => s[0]).join("").slice(0, 2).toUpperCase();
+  const paymentOptions = buildPaymentOptions(Number(budget.final_value));
+  const chosen = selectedPaymentKey(budget.notes);
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
-      {/* Sticky action bar - hidden on print */}
+      {/* Barra de ações — oculta na impressão */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-amber-400/30 print:hidden">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Contrato de Tratamento</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">Plano de Tratamento</span>
           <div className="flex gap-2 ml-auto">
             <Button onClick={handleDownloadPdf} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5">
               <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Baixar PDF</span>
@@ -170,7 +153,7 @@ export default function OrcamentoPublico() {
       <div className="max-w-3xl mx-auto px-4 py-8 print:py-2">
         <Card className="border-amber-400/30 shadow-sm print:shadow-none print:border-0">
           <CardContent className="p-8 sm:p-12 print:p-6 font-serif">
-            {/* ===== Official Header ===== */}
+            {/* ===== Cabeçalho ===== */}
             <header className="text-center pb-6 border-b border-amber-400/40">
               {clinic?.logo_url ? (
                 <img src={clinic.logo_url} alt={clinic.name} className="h-16 mx-auto mb-3 object-contain" />
@@ -184,9 +167,7 @@ export default function OrcamentoPublico() {
               </h1>
               {(clinic?.responsible_name || clinic?.responsible_cro) && (
                 <p className="text-sm italic text-slate-600 mt-1">
-                  {clinic?.responsible_name}
-                  {clinic?.responsible_name && clinic?.responsible_cro && " — "}
-                  {clinic?.responsible_cro}
+                  {[clinic?.responsible_name, clinic?.responsible_cro].filter(Boolean).join(" | ")}
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-2">
@@ -194,10 +175,10 @@ export default function OrcamentoPublico() {
               </p>
             </header>
 
-            {/* ===== Title ===== */}
+            {/* ===== Título ===== */}
             <div className="text-center mt-8 mb-6">
               <h2 className="text-base sm:text-lg font-bold tracking-wide" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#103444" }}>
-                CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS
+                PLANO DE TRATAMENTO E ORÇAMENTO
               </h2>
               <div className="w-20 h-px bg-amber-500 mx-auto mt-2" />
               <div className="flex items-center justify-center gap-3 mt-3 text-xs text-muted-foreground">
@@ -207,42 +188,25 @@ export default function OrcamentoPublico() {
               </div>
             </div>
 
-            {/* ===== Parties ===== */}
-            <div className="grid md:grid-cols-2 gap-4 text-sm mt-6">
-              <div className="border border-amber-400/40 rounded-lg p-4 space-y-1 bg-amber-50/30">
-                <p className="text-[10px] uppercase tracking-wider text-amber-700 font-semibold mb-1">Contratada (Clínica)</p>
-                <p className="font-semibold" style={{ color: "#103444" }}>{clinic?.name || "—"}</p>
-                {clinic?.responsible_name && <p className="text-xs text-slate-600">Resp. Técnica: {clinic.responsible_name}</p>}
-                {clinic?.responsible_cro && <p className="text-xs text-slate-600">{clinic.responsible_cro}</p>}
-                {clinic?.address && <p className="text-xs text-muted-foreground">{clinic.address}</p>}
-                {(clinic?.phone || clinic?.email) && (
-                  <p className="text-xs text-muted-foreground">{[clinic.phone, clinic.email].filter(Boolean).join(" • ")}</p>
-                )}
+            {/* ===== Paciente ===== */}
+            <div className="border border-amber-400/40 rounded-lg p-4 bg-amber-50/30 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-amber-700 font-semibold mb-1">Paciente</p>
+                <p className="font-semibold text-base" style={{ color: "#103444" }}>{patient?.name || "—"}</p>
+                <p className="text-xs text-slate-600">
+                  {[patient?.cpf && `CPF: ${patient.cpf}`, patient?.phone].filter(Boolean).join("  •  ")}
+                </p>
               </div>
-              <div className="border border-amber-400/40 rounded-lg p-4 space-y-1 bg-amber-50/30">
-                <p className="text-[10px] uppercase tracking-wider text-amber-700 font-semibold mb-1">Contratante (Paciente)</p>
-                <p className="font-semibold" style={{ color: "#103444" }}>{patient?.name || "—"}</p>
-                {patient?.cpf && <p className="text-xs text-slate-600">CPF: {patient.cpf}</p>}
-                {patient?.rg && <p className="text-xs text-slate-600">RG: {patient.rg}</p>}
-                {(patient?.phone || patient?.email) && (
-                  <p className="text-xs text-muted-foreground">{[patient.phone, patient.email].filter(Boolean).join(" • ")}</p>
-                )}
-                {(patient?.street || patient?.city) && (
-                  <p className="text-xs text-muted-foreground">
-                    {[patient.street, patient.number, patient.neighborhood, patient.city, patient.state, patient.postal_code].filter(Boolean).join(", ")}
-                  </p>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Emissão: {format(new Date(budget.created_at), "dd/MM/yyyy")}
+              </p>
             </div>
 
-            {/* ===== Object ===== */}
+            {/* ===== Procedimentos ===== */}
             <section className="mt-8">
               <h3 className="text-sm font-bold tracking-wide mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#103444" }}>
-                1. OBJETO DO CONTRATO
+                PROCEDIMENTOS PLANEJADOS
               </h3>
-              <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                O presente contrato tem por objeto a prestação de serviços odontológicos pela <strong>Contratada</strong> ao <strong>Contratante</strong>, conforme plano de tratamento abaixo discriminado:
-              </p>
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="bg-slate-100 px-4 py-2 grid grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
                   <div className="col-span-5">Procedimento</div>
@@ -255,118 +219,80 @@ export default function OrcamentoPublico() {
                     <div className="col-span-5 text-slate-800">{item.procedure_name}</div>
                     <div className="col-span-2 text-slate-500">{item.tooth_number || "—"}</div>
                     <div className="col-span-2 text-slate-500">{item.region || "—"}</div>
-                    <div className="col-span-3 text-right text-slate-800 font-medium">
-                      R$ {Number(item.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </div>
+                    <div className="col-span-3 text-right text-slate-800 font-medium">{brl(item.value)}</div>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* ===== Values ===== */}
+            {/* ===== Valores ===== */}
             <section className="mt-8">
-              <h3 className="text-sm font-bold tracking-wide mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#103444" }}>
-                2. VALORES E CONDIÇÕES DE PAGAMENTO
-              </h3>
               <div className="border border-amber-400/30 rounded-lg p-5 bg-gradient-to-br from-white to-amber-50/40">
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal</span>
-                    <span>R$ {Number(budget.total_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span>{brl(budget.total_value)}</span>
                   </div>
                   {Number(budget.discount) > 0 && (
                     <div className="flex justify-between text-red-600">
                       <span>Desconto</span>
-                      <span>- R$ {Number(budget.discount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span>- {brl(budget.discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-baseline pt-3 mt-3 border-t border-amber-400/40">
-                    <span className="text-xs uppercase tracking-wider text-amber-700 font-semibold">Valor Final</span>
+                    <span className="text-xs uppercase tracking-wider text-amber-700 font-semibold">Valor Total</span>
                     <span className="text-2xl font-bold" style={{ color: "#103444", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      R$ {Number(budget.final_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {brl(budget.final_value)}
                     </span>
                   </div>
-                  <div className="pt-3 text-xs text-slate-600 capitalize">
-                    <span className="font-semibold">Forma de pagamento:</span> {paymentMethodLabel}
-                  </div>
                 </div>
               </div>
             </section>
 
-            {/* ===== Clauses ===== */}
+            {/* ===== Formas de pagamento ===== */}
             <section className="mt-8">
               <h3 className="text-sm font-bold tracking-wide mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#103444" }}>
-                3. CLÁUSULAS CONTRATUAIS
+                FORMAS DE PAGAMENTO
               </h3>
-              <ol className="space-y-3 text-sm text-slate-700 leading-relaxed">
-                <li><strong>3.1.</strong> O Contratante declara estar ciente do plano de tratamento proposto e que o sucesso do resultado depende da resposta biológica individual e do cumprimento rigoroso das orientações fornecidas pela Contratada.</li>
-                <li><strong>3.2.</strong> O Contratante compromete-se a seguir todas as orientações pré e pós-operatórias, comparecer às sessões agendadas e colaborar ativamente para o êxito do tratamento.</li>
-                <li><strong>3.3.</strong> Faltas não justificadas com no mínimo 24 (vinte e quatro) horas de antecedência poderão gerar taxa de reagendamento no valor de <strong>R$ {Number(clinic?.cancellation_fee || 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>, em razão da reserva da hora clínica.</li>
-                <li><strong>3.4.</strong> O presente orçamento tem validade de <strong>15 (quinze) dias corridos</strong> a partir da data de emissão, podendo os valores serem reajustados após este prazo.</li>
-                <li><strong>3.5.</strong> Fica eleito o foro da comarca da Contratada para dirimir quaisquer questões oriundas deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</li>
-              </ol>
+              <div className="border border-amber-400/30 rounded-lg divide-y divide-amber-400/20 overflow-hidden">
+                {paymentOptions.map((opt) => {
+                  const isChosen = chosen === opt.key;
+                  return (
+                    <div
+                      key={opt.key}
+                      className={`px-5 py-3 flex items-baseline justify-between gap-4 ${isChosen ? "bg-amber-50/70" : "bg-white"}`}
+                    >
+                      <div>
+                        <p className={`text-sm ${isChosen ? "font-bold" : "font-medium"}`} style={{ color: "#103444" }}>
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {opt.detail}
+                          {isChosen && <span className="text-amber-700 font-medium"> · condição escolhida</span>}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: "#103444" }}>{opt.highlight}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
 
-            {/* ===== Signatures ===== */}
-            <section className="mt-12 grid md:grid-cols-2 gap-8">
+            {/* ===== Assinaturas ===== */}
+            <section className="mt-14 grid md:grid-cols-2 gap-10">
               <div className="text-center">
-                <div className="border-t-2 border-slate-400 pt-2 min-h-[60px] flex items-end justify-center">
-                  {budget.accepted_signature ? (
-                    <p className="italic text-base mb-1" style={{ color: "#103444", fontFamily: "'Dancing Script', cursive" }}>
-                      {budget.accepted_signature}
-                    </p>
-                  ) : null}
-                </div>
-                <p className="text-xs text-slate-600 mt-1">Assinatura do Contratante</p>
+                <div className="border-t border-slate-400 pt-2" />
+                <p className="text-xs text-slate-600 mt-1">Assinatura do Paciente</p>
                 <p className="text-[11px] text-muted-foreground">{patient?.name}</p>
-                {budget.accepted_at && (
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Aceito em {format(new Date(budget.accepted_at), "dd/MM/yyyy 'às' HH:mm")}
-                  </p>
-                )}
               </div>
               <div className="text-center">
-                <div className="border-2 border-amber-500/60 rounded-lg p-4 min-h-[80px] flex flex-col items-center justify-center bg-amber-50/30">
-                  <p className="font-bold text-sm" style={{ color: "#103444", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    {clinic?.responsible_name || clinic?.name}
-                  </p>
-                  {clinic?.responsible_cro && (
-                    <p className="text-xs text-slate-600 mt-0.5">{clinic.responsible_cro}</p>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 mt-2">Responsável Técnica</p>
+                <div className="border-t border-slate-400 pt-2" />
+                <p className="text-xs text-slate-600 mt-1">Assinatura da Profissional</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {[clinic?.responsible_name || clinic?.name, clinic?.responsible_cro].filter(Boolean).join(" | ")}
+                </p>
               </div>
             </section>
-
-            {/* ===== Acceptance Form ===== */}
-            {budget.status === "aceito" ? (
-              <div className="mt-10 bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center print:hidden">
-                <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-1" />
-                <p className="font-semibold text-emerald-800">Contrato Aceito</p>
-              </div>
-            ) : isAcceptable ? (
-              <div className="mt-10 pt-8 border-t border-amber-400/40 print:hidden">
-                <h4 className="font-semibold mb-2" style={{ color: "#103444" }}>Aceitar Contrato</h4>
-                <p className="text-sm text-slate-600 mb-3">
-                  Digite seu nome completo abaixo como assinatura digital para formalizar o aceite deste contrato.
-                </p>
-                <Input
-                  placeholder="Nome completo"
-                  value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  className="text-lg mb-3"
-                />
-                <Button
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                  size="lg"
-                  onClick={() => acceptMutation.mutate()}
-                  disabled={acceptMutation.isPending || !signature.trim()}
-                >
-                  {acceptMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                  Aceitar e Assinar Contrato
-                </Button>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
       </div>
