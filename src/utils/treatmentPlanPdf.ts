@@ -222,8 +222,10 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   // ===== Formas de pagamento
   const options = buildPaymentOptions(data.finalValue);
   const chosen = selectedPaymentKey(data.paymentMethod);
-  const boxH = 12 + options.length * 11;
-  if (y + boxH > H - 55) { doc.addPage(); y = 24; }
+  const boxH = 12 + options.length * 10.5;
+  // Só quebra página se o box de pagamento não couber acima da faixa de assinaturas
+  if (y - 5 + boxH > H - 34) { doc.addPage(); y = 24; }
+
 
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.2);
