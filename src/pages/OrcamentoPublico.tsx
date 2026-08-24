@@ -77,7 +77,8 @@ export default function OrcamentoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("name, cpf, phone")
+        .select("name, cpf, rg, phone")
+
         .eq("id", budget.patient_id)
         .maybeSingle();
       if (error) throw error;
