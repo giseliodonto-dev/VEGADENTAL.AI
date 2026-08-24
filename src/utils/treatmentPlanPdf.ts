@@ -21,8 +21,10 @@ export interface TreatmentPlanPdfData {
   patient: {
     name: string;
     cpf?: string | null;
+    rg?: string | null;
     phone?: string | null;
   };
+
   items: PlanItem[];
   totalValue: number;
   discount: number;
@@ -36,8 +38,28 @@ export interface TreatmentPlanPdfData {
 const PETROL: [number, number, number] = [16, 52, 68];
 const GOLD: [number, number, number] = [180, 142, 70];
 
+/** Identidade institucional usada como fallback quando o cadastro estiver incompleto. */
+const INSTITUTIONAL = {
+  name: "GC Odontologia",
+  responsible: "Dra. Giseli da Costa Lage",
+  cro: "CROSP 165429",
+  units: "Unidades: Cajamar e Alphaville",
+};
+
 const fmt = (n: number) =>
   `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Deixa o telefone legível: 5511917031358 -> (11) 91703-1358 */
+function fmtPhone(raw?: string | null): string | null {
+  if (!raw) return null;
+  let d = raw.replace(/\D/g, "");
+  if (!d) return raw;
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return raw;
+}
+
 
 async function loadImageAsDataUrl(url: string): Promise<string | null> {
   try {
@@ -74,31 +96,32 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
     }
   }
 
-  // ===== Cabeçalho
+  // ===== Cabeçalho institucional
+  const clinicName = (data.clinic.name || "").trim() || INSTITUTIONAL.name;
+  const respName = (data.clinic.responsible_name || "").trim() || INSTITUTIONAL.responsible;
+  const respCro = (data.clinic.responsible_cro || "").trim() || INSTITUTIONAL.cro;
+  const units = (data.clinic.address || "").trim() || INSTITUTIONAL.units;
+  const phone = fmtPhone(data.clinic.phone);
+
   doc.setTextColor(...PETROL);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text(data.clinic.name, W / 2, y, { align: "center" });
+  doc.text(clinicName, W / 2, y, { align: "center" });
   y += 6;
 
-  const resp = [data.clinic.responsible_name, data.clinic.responsible_cro].filter(Boolean).join(" | ");
-  if (resp) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.setTextColor(90);
-    doc.text(resp, W / 2, y, { align: "center" });
-    y += 5;
-  }
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  doc.text(`${respName} | ${respCro}`, W / 2, y, { align: "center" });
+  y += 5;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(120);
-  const contact = [data.clinic.address, data.clinic.phone, data.clinic.email].filter(Boolean).join(" • ");
-  if (contact) {
-    const lines = doc.splitTextToSize(contact, W - M * 2);
-    doc.text(lines, W / 2, y, { align: "center" });
-    y += lines.length * 4;
-  }
+  const contact = [units, phone, data.clinic.email].filter(Boolean).join(" • ");
+  const contactLines = doc.splitTextToSize(contact, W - M * 2);
+  doc.text(contactLines, W / 2, y, { align: "center" });
+  y += contactLines.length * 4;
 
   y += 3;
   doc.setDrawColor(...GOLD);
@@ -120,7 +143,7 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   // ===== Dados do paciente
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.2);
-  doc.roundedRect(M, y - 5, W - M * 2, 20, 1.5, 1.5);
+  doc.roundedRect(M, y - 5, W - M * 2, 21, 1.5, 1.5);
   doc.setFontSize(7);
   doc.setTextColor(...GOLD);
   doc.setFont("helvetica", "bold");
@@ -128,15 +151,16 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...PETROL);
-  doc.text(data.patient.name, M + 3, y + 6);
+  doc.text(doc.splitTextToSize(data.patient.name, W - M * 2 - 60)[0], M + 3, y + 6);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(90);
-  const pLine = [
-    data.patient.cpf && `CPF: ${data.patient.cpf}`,
-    data.patient.phone,
+  const docsLine = [
+    `CPF: ${data.patient.cpf || "—"}`,
+    `RG: ${data.patient.rg || "—"}`,
+    fmtPhone(data.patient.phone),
   ].filter(Boolean).join("  •  ");
-  if (pLine) doc.text(pLine, M + 3, y + 11);
+  doc.text(docsLine, M + 3, y + 11.5);
 
   doc.setFontSize(8);
   doc.setTextColor(120);
@@ -144,7 +168,8 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   if (data.validUntil) {
     doc.text(`Válido até ${data.validUntil}`, W - M - 3, y + 6, { align: "right" });
   }
-  y += 24;
+  y += 25;
+
 
   // ===== Procedimentos
   doc.setTextColor(...PETROL);
@@ -229,9 +254,9 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   });
   y += boxH + 6;
 
-  // ===== Assinaturas
-  if (y > H - 45) { doc.addPage(); y = H - 60; }
-  y = Math.max(y, H - 55);
+  // ===== Assinaturas (sempre dentro da área útil da página)
+  if (y > H - 40) { doc.addPage(); y = 40; }
+  y = Math.max(y, H - 45);
   doc.setDrawColor(...PETROL);
   doc.setLineWidth(0.3);
   doc.line(M, y, M + 70, y);
@@ -240,16 +265,13 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   doc.setFontSize(8);
   doc.setTextColor(60);
   doc.text("Assinatura do Paciente", M, y + 4);
-  doc.text(data.patient.name, M, y + 8);
+  doc.text(doc.splitTextToSize(data.patient.name, 70)[0], M, y + 8);
   doc.text("Assinatura da Profissional", W - M - 70, y + 4);
-  if (data.clinic.responsible_name) {
-    doc.text(data.clinic.responsible_name, W - M - 70, y + 8);
-    if (data.clinic.responsible_cro) {
-      doc.setFontSize(7);
-      doc.setTextColor(120);
-      doc.text(data.clinic.responsible_cro, W - M - 70, y + 12);
-    }
-  }
+  doc.text(respName, W - M - 70, y + 8);
+  doc.setFontSize(7);
+  doc.setTextColor(120);
+  doc.text(respCro, W - M - 70, y + 12);
+
 
   doc.setFontSize(7);
   doc.setTextColor(150);

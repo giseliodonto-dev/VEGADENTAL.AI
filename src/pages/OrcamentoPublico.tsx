@@ -77,7 +77,8 @@ export default function OrcamentoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("name, cpf, phone")
+        .select("name, cpf, rg, phone")
+
         .eq("id", budget.patient_id)
         .maybeSingle();
       if (error) throw error;
@@ -194,8 +195,9 @@ export default function OrcamentoPublico() {
                 <p className="text-[10px] uppercase tracking-wider text-amber-700 font-semibold mb-1">Paciente</p>
                 <p className="font-semibold text-base" style={{ color: "#103444" }}>{patient?.name || "—"}</p>
                 <p className="text-xs text-slate-600">
-                  {[patient?.cpf && `CPF: ${patient.cpf}`, patient?.phone].filter(Boolean).join("  •  ")}
+                  {[`CPF: ${patient?.cpf || "—"}`, `RG: ${(patient as any)?.rg || "—"}`, patient?.phone].filter(Boolean).join("  •  ")}
                 </p>
+
               </div>
               <p className="text-xs text-muted-foreground">
                 Emissão: {format(new Date(budget.created_at), "dd/MM/yyyy")}
