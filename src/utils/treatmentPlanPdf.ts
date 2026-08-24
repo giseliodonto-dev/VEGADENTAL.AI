@@ -38,8 +38,28 @@ export interface TreatmentPlanPdfData {
 const PETROL: [number, number, number] = [16, 52, 68];
 const GOLD: [number, number, number] = [180, 142, 70];
 
+/** Identidade institucional usada como fallback quando o cadastro estiver incompleto. */
+const INSTITUTIONAL = {
+  name: "GC Odontologia",
+  responsible: "Dra. Giseli da Costa Lage",
+  cro: "CROSP 165429",
+  units: "Unidades: Cajamar e Alphaville",
+};
+
 const fmt = (n: number) =>
   `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Deixa o telefone legível: 5511917031358 -> (11) 91703-1358 */
+function fmtPhone(raw?: string | null): string | null {
+  if (!raw) return null;
+  let d = raw.replace(/\D/g, "");
+  if (!d) return raw;
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return raw;
+}
+
 
 async function loadImageAsDataUrl(url: string): Promise<string | null> {
   try {
