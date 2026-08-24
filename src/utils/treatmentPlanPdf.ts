@@ -21,8 +21,10 @@ export interface TreatmentPlanPdfData {
   patient: {
     name: string;
     cpf?: string | null;
+    rg?: string | null;
     phone?: string | null;
   };
+
   items: PlanItem[];
   totalValue: number;
   discount: number;
