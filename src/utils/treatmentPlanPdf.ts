@@ -254,9 +254,9 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   });
   y += boxH + 6;
 
-  // ===== Assinaturas
-  if (y > H - 45) { doc.addPage(); y = H - 60; }
-  y = Math.max(y, H - 55);
+  // ===== Assinaturas (sempre dentro da área útil da página)
+  if (y > H - 40) { doc.addPage(); y = 40; }
+  y = Math.max(y, H - 45);
   doc.setDrawColor(...PETROL);
   doc.setLineWidth(0.3);
   doc.line(M, y, M + 70, y);
@@ -265,16 +265,13 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   doc.setFontSize(8);
   doc.setTextColor(60);
   doc.text("Assinatura do Paciente", M, y + 4);
-  doc.text(data.patient.name, M, y + 8);
+  doc.text(doc.splitTextToSize(data.patient.name, 70)[0], M, y + 8);
   doc.text("Assinatura da Profissional", W - M - 70, y + 4);
-  if (data.clinic.responsible_name) {
-    doc.text(data.clinic.responsible_name, W - M - 70, y + 8);
-    if (data.clinic.responsible_cro) {
-      doc.setFontSize(7);
-      doc.setTextColor(120);
-      doc.text(data.clinic.responsible_cro, W - M - 70, y + 12);
-    }
-  }
+  doc.text(respName, W - M - 70, y + 8);
+  doc.setFontSize(7);
+  doc.setTextColor(120);
+  doc.text(respCro, W - M - 70, y + 12);
+
 
   doc.setFontSize(7);
   doc.setTextColor(150);
