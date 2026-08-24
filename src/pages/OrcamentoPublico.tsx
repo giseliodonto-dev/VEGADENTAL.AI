@@ -58,34 +58,38 @@ export default function OrcamentoPublico() {
     enabled: !!budget?.id && !!tokenClient,
   });
 
-  const { data: clinic } = useQuery({
-    queryKey: ["public-clinic", budget?.clinic_id],
+  // Clínica e paciente vêm por RPC token-gated (leitura anônima das tabelas é bloqueada por RLS)
+  const { data: parties } = useQuery({
+    queryKey: ["public-budget-parties", token],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clinics")
-        .select("name, phone, email, address, responsible_name, responsible_cro, logo_url")
-        .eq("id", budget.clinic_id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_public_budget_parties", { _token: token as string });
       if (error) throw error;
-      return data as any;
+      return (Array.isArray(data) ? data[0] : data) as any;
     },
-    enabled: !!budget?.clinic_id,
+    enabled: !!token && !!budget?.id,
   });
 
-  const { data: patient } = useQuery({
-    queryKey: ["public-patient", budget?.patient_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("name, cpf, rg, phone")
+  const clinic = parties
+    ? {
+        name: parties.clinic_name,
+        phone: parties.clinic_phone,
+        email: parties.clinic_email,
+        address: parties.clinic_address,
+        responsible_name: parties.clinic_responsible_name,
+        responsible_cro: parties.clinic_responsible_cro,
+        logo_url: parties.clinic_logo_url,
+      }
+    : null;
 
-        .eq("id", budget.patient_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!budget?.patient_id,
-  });
+  const patient = parties
+    ? {
+        name: parties.patient_name,
+        cpf: parties.patient_cpf,
+        rg: parties.patient_rg,
+        phone: parties.patient_phone,
+      }
+    : null;
+
 
   const handleDownloadPdf = async () => {
     if (!budget || !clinic || !patient) return;
