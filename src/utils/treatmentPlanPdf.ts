@@ -96,31 +96,32 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
     }
   }
 
-  // ===== Cabeçalho
+  // ===== Cabeçalho institucional
+  const clinicName = (data.clinic.name || "").trim() || INSTITUTIONAL.name;
+  const respName = (data.clinic.responsible_name || "").trim() || INSTITUTIONAL.responsible;
+  const respCro = (data.clinic.responsible_cro || "").trim() || INSTITUTIONAL.cro;
+  const units = (data.clinic.address || "").trim() || INSTITUTIONAL.units;
+  const phone = fmtPhone(data.clinic.phone);
+
   doc.setTextColor(...PETROL);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text(data.clinic.name, W / 2, y, { align: "center" });
+  doc.text(clinicName, W / 2, y, { align: "center" });
   y += 6;
 
-  const resp = [data.clinic.responsible_name, data.clinic.responsible_cro].filter(Boolean).join(" | ");
-  if (resp) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.setTextColor(90);
-    doc.text(resp, W / 2, y, { align: "center" });
-    y += 5;
-  }
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  doc.text(`${respName} | ${respCro}`, W / 2, y, { align: "center" });
+  y += 5;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(120);
-  const contact = [data.clinic.address, data.clinic.phone, data.clinic.email].filter(Boolean).join(" • ");
-  if (contact) {
-    const lines = doc.splitTextToSize(contact, W - M * 2);
-    doc.text(lines, W / 2, y, { align: "center" });
-    y += lines.length * 4;
-  }
+  const contact = [units, phone, data.clinic.email].filter(Boolean).join(" • ");
+  const contactLines = doc.splitTextToSize(contact, W - M * 2);
+  doc.text(contactLines, W / 2, y, { align: "center" });
+  y += contactLines.length * 4;
 
   y += 3;
   doc.setDrawColor(...GOLD);
@@ -142,7 +143,7 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   // ===== Dados do paciente
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.2);
-  doc.roundedRect(M, y - 5, W - M * 2, 20, 1.5, 1.5);
+  doc.roundedRect(M, y - 5, W - M * 2, 21, 1.5, 1.5);
   doc.setFontSize(7);
   doc.setTextColor(...GOLD);
   doc.setFont("helvetica", "bold");
@@ -150,15 +151,16 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...PETROL);
-  doc.text(data.patient.name, M + 3, y + 6);
+  doc.text(doc.splitTextToSize(data.patient.name, W - M * 2 - 60)[0], M + 3, y + 6);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(90);
-  const pLine = [
-    data.patient.cpf && `CPF: ${data.patient.cpf}`,
-    data.patient.phone,
+  const docsLine = [
+    `CPF: ${data.patient.cpf || "—"}`,
+    `RG: ${data.patient.rg || "—"}`,
+    fmtPhone(data.patient.phone),
   ].filter(Boolean).join("  •  ");
-  if (pLine) doc.text(pLine, M + 3, y + 11);
+  doc.text(docsLine, M + 3, y + 11.5);
 
   doc.setFontSize(8);
   doc.setTextColor(120);
@@ -166,7 +168,8 @@ export async function generateTreatmentPlanPdf(data: TreatmentPlanPdfData) {
   if (data.validUntil) {
     doc.text(`Válido até ${data.validUntil}`, W - M - 3, y + 6, { align: "right" });
   }
-  y += 24;
+  y += 25;
+
 
   // ===== Procedimentos
   doc.setTextColor(...PETROL);
