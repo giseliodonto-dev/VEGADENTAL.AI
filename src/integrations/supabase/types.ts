@@ -1311,6 +1311,22 @@ export type Database = {
         Args: { _name: string; _slug: string }
         Returns: string
       }
+      get_public_budget_parties: {
+        Args: { _token: string }
+        Returns: {
+          clinic_address: string
+          clinic_email: string
+          clinic_logo_url: string
+          clinic_name: string
+          clinic_phone: string
+          clinic_responsible_cro: string
+          clinic_responsible_name: string
+          patient_cpf: string
+          patient_name: string
+          patient_phone: string
+          patient_rg: string
+        }[]
+      }
       get_user_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
       has_clinic_role: {
         Args: {
